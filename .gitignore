@@ -1,0 +1,12 @@
+node_modules/
+.local/
+dist/
+release/
+.env
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.DS_Store
+
+# 本地项目记忆/状态（不进公开仓库）
+.workbuddy/
