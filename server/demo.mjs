@@ -194,37 +194,9 @@ export function seedDemoIfEmpty() {
     upsert("emails", emails, ["id"]);
   }
 
-  if (counts.reports === 0) {
-    const members = [
-      { id: "u1", name: "小林", blockers: ["支付网关联调被阻塞，等后端接口"], review: ["路线图优先级需主管确认"] },
-      { id: "u2", name: "王磊", blockers: [], review: ["大客户合同条款待审批"] },
-      { id: "u3", name: "周婷", blockers: ["测试环境数据缺失，阻塞回归"], review: [] },
-    ];
-    const now = new Date().toISOString();
-    upsert(
-      "dingtalk_members",
-      [
-        { user_id: "u1", name: "小林", dept_id: "d1", dept_name: "产品", is_manager: 0, updated_at: now },
-        { user_id: "u2", name: "王磊", dept_id: "d2", dept_name: "销售", is_manager: 0, updated_at: now },
-        { user_id: "u3", name: "周婷", dept_id: "d3", dept_name: "测试", is_manager: 0, updated_at: now },
-        { user_id: "mgr", name: "你（主管）", dept_id: "d0", dept_name: "管理层", is_manager: 1, updated_at: now },
-      ],
-      ["user_id"],
-    );
-    const reports = members.map((m) => ({
-      id: uuid(),
-      user_id: m.id,
-      user_name: m.name,
-      report_date: today,
-      template_name: "工作日报",
-      content_json: JSON.stringify(`${m.name} 今日进展；阻塞：${m.blockers.join("；") || "无"}`),
-      blockers: JSON.stringify(m.blockers),
-      needs_review: JSON.stringify(m.review),
-      summary: m.blockers.length ? `存在阻塞：${m.blockers[0]}` : "进展正常",
-      created_at: now,
-    }));
-    upsert("dingtalk_reports", reports, ["id"]);
-  }
+  // 注意：钉钉日志报告（dingtalk_reports）与团队成员（dingtalk_members）不再播演示种子，
+  // 改为完全依赖真实钉钉同步（同步后写入）。这样概览页「团队阻塞点 / 待审核 / 未提交」
+  // 不会出现演示假数据；未连接钉钉时这些模块自然为空，等待真实数据填充。
 
   if (counts.projects === 0) {
     const now = new Date().toISOString();
@@ -285,31 +257,9 @@ export function seedDemoIfEmpty() {
     }
   }
 
-  if (counts.calendars === 0) {
-    // 相对"现在"播种，保证任意时刻查看都有「进行中 + 即将开始」的演示效果
-    const now = new Date().toISOString();
-    const mk = (offsetStart, lenMin, title, location, organizer) => ({
-      id: uuid(),
-      source: "demo",
-      title,
-      start_at: isoMinutesFromNow(offsetStart),
-      end_at: isoMinutesFromNow(offsetStart + lenMin),
-      location,
-      organizer,
-      day: today,
-      raw_json: "{}",
-      created_at: now,
-    });
-    upsert(
-      "calendars",
-      [
-        mk(-20, 60, "晨会 · 今日优先级对齐", "会议室 A", "你"),
-        mk(45, 30, "客户 A 合同同步", "https://meet.demo.com/room-ca", "销售 赵刚"),
-        mk(140, 45, "数据看板 at_risk 项目推进", "会议室 B", "你"),
-      ],
-      ["id"],
-    );
-  }
+  // 注意：日历会议（calendars）不再播演示种子，改为完全依赖真实钉钉日程同步
+  // （同步后写入 source='dingtalk' 的行）。这样概览页「今日会议日程」不会出现演示假会议；
+  // 未连接钉钉时该模块自然为空，等待真实数据填充。
 
   for (const n of [0, 1, 2, 3, 4]) {
     const d = isoDaysAgo(n);

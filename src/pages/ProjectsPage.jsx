@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar } from "@tabler/icons-react";
 import { api } from "../api.js";
 import { StatusPill } from "../lib/project-status.jsx";
@@ -151,7 +152,11 @@ export default function ProjectsPage() {
 
   return (
     <div>
-      <div className="page-head"><div><h1>项目时间线</h1><div className="sub">需求评审 → 产品设计 → 开发 → 测试 → 上线，一目了然</div></div></div>
+      <PageHeader
+        eyebrow="PROJECTS / ROADMAP"
+        title="项目时间线"
+        description="需求评审 → 产品设计 → 开发 → 测试 → 上线，一目了然"
+      />
 
       <div className="panel" style={{ marginBottom: 14 }}>
         <div className="panel__head">

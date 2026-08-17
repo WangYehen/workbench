@@ -39,6 +39,9 @@ export const outlookApi = {
   setStatus: (id, status) => api.post(`/outlook/todos/${encodeURIComponent(id)}/status`, { status }),
   correct: (id, patch) => api.patch(`/outlook/messages/${encodeURIComponent(id)}/correction`, patch),
   convert: (id) => api.post(`/outlook/messages/${encodeURIComponent(id)}/task`, {}),
+  // 邮件回复草稿：生成（tone=formal/friendly/action，force=true 强制重生成）与读取缓存
+  draft: (id, opts = {}) => api.post(`/outlook/messages/${encodeURIComponent(id)}/draft`, opts),
+  getDraft: (id) => api.get(`/outlook/messages/${encodeURIComponent(id)}/draft`),
 };
 
 export function todayStr() {
@@ -48,9 +51,9 @@ export function todayStr() {
 export const teamApi = {
   reports: (date) => api.get(`/team/reports?date=${date}`),
   sync: (date) => api.post("/team/sync/reports", { date }),
-  // 钉钉全部日志模板
-  dingtalkTemplates: () => api.get("/team/dingtalk-templates"),
-  // 已配置要拉取的模板 + 已知模板(id->name)
-  templateConfig: () => api.get("/team/report-templates"),
-  saveTemplateConfig: (templateIds) => api.post("/team/report-templates", { templateIds }),
+  // 手动维护的日志模板（增删改/启停）
+  templateList: () => api.get("/team/report-templates"),
+  templateCreate: (name) => api.post("/team/report-templates", { name }),
+  templateUpdate: (id, patch) => api.put(`/team/report-templates/${id}`, patch),
+  templateDelete: (id) => api.del(`/team/report-templates/${id}`),
 };

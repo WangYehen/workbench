@@ -11,7 +11,7 @@
     "start": "cross-env NODE_ENV=production node server/index.mjs",
     "electron:dev": "concurrently -k -n SERVER,CLIENT -c blue,green \"node server/index.mjs\" \"vite\"",
     "electron:build": "vite build && electron-builder",
-    "test": "node --test server/**/*.test.mjs"
+    "test": "node --test server/"
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",

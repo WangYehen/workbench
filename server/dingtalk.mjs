@@ -22,9 +22,41 @@ function dayMs(dateStr) {
   return d.getTime();
 }
 
+function ymdLocal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// 钉钉返回的多种时间形态统一转成 epoch 毫秒。
+// 支持：ISO 字符串、纯数字时间戳（秒/毫秒自动判别）、{ dateTime }、{ time }、{ date }。
+function toEpochMs(v) {
+  if (v == null) return null;
+  if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
+  if (typeof v === "string") {
+    if (/^\d+$/.test(v)) { const n = Number(v); return n < 1e12 ? n * 1000 : n; }
+    const t = Date.parse(v);
+    return Number.isNaN(t) ? null : t;
+  }
+  if (typeof v === "object") {
+    if (v.dateTime) return Date.parse(v.dateTime);
+    if (v.time) return v.time < 1e12 ? v.time * 1000 : v.time;
+    if (v.date) return Date.parse(`${v.date}T00:00:00`);
+  }
+  return null;
+}
+
 export const dingtalk = {
   isConfigured() {
     return Boolean(config.dingtalk.clientId && config.dingtalk.clientSecret);
+  },
+
+  // 拉取钉钉日程除 appKey/secret 外，还需主管的 userid（staffId）以圈定其主日历。
+  // 仅当三者齐备才尝试真实同步，避免无 managerUserId 时每次请求都白打一遍钉钉。
+  calendarReady() {
+    return Boolean(
+      config.dingtalk.clientId &&
+        config.dingtalk.clientSecret &&
+        config.dingtalk.managerUserId,
+    );
   },
 
   getAuthUrl() {
@@ -88,7 +120,6 @@ export const dingtalk = {
     for (;;) {
       const body = { start_time: start, end_time: end, cursor, size: 20 };
       if (templateName) body.template_name = templateName;
-      else if (config.dingtalk.reportTemplateId) body.template_name = config.dingtalk.reportTemplateId;
       const res = await fetch(`${OAPI}/topapi/report/list?access_token=${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -105,28 +136,6 @@ export const dingtalk = {
       cursor = data?.result?.next_cursor ?? 0;
     }
     return reports;
-  },
-
-  // 拉取企业内所有日志模板（供页面勾选配置要拉取哪些）
-  // 接口：topapi/report/template/listbyuserid（注意不是 list）；返回 template_list，模板唯一标识为 report_code
-  async fetchReportTemplates() {
-    const token = await this.getAppToken();
-    const body = { offset: 0, size: 100 };
-    const res = await fetch(`${OAPI}/topapi/report/template/listbyuserid?access_token=${token}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`钉钉 template HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.errcode && data.errcode !== 0) {
-      throw new Error(`钉钉 template API errcode ${data.errcode}：${data.errmsg || ""}`);
-    }
-    const list = data?.result?.template_list || [];
-    return list.map((t) => ({
-      template_id: String(t.report_code || t.template_id || ""),
-      template_name: t.name || t.template_name || "",
-    }));
   },
 
   normalizeReports(data) {
@@ -147,31 +156,111 @@ export const dingtalk = {
     });
   },
 
-  async fetchCalendar(dateStr) {
+  // 钉钉员工 staffId → unionId（新版日历 REST API 以 unionId 作为路径参数）。
+  // unionId 相对稳定，做进程内缓存避免重复调用。
+  async getUnionId(staffId) {
+    if (!staffId) throw new Error("未配置 DINGTALK_MANAGER_USER_ID，无法拉取钉钉日程");
+    this._unionCache = this._unionCache || {};
+    if (this._unionCache[staffId]) return this._unionCache[staffId];
     const token = await this.getAppToken();
-    const start = Math.floor(dayMs(dateStr) / 1000);
-    const end = start + 24 * 3600;
-    const res = await fetch(`${OAPI}/topapi/calendar/list?access_token=${token}`, {
+    const res = await fetch(`${OAPI}/topapi/v2/user/get?access_token=${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ calendar_id: "primary", start_time: start, end_time: end, max_results: 50 }),
+      body: JSON.stringify({ userid: staffId }),
     });
-    if (!res.ok) throw new Error(`钉钉 calendar HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`钉钉 user/get HTTP ${res.status}`);
     const data = await res.json();
     if (data.errcode && data.errcode !== 0) {
-      throw new Error(`钉钉 calendar API errcode ${data.errcode}：${data.errmsg || ""}`);
+      throw new Error(`钉钉 user/get errcode ${data.errcode}：${data.errmsg || ""}`);
     }
-    const events = data?.events || data?.result?.events || [];
-    return events.map((e) => ({
-      id: String(e.id || Math.random()),
+    const unionId = data?.result?.unionid || data?.result?.userid || staffId;
+    this._unionCache[staffId] = unionId;
+    return unionId;
+  },
+
+  // 拉取指定时间范围内的钉钉日程（新版 REST API：api.dingtalk.com/v1.0/calendar/...）。
+  // 接口文档：开放平台「查询日程列表」
+  //   https://open.dingtalk.com/document/development/query-an-event-list
+  // 请求：GET /v1.0/calendar/users/{unionId}/calendars/primary/events
+  //   Header: x-acs-dingtalk-access-token = 企业内部应用 accessToken
+  //   Query : timeMin/timeMax（ISO-8601 date-time，差值≤1年），maxResults(≤100)，nextToken 翻页
+  // 响应：events[]，每项含 id / summary / start{dateTime|date|time} / end / location / organizer
+  async fetchCalendarRange(startMs, endMs) {
+    const staffId = config.dingtalk.managerUserId;
+    const token = await this.getAppToken();
+    const unionId = await this.getUnionId(staffId);
+    const events = [];
+    let nextToken = null;
+    for (let page = 0; page < 20; page++) {
+      const url = new URL(`${NEW_API}/v1.0/calendar/users/${encodeURIComponent(unionId)}/calendars/primary/events`);
+      url.searchParams.set("timeMin", new Date(startMs).toISOString());
+      url.searchParams.set("timeMax", new Date(endMs).toISOString());
+      url.searchParams.set("maxResults", "100");
+      if (nextToken) url.searchParams.set("nextToken", nextToken);
+      const res = await fetch(url, { method: "GET", headers: { "x-acs-dingtalk-access-token": token } });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`钉钉日程 HTTP ${res.status}：${txt.slice(0, 240)}`);
+      }
+      const data = await res.json();
+      if (data?.code && String(data.code) !== "0") {
+        throw new Error(`钉钉日程 API 错误 ${data.code}：${data.message || ""}`);
+      }
+      const items = data?.events || data?.result?.events || [];
+      for (const e of items) events.push(this.normalizeCalendarEvent(e));
+      nextToken = data?.nextToken || data?.result?.nextToken || null;
+      if (!nextToken || !items.length) break;
+    }
+    return events;
+  },
+
+  normalizeCalendarEvent(e) {
+    const startMs = toEpochMs(e.start);
+    const endMs = toEpochMs(e.end);
+    const start = startMs ? new Date(startMs) : null;
+    const day = start ? ymdLocal(start) : "";
+    let organizer = "";
+    if (e.organizer) {
+      organizer = typeof e.organizer === "string"
+        ? e.organizer
+        : (e.organizer.name || e.organizer.display_name || e.organizer.unionId || "");
+    }
+    const location = e.location || (Array.isArray(e.conferences) && e.conferences[0]?.uri) || "";
+    return {
+      id: String(e.id || e.event_id || Math.random()),
       source: "dingtalk",
       title: e.summary || e.title || "(日程)",
-      start_at: new Date((e.start?.time || e.start_time || e.dtstart || 0) * 1000).toISOString(),
-      end_at: e.end?.time ? new Date(e.end.time * 1000).toISOString() : null,
-      location: e.location || "",
-      organizer: e.organizer || e.creator || "",
-      day: dateStr,
+      start_at: start ? start.toISOString() : new Date().toISOString(),
+      end_at: endMs ? new Date(endMs).toISOString() : null,
+      location,
+      organizer,
+      day,
+      raw: e,
+    };
+  },
+
+  // 把某日期区间的钉钉日程写入 calendars 表（按 id 幂等 upsert，前缀 dt_ 区分来源）。
+  // 返回新写入/更新的条数。
+  async syncCalendarForRange(startDateStr, endDateStr) {
+    const startMs = dayMs(startDateStr);
+    const endMs = dayMs(endDateStr) + 24 * 3600 * 1000;
+    const events = await this.fetchCalendarRange(startMs, endMs);
+    if (!events.length) return 0;
+    const now = new Date().toISOString();
+    const rows = events.map((e) => ({
+      id: `dt_${e.id}`,
+      source: "dingtalk",
+      title: e.title,
+      start_at: e.start_at,
+      end_at: e.end_at,
+      location: e.location,
+      organizer: e.organizer,
+      day: e.day,
+      raw_json: JSON.stringify(e.raw),
+      created_at: now,
     }));
+    upsert("calendars", rows, ["id"]);
+    return rows.length;
   },
 
   async fetchMembers() {
@@ -198,26 +287,16 @@ export const dingtalk = {
   },
 
   async syncReports(dateStr) {
-    // 读取页面配置的要拉取的模板 ID 列表（存于 sync_state）
-    const selRow = kv("selected_template_ids");
-    const selected = Array.isArray(selRow) ? selRow : [];
+    // 手动维护的日志模板：只拉取「启用」的模板（按 name 服务端过滤），
+    // 不再调用钉钉模板列表接口、不回退 .env、不拉全量；无启用模板时直接跳过。
+    const db = getDb();
+    const rows = db.prepare("SELECT name FROM report_templates WHERE enabled=1 ORDER BY id").all();
     let reports = [];
-    if (selected.length) {
-      // 按所选模板逐个用官方 template_name 服务端过滤拉取（文档标准用法），再按 report_id 去重合并。
-      // 先取 report_code -> template_name 映射（fetchReportTemplates 返回的 template_id 实为 report_code）。
-      let nameByCode = {};
-      try {
-        const tpls = await this.fetchReportTemplates();
-        nameByCode = Object.fromEntries((tpls || []).map((t) => [t.template_id, t.template_name]));
-        // 直接用官方模板列表刷新 known_templates（结构干净、不再手工累积，避免 template_name 被套成嵌套数组）
-        setKv("known_templates", (tpls || []).map((t) => ({ template_id: String(t.template_id || ""), template_name: String(t.template_name || "") })));
-      } catch {
-        /* 模板名解析失败则不刷新 known_templates，也不拉全量，避免污染 */
-      }
+    if (rows.length) {
       const seen = new Set();
-      for (const code of selected) {
-        const name = nameByCode[code];
-        if (!name) continue; // 名称解析不到就不拉，避免传空 template_name 拉回全量
+      for (const row of rows) {
+        const name = String(row.name || "").trim();
+        if (!name) continue;
         const part = await this.fetchReports(dateStr, name);
         for (const r of part) {
           if (seen.has(r.id)) continue; // 跨模板去重
@@ -227,10 +306,6 @@ export const dingtalk = {
           reports.push(r);
         }
       }
-    } else if (config.dingtalk.reportTemplateId) {
-      reports = await this.fetchReports(dateStr, config.dingtalk.reportTemplateId);
-    } else {
-      reports = await this.fetchReports(dateStr);
     }
     const now = new Date().toISOString();
     upsert(

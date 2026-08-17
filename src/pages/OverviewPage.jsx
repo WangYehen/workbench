@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import {
   IconMail,
@@ -95,15 +96,12 @@ export default function OverviewPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>概览面板</h1>
-          <div className="sub">{data.date} · 周{g.wd} · {greeting}</div>
-        </div>
-        <div className="row">
-          <DateNav date={date} onChange={setDate} />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="OVERVIEW / WORKBENCH"
+        title="概览面板"
+        description={`${data.date} · 周${g.wd} · ${greeting}`}
+        actions={<DateNav date={date} onChange={setDate} />}
+      />
 
       <div className="metric-strip">
         {metrics.map((m) => (

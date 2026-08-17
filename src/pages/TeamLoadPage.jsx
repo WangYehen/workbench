@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconUsersGroup, IconUserCheck, IconAlertTriangle, IconFlame, IconInfoCircle } from "@tabler/icons-react";
 import { api } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
@@ -42,12 +43,12 @@ export default function TeamLoadPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div><h1>团队负载</h1><div className="sub">{data.date} · 谁在做什么、谁卡住了，一目了然</div></div>
-        <div className="row">
-          <DateNav date={date} onChange={setDate} />
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="TEAM / LOAD"
+        title="团队负载"
+        description={`${data.date} · 谁在做什么、谁卡住了，一目了然`}
+        actions={<DateNav date={date} onChange={setDate} />}
+      />
 
       <div className="metric-strip">
         {metrics.map((m) => (

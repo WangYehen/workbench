@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import {
   IconCalendar,
   IconCalendarEvent,
@@ -9,9 +10,15 @@ import {
   IconChevronRight,
   IconLayoutGrid,
   IconLayoutList,
+  IconRefresh,
 } from "@tabler/icons-react";
-import { api, todayStr } from "../api.js";
+import { api } from "../api.js";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
+
+// 本地日期字符串（YYYY-MM-DD），避免 toISOString 在东八区把当天算成前一天
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 function monthMatrix(year, month) {
   const first = new Date(year, month, 1);
@@ -56,26 +63,61 @@ export default function CalendarPage() {
   const [weekStartDate, setWeekStartDate] = useState(() => startOfWeek(now));
   const [weekData, setWeekData] = useState([]);
   const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const [selected, setSelected] = useState(todayStr());
+  const [selected, setSelected] = useState(ymd(now));
   const [day, setDay] = useState(null);
+  const [monthData, setMonthData] = useState([]);
   const [err, setErr] = useState("");
+  const [syncError, setSyncError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [syncNonce, setSyncNonce] = useState(0); // 手动同步后强制各视图重新加载
 
   async function loadDay(date) {
     try {
-      setDay(await api.get(`/calendar/day/${date}`));
+      const d = await api.get(`/calendar/day/${date}`);
+      setDay(d);
+      setConfigured(!!d.configured);
+      setSyncError(d.syncError || "");
     } catch (e) {
       setErr(e.message);
     }
   }
-  useEffect(() => { loadDay(selected); }, [selected]);
+  useEffect(() => { loadDay(selected); }, [selected, syncNonce]);
 
   // 周数据加载
   useEffect(() => {
-    const ds = weekStartDate.toISOString().slice(0, 10);
+    const ds = ymd(weekStartDate);
     api.get(`/calendar/week?start=${ds}`)
-      .then((r) => setWeekData(r.days || []))
+      .then((r) => { setWeekData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); })
       .catch(() => setWeekData([]));
-  }, [weekStartDate]);
+  }, [weekStartDate, syncNonce]);
+
+  // 月数据加载
+  useEffect(() => {
+    if (viewMode !== "month") return;
+    api.get(`/calendar/month?year=${month.y}&month=${month.m}`)
+      .then((r) => { setMonthData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); })
+      .catch(() => setMonthData([]));
+  }, [viewMode, month, syncNonce]);
+
+  async function syncNow() {
+    if (!configured) {
+      setSyncError("钉钉未配置：请先在「系统」页连接钉钉，并在 .env 配置 DINGTALK_MANAGER_USER_ID");
+      return;
+    }
+    setSyncing(true);
+    try {
+      const start = viewMode === "month" ? ymd(new Date(month.y, month.m, 1)) : ymd(weekStartDate);
+      const end = viewMode === "month" ? ymd(new Date(month.y, month.m + 1, 0)) : ymd(new Date(weekStartDate.getTime() + 6 * 24 * 3600 * 1000));
+      await api.post("/calendar/sync", { start, end });
+      setSyncError("");
+      setSyncNonce((n) => n + 1); // 触发当日/周/月重新加载
+    } catch (e) {
+      setSyncError(e.message || "同步失败");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   function shiftWeek(delta) {
     const d = new Date(weekStartDate);
@@ -84,7 +126,7 @@ export default function CalendarPage() {
   }
   function jumpToToday() {
     setWeekStartDate(startOfWeek(new Date()));
-    setSelected(todayStr());
+    setSelected(ymd(new Date()));
   }
 
   function selectDay(dateStr) {
@@ -102,34 +144,36 @@ export default function CalendarPage() {
     d.setDate(d.getDate() + i);
     return d;
   });
-  const t = todayStr();
+  const t = ymd(new Date());
 
   const cells = monthMatrix(month.y, month.m);
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>日历 / 日详情</h1>
-          <div className="sub">{viewMode === "week" ? "周视图 · 默认展示本周，可左右切换或展开月份" : "月视图 · 点击任意一天查看当日邮件 / 待办 / 会议 / 日志 / 复盘"}</div>
-        </div>
-        <div className="row">
-          <button
-            className={`btn sm ${viewMode === "week" ? "primary" : ""}`}
-            onClick={() => setViewMode("week")}
-          >
-            <IconLayoutList size={14} stroke={2} /> 周视图
-          </button>
-          <button
-            className={`btn sm ${viewMode === "month" ? "primary" : ""}`}
-            onClick={() => setViewMode("month")}
-          >
-            <IconLayoutGrid size={14} stroke={2} /> 月视图
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="CALENDAR / SCHEDULE"
+        title="日历 / 日详情"
+        description={viewMode === "week" ? "周视图 · 默认展示本周，可左右切换或展开月份" : "月视图 · 点击任意一天查看当日邮件 / 待办 / 会议 / 日志 / 复盘"}
+        actions={
+          <div className="row">
+            <span className={`pill ${configured ? "green" : "gray"}`}>
+              {configured ? "钉钉日程已接入" : "演示数据（未接入钉钉）"}
+            </span>
+            <button className="btn sm" onClick={syncNow} disabled={syncing} title="从钉钉拉取最新日程">
+              <IconRefresh size={14} stroke={2} /> {syncing ? "同步中…" : "同步钉钉日程"}
+            </button>
+            <button className={`btn sm ${viewMode === "week" ? "primary" : ""}`} onClick={() => setViewMode("week")}>
+              <IconLayoutList size={14} stroke={2} /> 周视图
+            </button>
+            <button className={`btn sm ${viewMode === "month" ? "primary" : ""}`} onClick={() => setViewMode("month")}>
+              <IconLayoutGrid size={14} stroke={2} /> 月视图
+            </button>
+          </div>
+        }
+      />
 
       {err && <div className="error">{err}</div>}
+      {syncError && <div className="error">钉钉日程同步未成功（仍可查看已有/演示数据）：{syncError}</div>}
 
       {viewMode === "week" ? (
         <div className="panel" style={{ marginBottom: 14 }}>
@@ -151,7 +195,7 @@ export default function CalendarPage() {
           <div className="week-grid">
             {WEEK_DAY_LABELS.map((label, i) => {
               const d = weekDays[i];
-              const ds = d.toISOString().slice(0, 10);
+              const ds = ymd(d);
               const info = weekData.find((x) => x.date === ds);
               const meetings = info?.meetings || [];
               const todoCount = info?.todos || 0;
@@ -214,20 +258,38 @@ export default function CalendarPage() {
             ))}
             {cells.map((c, i) => {
               if (!c) return <div key={i} className="cal-cell dim" />;
-              const ds = c.toISOString().slice(0, 10);
+              const ds = ymd(c);
               const isToday = ds === t;
               const isSel = ds === selected;
+              const info = monthData.find((x) => x.date === ds);
+              const meetings = info?.meetings || [];
+              const todoCount = info?.todos || 0;
+              const emailCount = info?.emails || 0;
               return (
                 <div
                   key={i}
-                  className={`cal-cell ${isToday ? "today" : ""}`}
-                  style={isSel ? { borderColor: "var(--accent)", boxShadow: "0 0 0 2px var(--accent-ghost)" } : {}}
+                  className={`cal-cell ${isToday ? "today" : ""} ${isSel ? "is-selected" : ""}`}
                   onClick={() => selectDay(ds)}
                 >
-                  <div className="dnum">{c.getDate()}</div>
-                  <div style={{ marginTop: 4 }}>
-                    <span className="dot blue" />
-                    <span className="dot red" />
+                  <div className="cal-cell__head">
+                    <span className="dnum">{c.getDate()}</span>
+                    <div className="cal-cell__counts">
+                      {todoCount > 0 && <span className="cal-cell__count amber" title={`${todoCount} 待办`}>{todoCount}</span>}
+                      {emailCount > 0 && <span className="cal-cell__count red" title={`${emailCount} 邮件`}>{emailCount}</span>}
+                    </div>
+                  </div>
+                  <div className="cal-cell__events">
+                    {meetings.slice(0, 2).map((m) => (
+                      <span key={m.id} className="cal-cell__pill">
+                        <span className="dot" /> {(m.title || "").slice(0, 10)}
+                      </span>
+                    ))}
+                    {meetings.length > 2 && (
+                      <span className="cal-cell__more">+{meetings.length - 2}</span>
+                    )}
+                    {!meetings.length && !todoCount && !emailCount && (
+                      <span className="cal-cell__empty">无安排</span>
+                    )}
                   </div>
                 </div>
               );
@@ -245,7 +307,7 @@ export default function CalendarPage() {
                 当日会议（{day.meetings.length}）
               </div>
             </div>
-            <MeetingSchedule meetings={day.meetings} live={day.date === todayStr()} />
+            <MeetingSchedule meetings={day.meetings} live={day.date === ymd(new Date())} />
           </div>
 
           <div className="panel">
@@ -257,7 +319,7 @@ export default function CalendarPage() {
             </div>
             <div className="list">
               {day.todos.map((t) => (
-                <div className="item" key={t.id}><span className={`pill ${t.status === "done" ? "green" : "amber"}`}>{t.priority}</span><div className="title">{t.title}</div></div>
+                <div className="item" key={t.id}><span className={`pill ${t.status === "done" ? "green" : { P0: "p0", P1: "p1", P2: "p2" }[t.priority] || "p2"}`}>{t.priority}</span><div className="title">{t.title}</div></div>
               ))}
               {!day.todos.length && <div className="empty">无</div>}
             </div>

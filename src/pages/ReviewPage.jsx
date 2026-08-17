@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconNotebook, IconBrain } from "@tabler/icons-react";
 import { api, todayStr } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
@@ -22,13 +23,17 @@ export default function ReviewPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div><h1>今日复盘</h1><div className="sub">{date} · 记录所做事 / 所学 / 所错，形成成长复盘</div></div>
-        <div className="row">
-          <DateNav date={date} onChange={setDate} />
-          {saved && <span className="pill green">已保存</span>}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="REVIEW / RETRO"
+        title="今日复盘"
+        description={`${date} · 记录所做事 / 所学 / 所错，形成成长复盘`}
+        actions={
+          <div className="row">
+            <DateNav date={date} onChange={setDate} />
+            {saved && <span className="pill green">已保存</span>}
+          </div>
+        }
+      />
       <div className="grid grid-2">
         <div className="panel">
           <div className="panel__head">

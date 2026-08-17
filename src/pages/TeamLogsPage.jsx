@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { IconUsersGroup, IconUserX, IconHistory, IconForms, IconRefresh } from "@tabler/icons-react";
+import { PageHeader } from "../components/PageHeader";
+import { IconUsersGroup, IconUserX, IconHistory, IconForms, IconTrash, IconPencil, IconCheck, IconX } from "@tabler/icons-react";
 import { api, teamApi, todayStr } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
 
@@ -10,12 +11,13 @@ export default function TeamLogsPage() {
   const [syncing, setSyncing] = useState(false);
   const [configured, setConfigured] = useState(false);
 
+  // 手动维护的日志模板（增删改/启停）
   const [tplOpen, setTplOpen] = useState(false);
-  const [tplList, setTplList] = useState([]);
-  const [tplSelected, setTplSelected] = useState([]);
-  const [tplKnown, setTplKnown] = useState({});
+  const [tpls, setTpls] = useState([]);
+  const [tplNewName, setTplNewName] = useState("");
+  const [tplEditId, setTplEditId] = useState(null);
+  const [tplEditName, setTplEditName] = useState("");
   const [tplLoading, setTplLoading] = useState(false);
-  const [tplSaving, setTplSaving] = useState(false);
   const [tplErr, setTplErr] = useState("");
 
   async function load() {
@@ -29,17 +31,17 @@ export default function TeamLogsPage() {
   }
   useEffect(() => { load(); }, [date]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const c = await teamApi.templateConfig();
-        setTplSelected(c.selected || []);
-        const map = {};
-        (c.known || []).forEach((t) => { map[t.template_id] = t.template_name; });
-        setTplKnown(map);
-      } catch (e) { /* 模板配置非必需 */ }
-    })();
-  }, []);
+  async function loadTemplates() {
+    setTplLoading(true);
+    try {
+      const r = await teamApi.templateList();
+      setTpls(r.templates || []);
+    } catch (e) {
+      setTplErr(e.message);
+    }
+    setTplLoading(false);
+  }
+  useEffect(() => { loadTemplates(); }, []);
 
   async function sync() {
     setSyncing(true);
@@ -54,67 +56,100 @@ export default function TeamLogsPage() {
   }
 
   async function openTpl() {
-    setTplOpen(true);
+    setTplOpen((prev) => !prev);
+    setTplErr("");
+    await loadTemplates();
+  }
+
+  async function addTpl() {
+    if (!tplNewName.trim()) return;
     setTplErr("");
     setTplLoading(true);
     try {
-      const r = await teamApi.dingtalkTemplates();
-      setTplList(r.templates || []);
-      setTplKnown((prev) => {
-        const next = { ...prev };
-        (r.templates || []).forEach((t) => { if (t.template_id) next[t.template_id] = t.template_name; });
-        return next;
-      });
+      await teamApi.templateCreate(tplNewName.trim());
+      setTplNewName("");
+      await loadTemplates();
     } catch (e) {
       setTplErr(e.message);
     }
     setTplLoading(false);
   }
 
-  function toggleTpl(id) {
-    setTplSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  }
-
-  async function saveTpl() {
-    setTplSaving(true);
+  async function toggleTplEnabled(t, enabled) {
     setTplErr("");
     try {
-      await teamApi.saveTemplateConfig(tplSelected);
+      await teamApi.templateUpdate(t.id, { enabled });
+      await loadTemplates();
     } catch (e) {
       setTplErr(e.message);
     }
-    setTplSaving(false);
+  }
+
+  function startEdit(t) {
+    setTplEditId(t.id);
+    setTplEditName(t.name);
+    setTplErr("");
+  }
+  function cancelEdit() {
+    setTplEditId(null);
+    setTplEditName("");
+  }
+
+  async function saveEdit() {
+    if (!tplEditName.trim() || tplEditId == null) return;
+    setTplErr("");
+    setTplLoading(true);
+    try {
+      await teamApi.templateUpdate(tplEditId, { name: tplEditName.trim() });
+      cancelEdit();
+      await loadTemplates();
+    } catch (e) {
+      setTplErr(e.message);
+    }
+    setTplLoading(false);
+  }
+
+  async function deleteTpl(t) {
+    if (!window.confirm(`删除模板「${t.name}」？已同步的历史日志不会被删除，但后续同步将不再拉取该模板。`)) return;
+    setTplErr("");
+    setTplLoading(true);
+    try {
+      await teamApi.templateDelete(t.id);
+      await loadTemplates();
+    } catch (e) {
+      setTplErr(e.message);
+    }
+    setTplLoading(false);
   }
 
   if (err) return <div className="error">错误：{err}</div>;
   if (!data) return <div className="spinner">加载中…</div>;
 
-  const tplCount = tplSelected.length;
+  const tplCount = tpls.length;
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>团队日志</h1>
-          <div className="sub">拉取成员日志 · AI 分析阻塞与审核要点 · 区分已提交/未提交</div>
-        </div>
-        <div className="row">
-          <DateNav date={date} onChange={setDate} />
-          {configured && (
-            <button className="btn ghost" onClick={openTpl}>
-              <IconForms size={16} stroke={1.75} /> 日志模板（{tplCount}）
-            </button>
-          )}
-          {configured && (
-            <button className="btn primary" onClick={sync} disabled={syncing}>
-              {syncing ? "同步中…" : "同步钉钉"}
-            </button>
-          )}
-          {!configured && <span className="pill gray">未配置钉钉（演示数据）</span>}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="TEAM / LOGS"
+        title="团队日志"
+        description="拉取成员日志 · AI 分析阻塞与审核要点 · 区分已提交/未提交"
+        actions={
+          <div className="row">
+            <DateNav date={date} onChange={setDate} />
+            {configured && (
+              <button className="btn ghost" onClick={openTpl}>
+                <IconForms size={16} stroke={1.75} /> 日志模板（{tplCount}）
+              </button>
+            )}
+            {configured && (
+              <button className="btn primary" onClick={sync} disabled={syncing}>
+                {syncing ? "同步中…" : "同步钉钉"}
+              </button>
+            )}
+            {!configured && <span className="pill gray">未配置钉钉（演示数据）</span>}
+          </div>
+        }
+      />
 
       {tplOpen && (
         <div className="panel panel--hover" style={{ marginBottom: 16 }}>
@@ -126,40 +161,81 @@ export default function TeamLogsPage() {
             <button className="btn ghost" onClick={() => setTplOpen(false)}>收起</button>
           </div>
           <div className="sub" style={{ marginBottom: 10 }}>
-            勾选要拉取的日志模板，同步时将按选中的模板分别拉取当天日志；未勾选任何模板时，拉取全部日志。
+            手动添加要拉取的日志模板名称（钉钉后台的模板名），同步时将按名称分别拉取当天日志；停用的模板不参与拉取，没有启用模板时同步会跳过。
           </div>
           {tplErr && <div className="error" style={{ marginBottom: 8 }}>错误：{tplErr}</div>}
+
+          <div className="row" style={{ marginBottom: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <input
+                type="text"
+                placeholder="输入日志模板名称，如 IT部门日报"
+                value={tplNewName}
+                onChange={(e) => setTplNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void addTpl(); }}
+              />
+            </div>
+            <button className="btn primary" onClick={addTpl} disabled={tplLoading || !tplNewName.trim()}>
+              {tplLoading ? "处理中…" : "添加模板"}
+            </button>
+          </div>
+
           {tplLoading ? (
             <div className="spinner">加载模板中…</div>
           ) : (
             <div className="tpl-grid">
-              {tplList.map((t) => (
-                <label key={t.template_id} className="tpl-item">
+              {tpls.map((t) => (
+                <div key={t.id} className={`tpl-item${t.enabled ? "" : " is-disabled"}`}>
                   <input
                     type="checkbox"
-                    checked={tplSelected.includes(t.template_id)}
-                    onChange={() => toggleTpl(t.template_id)}
+                    checked={Boolean(t.enabled)}
+                    onChange={(e) => toggleTplEnabled(t, e.target.checked)}
+                    title={t.enabled ? "点击停用（不再拉取该模板）" : "点击启用（恢复拉取）"}
                   />
-                  <span className="tpl-item__name">{t.template_name || tplKnown[t.template_id] || "(未命名模板)"}</span>
-                  <span className="tpl-item__id">{t.template_id}</span>
-                </label>
+                  <div className="tpl-item__main">
+                    {tplEditId === t.id ? (
+                      <>
+                        <input
+                          type="text"
+                          value={tplEditName}
+                          onChange={(e) => setTplEditName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") void saveEdit(); if (e.key === "Escape") cancelEdit(); }}
+                          autoFocus
+                        />
+                        <span className="row" style={{ marginTop: 2 }}>
+                          <button className="tpl-item__act" onClick={saveEdit} title="保存" disabled={tplLoading || !tplEditName.trim()}>
+                            <IconCheck size={14} stroke={2} />
+                          </button>
+                          <button className="tpl-item__act" onClick={cancelEdit} title="取消">
+                            <IconX size={14} stroke={2} />
+                          </button>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="tpl-item__name">{t.name}</span>
+                        <span className="row" style={{ marginTop: 2 }}>
+                          <button className="tpl-item__act" onClick={() => startEdit(t)} title="编辑名称">
+                            <IconPencil size={13} stroke={2} />
+                          </button>
+                          <button className="tpl-item__act tpl-item__act--danger" onClick={() => deleteTpl(t)} title="删除模板">
+                            <IconTrash size={13} stroke={2} />
+                          </button>
+                          <span className="tpl-item__state">{t.enabled ? "启用中" : "已停用"}</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
               ))}
-              {!tplList.length && (
+              {!tpls.length && (
                 <div className="empty">
-                  暂无可勾选的模板。请确认钉钉「服务器出口 IP 白名单」已配置，或在 .env 设置 DINGTALK_REPORT_TEMPLATE_ID 作为默认模板。
+                  暂无模板，请先手动添加要同步的日志模板名称（钉钉后台显示的模板名）。
                 </div>
               )}
             </div>
           )}
-          <div className="row" style={{ marginTop: 12 }}>
-            <button className="btn primary" onClick={saveTpl} disabled={tplSaving}>
-              {tplSaving ? "保存中…" : "保存配置"}
-            </button>
-            <span className="meta">已选 {tplCount} 个模板</span>
-            <button className="btn ghost" onClick={openTpl} disabled={tplLoading}>
-              <IconRefresh size={15} stroke={1.75} /> 从钉钉刷新
-            </button>
-          </div>
+          <span className="meta" style={{ display: "block", marginTop: 10 }}>已添加 {tplCount} 个模板</span>
         </div>
       )}
 

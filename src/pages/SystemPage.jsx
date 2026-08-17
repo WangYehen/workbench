@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconSettings, IconServer } from "@tabler/icons-react";
 import { api } from "../api.js";
 
@@ -21,7 +22,11 @@ export default function SystemPage() {
 
   return (
     <div>
-      <div className="page-head"><div><h1>系统 / 接入</h1><div className="sub">配置数据源连接，未配置时使用演示数据</div></div></div>
+      <PageHeader
+        eyebrow="SYSTEM / INTEGRATIONS"
+        title="系统 / 接入"
+        description="配置数据源连接，未配置时使用演示数据"
+      />
 
       <div className="grid grid-2">
         <div className="panel">

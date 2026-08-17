@@ -68,6 +68,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
           ) : (
             <span className="pill gray">已结束</span>
           )}
+          {featured.source === "dingtalk" && <span className="pill blue">钉钉</span>}
         </div>
 
         <div className="meeting-feature-card__title">{featured.title}</div>
@@ -121,6 +122,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
                       {m.organizer}
                     </span>
                   )}
+                  {m.source === "dingtalk" && <span className="meeting-compact-row__org"><span className="pill blue" style={{ padding: "0 6px" }}>钉钉</span></span>}
                   <span className="meeting-compact-row__dur">{durationMin(m._start, m._end)} 分</span>
                 </div>
               );

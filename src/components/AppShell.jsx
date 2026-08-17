@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   IconLayoutDashboard,
+  IconGauge,
   IconMail,
   IconUsers,
   IconCalendarEvent,
@@ -12,13 +14,17 @@ import {
   IconUsersGroup,
   IconCalendarWeek,
   IconSettings,
+  IconMenu,
 } from "@tabler/icons-react";
 
 // 侧边栏导航：严格按 README「页面地图」分 4 组，顺序与标签一致。
 const NAV_GROUPS = [
   {
     title: "聚合首页",
-    items: [{ to: "/", label: "概览", Icon: IconLayoutDashboard }],
+    items: [
+      { to: "/", label: "概览", Icon: IconLayoutDashboard },
+      { to: "/overview2", label: "概览2 指挥台", Icon: IconGauge },
+    ],
   },
   {
     title: "信息源",
@@ -49,8 +55,9 @@ const NAV_GROUPS = [
 ];
 
 export function AppShell({ children }) {
+  const [navOpen, setNavOpen] = useState(false);
   return (
-    <div className="app">
+    <div className={`app${navOpen ? " nav-open" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true"></span>
@@ -64,7 +71,7 @@ export function AppShell({ children }) {
             <div className="nav-group" key={group.title}>
               <div className="nav-group__title">{group.title}</div>
               {group.items.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.to === "/"}>
+                <NavLink key={n.to} to={n.to} end={n.to === "/"} onClick={() => setNavOpen(false)}>
                   <n.Icon size={20} stroke={1.75} />
                   <span>{n.label}</span>
                 </NavLink>
@@ -73,7 +80,13 @@ export function AppShell({ children }) {
           ))}
         </nav>
       </aside>
-      <main className="main">{children}</main>
+      {navOpen && <div className="nav-overlay" onClick={() => setNavOpen(false)} />}
+      <main className="main">
+        <button className="nav-toggle" onClick={() => setNavOpen((o) => !o)} aria-label="切换导航菜单">
+          <IconMenu size={20} stroke={1.75} />
+        </button>
+        {children}
+      </main>
     </div>
   );
 }

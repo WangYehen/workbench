@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconChecklist, IconListCheck } from "@tabler/icons-react";
+import { DatePicker } from "../components/DatePicker";
 import { api } from "../api.js";
+
+// 优先级配置（统一语义）
+const PRIORITY_OPTIONS = [
+  { value: "P0", label: "P0 — 紧急", class: "p0" },
+  { value: "P1", label: "P1 — 重要", class: "p1" },
+  { value: "P2", label: "P2 — 普通", class: "p2" },
+];
+function priorityClass(p) { return { P0: "p0", P1: "p1", P2: "p2" }[p] || "p2"; }
 
 export default function TodosPage() {
   const [items, setItems] = useState(null);
@@ -29,7 +39,11 @@ export default function TodosPage() {
 
   return (
     <div>
-      <div className="page-head"><div><h1>今日待办</h1><div className="sub">手动添加个人待办任务</div></div></div>
+      <PageHeader
+        eyebrow="TODOS / TODAY"
+        title="今日待办"
+        description="手动添加个人待办任务"
+      />
 
       <div className="panel" style={{ marginBottom: 14 }}>
         <div className="panel__head">
@@ -37,10 +51,12 @@ export default function TodosPage() {
         </div>
         <div className="row wrap">
           <input placeholder="待办内容…" value={title} onChange={(e) => setTitle(e.target.value)} style={{ flex: 2, minWidth: 220 }} />
-          <select value={priority} onChange={(e) => setPriority(e.target.value)} style={{ width: 90 }}>
-            <option>P0</option><option>P1</option><option>P2</option>
+          <select value={priority} onChange={(e) => setPriority(e.target.value)} className="select-priority" data-priority={priority} style={{ width: 120 }}>
+            {PRIORITY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
-          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} style={{ width: 150 }} />
+          <DatePicker value={due} onChange={setDue} />
           <button className="btn primary" onClick={add}>添加</button>
         </div>
       </div>
@@ -54,7 +70,7 @@ export default function TodosPage() {
           {items.map((t) => (
             <div className="item" key={t.id}>
               <input type="checkbox" checked={t.status === "done"} onChange={() => toggle(t)} style={{ width: 18 }} />
-              <span className={`pill ${t.priority === "P0" ? "red" : t.priority === "P1" ? "amber" : "blue"}`}>{t.priority}</span>
+              <span className={`pill ${priorityClass(t.priority)}`}>{t.priority}</span>
               <div style={{ flex: 1 }}>
                 <div className="title" style={{ textDecoration: t.status === "done" ? "line-through" : "none" }}>{t.title}</div>
                 {t.due_date && <div className="sub">截止 {t.due_date}</div>}

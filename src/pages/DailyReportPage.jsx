@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconFileText, IconCalendar, IconEdit, IconCheck, IconUser } from "@tabler/icons-react";
 import { api, todayStr } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
@@ -61,12 +62,11 @@ export default function DailyReportPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>日报</h1>
-          <div className="sub">团队钉钉日报实时呈现，可回溯任意日期；亦可基于邮件 / 待办生成 AI 智能日报</div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="DAILY / REPORT"
+        title="日报"
+        description="团队钉钉日报实时呈现，可回溯任意日期；亦可基于邮件 / 待办生成 AI 智能日报"
+      />
 
       <div className="panel" style={{ marginBottom: 14 }}>
         <div className="panel__head">

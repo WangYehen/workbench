@@ -118,7 +118,6 @@ function migrate(d) {
       generated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_weekly ON weekly_reports(week_start DESC);
-
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -149,6 +148,24 @@ function migrate(d) {
     CREATE TABLE IF NOT EXISTS sync_state (
       key TEXT PRIMARY KEY,
       value_json TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS email_drafts (
+      message_id TEXT PRIMARY KEY,
+      draft_text TEXT NOT NULL,
+      tone TEXT DEFAULT 'formal',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    -- 手动维护的钉钉日志模板（替代旧的“调钉钉接口查全部模板 + 勾选”方案）
+    -- name 即钉钉日志接口服务端过滤用的 template_name；enabled=1 才参与同步拉取
+    CREATE TABLE IF NOT EXISTS report_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
     );
   `);
 
@@ -187,6 +204,15 @@ function migrate(d) {
   };
   for (const [c, t] of Object.entries(emAdds)) {
     if (!emCols.includes(c)) d.exec(`ALTER TABLE emails ADD COLUMN ${c} ${t}`);
+  }
+
+  // 007：weekly_reports 的 week_start 需 UNIQUE（/weekly/generate 用 ON CONFLICT(week_start) 覆盖生成）。
+  // 旧库的 idx_weekly 是普通索引，ON CONFLICT 会报 "does not match any PRIMARY KEY or UNIQUE constraint"；
+  // 把该索引重建为 UNIQUE（SQLite 的 ON CONFLICT 同样认唯一索引），幂等：仅当现有索引非唯一时重建。
+  const weeklyIdx = d.prepare("SELECT sql FROM sqlite_master WHERE type='index' AND name='idx_weekly'").get();
+  if (!weeklyIdx?.sql?.toUpperCase().includes("UNIQUE")) {
+    d.exec("DROP INDEX IF EXISTS idx_weekly");
+    d.exec("CREATE UNIQUE INDEX idx_weekly ON weekly_reports(week_start)");
   }
 }
 

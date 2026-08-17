@@ -1,6 +1,8 @@
 import express from "express";
 import { getDb, upsert } from "../db.mjs";
 import { OutlookServiceError } from "../outlook.mjs";
+import { ai } from "../ai.mjs";
+import { generateDraft } from "../outlook-draft.mjs";
 
 // 优先级（P0/P1/P2）映射到旧 emails 表的 importance / priority 字段，供概览、日历、系统页读取
 const PRIORITY_TO_IMPORTANCE = { P0: "high", P1: "medium", P2: "low" };
@@ -164,6 +166,29 @@ export default function outlookRouter(service) {
     await service.setMessageStatus(id, "converted");
     await mirrorToEmails(service);
     json(res, 200, { ok: true, id: todoId, title, priority, due_date: dueDate });
+  }));
+
+  // 获取已缓存的回复草稿（无则 draft 为 null）
+  router.get("/messages/:id/draft", wrap(async (req, res) => {
+    const row = getDb().prepare("SELECT draft_text, tone, updated_at FROM email_drafts WHERE message_id=?").get(decodeURIComponent(req.params.id));
+    json(res, 200, row ? { draft: row.draft_text, tone: row.tone, updatedAt: row.updated_at } : { draft: null });
+  }));
+
+  // 生成（或重新生成）回复草稿：本地生成 + 缓存，不写回 Outlook 邮箱
+  router.post("/messages/:id/draft", wrap(async (req, res) => {
+    assertAllowedObjectKeys(req.body || {}, new Set(["tone", "force"]), "OUTLOOK_INVALID_DRAFT_REQUEST");
+    const id = decodeURIComponent(req.params.id);
+    const { items } = await service.list("all");
+    const message = items.find((m) => m.id === id);
+    if (!message) throw new OutlookServiceError("OUTLOOK_MESSAGE_NOT_FOUND", "邮件不存在。");
+    const result = await generateDraft({
+      db: getDb(),
+      ai,
+      message,
+      tone: req.body?.tone || "formal",
+      force: Boolean(req.body?.force),
+    });
+    json(res, 200, { ...result, id });
   }));
 
   return router;

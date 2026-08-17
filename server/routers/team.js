@@ -43,36 +43,82 @@ router.post("/sync/reports", async (req, res) => {
   }
 });
 
-// 拉取钉钉企业内全部日志模板（供页面勾选）
-router.get("/dingtalk-templates", async (req, res) => {
-  if (!dingtalk.isConfigured()) return res.status(400).json({ error: "钉钉未配置" });
-  try {
-    const templates = await dingtalk.fetchReportTemplates();
-    res.json({ templates });
-  } catch (e) {
-    res.status(502).json({ error: e.message });
-  }
-});
+// ---------------------------------------------------------------------------
+// 日志模板（手动维护，替代旧的“调钉钉接口查全部模板 + 勾选”方案）
+// 同步时按 report_templates 中 enabled=1 的模板名称（template_name）服务端过滤拉取。
+// ---------------------------------------------------------------------------
 
-// 读取已配置的「要拉取哪些模板」
+// 列出全部手动维护的日志模板
 router.get("/report-templates", (req, res) => {
   const db = getDb();
-  const sel = db.prepare("SELECT value_json FROM sync_state WHERE key=?").get("selected_template_ids");
-  const known = db.prepare("SELECT value_json FROM sync_state WHERE key=?").get("known_templates");
-  res.json({
-    selected: sel ? JSON.parse(sel.value_json) : [],
-    known: known ? JSON.parse(known.value_json) : [],
-  });
+  const templates = db
+    .prepare("SELECT id, name, enabled, created_at, updated_at FROM report_templates ORDER BY id")
+    .all();
+  res.json({ templates });
 });
 
-// 保存要拉取的模板 ID 列表
+// 新增模板（仅需模板名称；名称必填、去重）
 router.post("/report-templates", (req, res) => {
-  const ids = Array.isArray(req.body.templateIds) ? req.body.templateIds.map(String) : [];
+  const name = String(req.body?.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "模板名称不能为空" });
+  if (name.length > 100) return res.status(400).json({ error: "模板名称过长" });
   const db = getDb();
-  db.prepare(
-    "INSERT INTO sync_state(key, value_json) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json",
-  ).run("selected_template_ids", JSON.stringify(ids));
-  res.json({ ok: true, selected: ids });
+  if (db.prepare("SELECT 1 FROM report_templates WHERE name=?").get(name)) {
+    return res.status(409).json({ error: "同名模板已存在" });
+  }
+  const now = new Date().toISOString();
+  const r = db
+    .prepare("INSERT INTO report_templates(name, enabled, created_at, updated_at) VALUES(?,1,?,?)")
+    .run(name, now, now);
+  const row = db
+    .prepare("SELECT id, name, enabled, created_at, updated_at FROM report_templates WHERE id=?")
+    .get(r.lastInsertRowid);
+  res.status(201).json({ ok: true, template: row });
+});
+
+// 修改模板（可改名称和/或启用状态）
+router.put("/report-templates/:id", (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "模板 ID 非法" });
+  const db = getDb();
+  const old = db.prepare("SELECT * FROM report_templates WHERE id=?").get(id);
+  if (!old) return res.status(404).json({ error: "模板不存在" });
+  const body = req.body || {};
+  const sets = [];
+  const vals = [];
+  if ("name" in body) {
+    const name = String(body.name ?? "").trim();
+    if (!name) return res.status(400).json({ error: "模板名称不能为空" });
+    if (name.length > 100) return res.status(400).json({ error: "模板名称过长" });
+    if (db.prepare("SELECT 1 FROM report_templates WHERE name=? AND id<>?").get(name, id)) {
+      return res.status(409).json({ error: "同名模板已存在" });
+    }
+    sets.push("name=?");
+    vals.push(name);
+  }
+  if ("enabled" in body) {
+    sets.push("enabled=?");
+    vals.push(body.enabled ? 1 : 0);
+  }
+  if (!sets.length) return res.status(400).json({ error: "没有可更新的字段" });
+  sets.push("updated_at=?");
+  vals.push(new Date().toISOString());
+  vals.push(id);
+  db.prepare(`UPDATE report_templates SET ${sets.join(", ")} WHERE id=?`).run(...vals);
+  const row = db
+    .prepare("SELECT id, name, enabled, created_at, updated_at FROM report_templates WHERE id=?")
+    .get(id);
+  res.json({ ok: true, template: row });
+});
+
+// 删除模板
+router.delete("/report-templates/:id", (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "模板 ID 非法" });
+  const db = getDb();
+  const r = db.prepare("DELETE FROM report_templates WHERE id=?").run(id);
+  if (!r.changes) return res.status(404).json({ error: "模板不存在" });
+  res.json({ ok: true });
 });
 
 function safeJson(v) {

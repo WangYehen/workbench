@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   IconMail,
@@ -14,6 +15,8 @@ import {
   IconTrash,
   IconRefresh,
   IconDeviceMobile,
+  IconCopy,
+  IconMessage,
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
 
@@ -26,7 +29,7 @@ const queueCopy = {
 const actionTypeLabel = { reply: "回复", approval: "审批", confirmation: "确认", submission: "提交材料", deadline: "处理截止事项", other: "处理" };
 const dueSourceLabel = { explicit: "邮件原文", inferred: "AI 推断", none: "未识别" };
 const priorityLabel = { P0: "P0", P1: "P1", P2: "P2" };
-const priorityClass = { P0: "danger", P1: "warn", P2: "gray" };
+const priorityClass = { P0: "p0", P1: "p1", P2: "p2" };
 const confidenceLabel = (v) => (v >= 85 ? "高" : v >= 65 ? "中" : "低");
 
 function fmtDateTime(iso) {
@@ -160,8 +163,8 @@ function CorrectionDialog({ message, onClose, onSave, pending }) {
             </select>
           </label>
           <label>优先级
-            <select value={draft.priority} onChange={(e) => set("priority", e.target.value)}>
-              <option>P0</option><option>P1</option><option>P2</option>
+            <select value={draft.priority} onChange={(e) => set("priority", e.target.value)} className="select-priority" data-priority={draft.priority}>
+              <option value="P0">P0 — 紧急</option><option value="P1">P1 — 重要</option><option value="P2">P2 — 普通</option>
             </select>
           </label>
           <label className="is-wide">优先级原因
@@ -177,7 +180,7 @@ function CorrectionDialog({ message, onClose, onSave, pending }) {
   );
 }
 
-function MailRow({ message, expanded, onExpand, onConvert, onCorrect, onIgnore, onRestore, onOpen }) {
+function MailRow({ message, expanded, onExpand, onConvert, onCorrect, onIgnore, onRestore, onOpen, onDraft }) {
   const due = useMemo(() => dueDisplay(message), [message]);
   const confidence = Number(message.confidence || 0);
   const isAction = message.queue === "action" && message.status === "open";
@@ -243,6 +246,11 @@ function MailRow({ message, expanded, onExpand, onConvert, onCorrect, onIgnore, 
               <IconListCheck size={14} stroke={2} /><span>转为待办</span>
             </button>
           )}
+          {isAction && (
+            <button className="email-action-btn email-action-btn-primary" onClick={() => onDraft()}>
+              <IconMessage size={14} stroke={2} /><span>回复草稿</span>
+            </button>
+          )}
           <button className="email-action-btn" onClick={() => onCorrect()}>纠正判断</button>
           {message.status === "open" && (
             <button className="email-action-btn email-action-btn-tertiary" onClick={() => onIgnore()}>
@@ -272,6 +280,7 @@ function MailRow({ message, expanded, onExpand, onConvert, onCorrect, onIgnore, 
               <div className="email-expansion-title">快速操作</div>
               <div className="email-expansion-actions">
                 {isAction && <button className="btn sm primary" onClick={() => onConvert()}>一键转为待办</button>}
+                {isAction && <button className="btn sm primary" onClick={() => onDraft()}>生成回复草稿</button>}
                 {message.webLink && (
                   <a className="btn sm" href={message.webLink} target="_blank" rel="noreferrer">
                     <IconExternalLink size={14} stroke={2} /> 在 Outlook 中打开
@@ -290,6 +299,121 @@ function MailRow({ message, expanded, onExpand, onConvert, onCorrect, onIgnore, 
   );
 }
 
+function DraftDialog({ message, onClose, onFlash }) {
+  const [tone, setTone] = useState("formal");
+  const [draft, setDraft] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [err, setErr] = useState("");
+
+  // 打开对话框时自动加载已缓存的草稿（不自动调 AI，避免意外消耗）
+  useEffect(() => {
+    let active = true;
+    outlookApi
+      .getDraft(message.id)
+      .then((r) => {
+        if (!active) return;
+        if (r.draft) { setDraft(r.draft); setTone(r.tone || "formal"); }
+      })
+      .catch(() => { /* 忽略 */ })
+      .finally(() => active && setLoaded(true));
+    return () => { active = false; };
+  }, [message.id]);
+
+  // 生成草稿：换语气或重新生成时覆盖
+  const generate = async (nextTone = tone) => {
+    setGenerating(true); setErr("");
+    try {
+      const r = await outlookApi.draft(message.id, { tone: nextTone, force: draft ? true : undefined });
+      setDraft(r.draft); setTone(r.tone || nextTone);
+    } catch (e) {
+      setErr(e.message || "草稿生成失败");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 复制草稿到剪贴板
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(draft);
+      onFlash({ type: "ok", msg: "回复草稿已复制，去 Outlook 粘贴发送吧。" });
+    } catch {
+      onFlash({ type: "err", msg: "复制失败，请手动选中草稿复制。" });
+    }
+  };
+
+  return (
+    <div className="daily-report-modal-backdrop">
+      <div className="draft-modal">
+        <header>
+          <div>
+            <h2>AI 回复草稿</h2>
+            <p className="draft-modal__sub">
+              {message.sender || "（未知）"} · {message.subject}
+            </p>
+          </div>
+          <button aria-label="关闭" onClick={onClose} type="button">×</button>
+        </header>
+
+        <div className="draft-modal__tone">
+          {[
+            { value: "formal", label: "正式简洁" },
+            { value: "friendly", label: "温和友好" },
+            { value: "action", label: "直接行动" },
+          ].map((t) => (
+            <button
+              key={t.value}
+              className={`btn sm ${tone === t.value ? "primary" : ""}`}
+              onClick={() => generate(t.value)}
+              disabled={generating}
+              type="button"
+            >
+              {t.label}
+            </button>
+          ))}
+          <span className="meta">切换语气会重新生成</span>
+        </div>
+
+        {!loaded ? (
+          <div className="spinner">加载中…</div>
+        ) : (
+          <>
+            <textarea
+              className="draft-modal__text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="点击「生成草稿」，AI 将基于邮件正文与你的待办起草回复。"
+              disabled={generating}
+            />
+            {err && <div className="error">{err}</div>}
+          </>
+        )}
+
+        <footer>
+          <span className="meta draft-modal__privacy">
+            正文仅发送给 AI 用于起草、不落库；草稿保存在本地。
+          </span>
+          <div className="draft-modal__actions">
+            {message.webLink && (
+              <a className="btn sm" href={message.webLink} target="_blank" rel="noreferrer">
+                <IconExternalLink size={14} stroke={2} /> 打开原邮件
+              </a>
+            )}
+            <button className="btn sm" onClick={() => generate()} disabled={generating} type="button">
+              <IconRefresh size={14} stroke={2} style={generating ? { animation: "spin 0.8s linear infinite" } : undefined} />
+              {generating ? "生成中…" : draft ? "重新生成" : "生成草稿"}
+            </button>
+            <button className="btn sm primary" onClick={copy} disabled={!draft || generating} type="button">
+              <IconCopy size={14} stroke={2} /> 复制草稿
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 export default function EmailsPage() {
   const nav = useNavigate();
   const [searchParams] = useSearchParams();
@@ -304,6 +428,7 @@ export default function EmailsPage() {
   const [err, setErr] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [correcting, setCorrecting] = useState(null);
+  const [drafting, setDrafting] = useState(null);
   const [flash, setFlash] = useState(searchParams.get("connected") ? { type: "ok", msg: "Outlook 连接成功，已开始拉取邮件。" } : null);
 
   const refresh = useCallback(async () => {
@@ -439,24 +564,26 @@ export default function EmailsPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>邮件处理</h1>
-          <div className="sub">把邮件分为需要行动、仅供知晓和无法判断，所有 AI 判断都可以随时纠正。</div>
-        </div>
-        <div className="row">
-          <button className="btn primary" onClick={doSync} disabled={syncing || pending}>
-            <IconRefresh size={16} /> {syncing ? "同步中…" : "立即同步"}
-          </button>
-          <button className="btn" onClick={doDisconnect} disabled={pending}>
-            <IconTrash size={15} /> 断开连接
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="EMAILS / INBOX"
+        title="邮件处理"
+        description="把邮件分为需要行动、仅供知晓和无法判断，所有 AI 判断都可以随时纠正。"
+        actions={
+          <div className="row">
+            <button className="btn primary" onClick={doSync} disabled={syncing || pending}>
+              <IconRefresh size={16} /> {syncing ? "同步中…" : "立即同步"}
+            </button>
+            <button className="btn" onClick={doDisconnect} disabled={pending}>
+              <IconTrash size={15} /> 断开连接
+            </button>
+          </div>
+        }
+      />
 
       <div className="email-sync-meta">
         <span>连接状态：<strong>已连接 Outlook</strong></span>
         <span>最近同步：{status.lastSyncAt ? fmtDateTime(status.lastSyncAt) : "尚未同步"}</span>
+        <span>最后尝试：{status.lastAttemptAt ? fmtDateTime(status.lastAttemptAt) : "—"}</span>
         <span>自动同步：每 15 分钟</span>
         {status.lastError && <span className="email-sync-err">上次失败：{status.lastError}</span>}
       </div>
@@ -519,6 +646,7 @@ export default function EmailsPage() {
                       onIgnore={() => run(() => outlookApi.setStatus(m.id, m.queue === "action" ? "ignored" : "processed"))}
                       onRestore={() => run(() => outlookApi.setStatus(m.id, "open"))}
                       onOpen={() => openOutlook(m)}
+                      onDraft={() => setDrafting(m)}
                     />
                   ))}
                 </div>
@@ -538,6 +666,7 @@ export default function EmailsPage() {
                 onIgnore={() => run(() => outlookApi.setStatus(m.id, m.queue === "action" ? "ignored" : "processed"))}
                 onRestore={() => run(() => outlookApi.setStatus(m.id, "open"))}
                 onOpen={() => openOutlook(m)}
+                onDraft={() => setDrafting(m)}
               />
             ))}
             {!messages.length && <div className="empty">{queueCopy[view].empty}</div>}
@@ -551,6 +680,14 @@ export default function EmailsPage() {
           onClose={() => setCorrecting(null)}
           onSave={(patch) => run(async () => { await outlookApi.correct(correcting.id, patch); setCorrecting(null); })}
           pending={pending}
+        />
+      )}
+
+      {drafting && (
+        <DraftDialog
+          message={drafting}
+          onClose={() => setDrafting(null)}
+          onFlash={(f) => setFlash(f)}
         />
       )}
     </div>

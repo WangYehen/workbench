@@ -170,4 +170,21 @@ export const ai = {
     const user = JSON.stringify(summary);
     return chatJson(system, user);
   },
+
+  // 生成邮件回复草稿：基于邮件内容、AI 分类建议与主管待办上下文起草回复正文
+  async draftReply(ctx) {
+    const toneHint = { formal: "正式简洁", friendly: "温和友好", action: "直接行动、高效果断" };
+    const system =
+      "你是团队主管的邮件回复助理。根据【邮件内容】【AI 分类建议】【主管待办上下文】起草回复正文。\n" +
+      "要求：\n" +
+      "1. 直接回应邮件核心诉求，不绕弯\n" +
+      "2. 明确给出承诺、时间或决策；信息不足时在结尾礼貌请求补充\n" +
+      "3. 不虚构邮件中未提及的事实；不编造项目、人名或数字\n" +
+      `4. 语气：${toneHint[ctx.tone] || "正式简洁"}\n` +
+      "5. 正文 100~250 字，最多 3 段，纯文本，不要 Markdown\n" +
+      "6. 严禁出现「AI 生成」「助手」等字样\n" +
+      "7. 只返回 JSON：{\"body\":\"...\"}";
+    const user = JSON.stringify(ctx);
+    return chatJson(system, user);
+  },
 };

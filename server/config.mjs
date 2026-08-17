@@ -1,4 +1,4 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 // 前端端口：与仓库对齐，默认 5174（可用 WORKBENCH_PORT 覆盖），决定 OAuth 回跳/跨域源
 const FRONTEND_PORT = Number(process.env.WORKBENCH_PORT || 5174);
+
+// 关键：dotenv 默认不会覆盖已经存在的环境变量。
+// 一旦 shell/WorkBuddy 桌面进程里挂着过期的 DEEPSEEK_API_KEY 等凭据，.env 里更新过的密钥会被静默吞掉，
+// 导致"按文档改了 .env 还是报错"的诡异现象。
+// 这里强制以 .env 为准：与代码仓库版本一致、便于团队多人协作与 CI。
+const ENV_PATH = path.resolve(__dirname, "..", ".env");
+if (fs.existsSync(ENV_PATH)) {
+  dotenv.config({ path: ENV_PATH, override: true });
+}
 
 function bool(value, fallback = false) {
   if (value === undefined || value === null || value === "") return fallback;

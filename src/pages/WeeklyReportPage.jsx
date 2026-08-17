@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageHeader } from "../components/PageHeader";
 import { IconCalendarWeek, IconHistory } from "@tabler/icons-react";
 import { api } from "../api.js";
 
@@ -40,17 +41,18 @@ export default function WeeklyReportPage() {
 
   return (
     <div>
-      <div className="page-head">
-        <div>
-          <h1>周报</h1>
-          <div className="sub">每周基于日报汇总生成；单日详情请在「日报」页查看，全部持久化于本地 SQLite 可回溯</div>
-        </div>
-        <div className="row">
-          <button className="btn sm" onClick={() => setWeek(addWeeks(week.weekStart, -1))}>上一周</button>
-          <button className="btn sm" onClick={() => setWeek(weekRange())}>本周</button>
-          <button className="btn sm" onClick={() => setWeek(addWeeks(week.weekStart, 1))}>下一周</button>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="WEEKLY / REPORT"
+        title="周报"
+        description="每周基于日报汇总生成；单日详情请在「日报」页查看，全部持久化于本地 SQLite 可回溯"
+        actions={
+          <div className="row">
+            <button className="btn sm" onClick={() => setWeek(addWeeks(week.weekStart, -1))}>上一周</button>
+            <button className="btn sm" onClick={() => setWeek(weekRange())}>本周</button>
+            <button className="btn sm" onClick={() => setWeek(addWeeks(week.weekStart, 1))}>下一周</button>
+          </div>
+        }
+      />
 
       <div className="panel">
         <div className="panel__head">

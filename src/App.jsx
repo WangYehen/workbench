@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
 import OverviewPage from "./pages/OverviewPage.jsx";
+import Overview2Page from "./pages/Overview2Page.jsx";
 import EmailsPage from "./pages/EmailsPage.jsx";
 import TeamLogsPage from "./pages/TeamLogsPage.jsx";
 import CalendarPage from "./pages/CalendarPage.jsx";
@@ -18,6 +19,7 @@ export default function App() {
     <AppShell>
       <Routes>
         <Route path="/" element={<OverviewPage />} />
+        <Route path="/overview2" element={<Overview2Page />} />
         <Route path="/emails" element={<EmailsPage />} />
         <Route path="/team" element={<TeamLogsPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
