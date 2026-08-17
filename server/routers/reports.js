@@ -6,29 +6,86 @@ const router = express.Router();
 
 function safeJson(v, fb) { try { return JSON.parse(v); } catch { return fb; } }
 
-// 把钉钉日志 content_json 还原成可读的多行文本。
-// 同步时存的是 `${label}：${value}` 用 \n 拼接的字符串（label 常为空，且 value 内部含 \r\n）。
-// 未来若改为结构化数组则直接取字段。清洗规则：去掉每行行首孤立的冒号、清除 \r、合并空行。
-function cleanContent(raw) {
-  if (!raw) return "";
-  let text = raw;
-  // content_json 存的是 JSON.stringify(contents)，即带外层引号的 JSON 字符串；
-  // 若已改为结构化数组（未来）则直接取字段。先解析解包一层。
+// 解析 content_json 为结构化 contents 数组，兼容新旧两种格式
+// 新格式：[{sort, type, key, value}] - 钉钉 API 原始结构
+// 旧格式：JSON.stringify("今日完成工作：xxx\n明日工作计划：yyy") - 扁平字符串
+function parseContents(raw) {
+  if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((it) => `${it && it.label ? it.label + "：" : ""}${it && (it.value ?? it.content ?? "")}`.trim())
-        .filter(Boolean)
-        .join("\n");
+    // 新格式：数组且元素有 key 字段
+    if (Array.isArray(parsed) && parsed.length && parsed[0]?.key) {
+      return parsed.map((c) => ({
+        sort: String(c.sort || ""),
+        type: String(c.type || "1"),
+        key: c.key || "",
+        value: (c.value || "").replace(/\r/g, ""),
+      }));
     }
-    if (typeof parsed === "string") text = parsed; // 解包一层引号
-  } catch { /* 非 JSON，按原文处理 */ }
-  return text
-    .replace(/\r/g, "") // 去掉回车
-    .split("\n")
-    .map((l) => l.replace(/^[:：]\s?/, "").trimEnd()) // 去掉行首孤立冒号
-    .filter((l) => l.length > 0 && l !== "[]" && l !== "【】") // 去除空行/空段及空标记
+    // 旧格式：字符串，可能是 "今日完成工作：xxx\n明日工作计划：yyy"
+    if (typeof parsed === "string") {
+      return parseFlatContent(parsed);
+    }
+    if (Array.isArray(parsed)) {
+      const text = parsed.map((it) => `${it?.label || ""}：${it?.value ?? it?.content ?? ""}`).filter(Boolean).join("\n");
+      return text ? parseFlatContent(text) : [];
+    }
+  } catch { /* 非 JSON，按纯文本处理 */ }
+  return raw ? parseFlatContent(raw) : [];
+}
+
+// 将旧的扁平字符串格式（"key：value\nkey：value"）拆分为结构化数组
+// 旧格式中 key 和 value 在同一行，如 "今日完成工作：1、TMS-xxx\r\n2、工作台xxx"
+// 若旧数据无 key（如 "：value\n：value"），则整段作为"今日完成工作"
+function parseFlatContent(text) {
+  if (!text) return [];
+  const cleaned = text.replace(/\r/g, "").split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && l !== "[]" && l !== "【】");
+  if (cleaned.length === 0) return [];
+
+  // 已知的 key 名称，用于按 "key：" 分割
+  const KNOWN_KEYS = ["今日完成工作", "今日遗留工作", "明日工作计划", "需要协作工作", "图片", "附件"];
+  const keyPattern = new RegExp(`^(${KNOWN_KEYS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})[：:]`);
+
+  // 检测是否有已知 key 存在
+  const hasKnownKey = cleaned.some((l) => keyPattern.test(l));
+  if (!hasKnownKey) {
+    // 旧数据无 key（label 为空），整段作为"今日完成工作"
+    const content = cleaned.map((l) => l.replace(/^[:：]\s?/, "")).join("\n");
+    return content ? [{ sort: "1", type: "1", key: "今日完成工作", value: content }] : [];
+  }
+
+  // 有已知 key，按 key 分割
+  const sections = [];
+  let currentKey = KNOWN_KEYS[0];
+  let currentValue = [];
+
+  for (const line of cleaned) {
+    if (keyPattern.test(line)) {
+      // 保存上一个 section
+      sections.push({ sort: String(sections.length + 1), type: "1", key: currentKey, value: currentValue.join("\n") });
+      // 提取新 key
+      const m = line.match(keyPattern);
+      currentKey = m ? m[1] : line.split(/[：:]/)[0];
+      // 同行的 value 部分（key：之后的内容）
+      const afterKey = line.replace(keyPattern, "").trim();
+      currentValue = afterKey ? [afterKey] : [];
+    } else {
+      currentValue.push(line);
+    }
+  }
+  // 最后一个 section
+  sections.push({ sort: String(sections.length + 1), type: "1", key: currentKey, value: currentValue.join("\n") });
+  // 过滤掉空 section（key 不在已知列表中的跳过）
+  return sections.filter((s) => KNOWN_KEYS.includes(s.key));
+}
+
+// 把钉钉日志 content_json 还原成可读的多行文本（向后兼容旧接口）。
+function cleanContent(raw) {
+  return parseContents(raw)
+    .map((c) => c.key ? `${c.key}：${c.value}` : c.value)
+    .filter(Boolean)
     .join("\n");
 }
 
@@ -47,6 +104,7 @@ router.get("/dingtalk/dates", (req, res) => {
 });
 
 // 按日期返回真实钉钉日报（团队成员当日提交内容），为日报页提供真实数据源
+// 返回结构化 contents 数组 + 部门列表，支持前端按 key 分区展示和部门筛选
 router.get("/dingtalk", (req, res) => {
   const db = getDb();
   let date = req.query.date;
@@ -57,17 +115,21 @@ router.get("/dingtalk", (req, res) => {
   const rows = db
     .prepare("SELECT * FROM dingtalk_reports WHERE report_date=? ORDER BY user_name")
     .all(date);
+  // 解析 contents 为结构化数组
   const reports = rows.map((r) => ({
     id: r.id,
     user_id: r.user_id,
     user_name: r.user_name,
+    dept_name: r.dept_name || "",
     template_name: r.template_name,
-    content: cleanContent(r.content_json),
+    contents: parseContents(r.content_json),
     blockers: safeJson(r.blockers, []),
     needs_review: safeJson(r.needs_review, []),
     summary: r.summary || "",
   }));
-  res.json({ date, reports, total: reports.length });
+  // 提取去重的部门列表，供前端筛选
+  const departments = [...new Set(reports.map((r) => r.dept_name).filter(Boolean))].sort();
+  res.json({ date, reports, departments, total: reports.length });
 });
 
 

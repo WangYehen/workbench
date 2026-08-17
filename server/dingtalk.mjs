@@ -142,16 +142,26 @@ export const dingtalk = {
     // 钉钉 topapi/report/list 的真实数据字段是 result.data_list（不是 result.data）
     const list = data?.result?.data_list || data?.result?.data || [];
     return list.map((r) => {
-      const contents = (r.contents || []).map((c) => `${c.label || ""}：${c.value || ""}`).join("\n");
+      // 保留原始 contents 结构：[{sort, type, value, key}]，前端按 key 分区展示
+      const rawContents = r.contents || [];
+      const contents = rawContents.map((c) => ({
+        sort: String(c.sort || ""),
+        type: String(c.type || "1"),
+        key: c.key || c.label || "",
+        value: c.value || "",
+      }));
+      // 兼容旧 content_text：扁平化为可读字符串
+      const contentText = rawContents.map((c) => `${c.key || c.label || ""}：${c.value || ""}`).join("\n");
       return {
         id: String(r.report_id || r.template_id || Math.random()),
         template_id: String(r.template_id || ""),
         user_id: String(r.creator?.userid || r.userid || ""),
         user_name: r.creator?.nick || r.creator_name || "",
+        dept_name: r.dept_name || "",
         report_date: (r.create_time ? new Date(Number(r.create_time)) : new Date()).toISOString().slice(0, 10),
         template_name: r.template_name || "",
         content_json: JSON.stringify(contents),
-        content_text: contents,
+        content_text: contentText,
       };
     });
   },
@@ -223,9 +233,19 @@ export const dingtalk = {
     if (e.organizer) {
       organizer = typeof e.organizer === "string"
         ? e.organizer
-        : (e.organizer.name || e.organizer.display_name || e.organizer.unionId || "");
+        : (e.organizer.displayName || e.organizer.name || e.organizer.display_name || e.organizer.unionId || "");
     }
-    const location = e.location || (Array.isArray(e.conferences) && e.conferences[0]?.uri) || "";
+    // 钉钉日程的 location 可能是对象 { displayName } 或字符串，统一收敛成字符串，
+    // 否则对象作为 better-sqlite3 的 ? 参数会被当成命名参数而抛 "Too few parameter values"。
+    let location = "";
+    if (e.location) {
+      location = typeof e.location === "string"
+        ? e.location
+        : (e.location.displayName || e.location.name || e.location.address || "");
+    }
+    if (!location && Array.isArray(e.conferences) && e.conferences[0]?.uri) {
+      location = e.conferences[0].uri;
+    }
     return {
       id: String(e.id || e.event_id || Math.random()),
       source: "dingtalk",
@@ -314,6 +334,7 @@ export const dingtalk = {
         id: r.id,
         user_id: r.user_id,
         user_name: r.user_name,
+        dept_name: r.dept_name || "",
         report_date: r.report_date,
         template_name: r.template_name,
         content_json: r.content_json || JSON.stringify(r.content_text || ""),
@@ -331,7 +352,14 @@ export const dingtalk = {
       try {
         const p = JSON.parse(raw);
         if (typeof p === "string") text = p;
-        else if (Array.isArray(p)) text = p.map((it) => `${it && it.label ? it.label + "：" : ""}${it && (it.value ?? it.content ?? "")}`.trim()).filter(Boolean).join("\n");
+        else if (Array.isArray(p)) {
+          // 新格式：[{sort, type, key, value}] 或 旧格式：[{label, value}]
+          text = p.map((it) => {
+            const label = it?.key || it?.label || "";
+            const val = it?.value ?? it?.content ?? "";
+            return label ? `${label}：${val}` : val;
+          }).trim().filter(Boolean).join("\n");
+        }
       } catch { /* 非 JSON */ }
       const lines = text.replace(/\r/g, "").split("\n")
         .map((l) => l.replace(/^[:：]\s?/, "").trim())

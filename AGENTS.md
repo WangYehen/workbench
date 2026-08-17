@@ -25,14 +25,17 @@ npm run electron:build  # 打包桌面应用到 release/
 
 ```
 server/          Express 后端，入口 index.mjs
-  routers/       9 个 API 路由模块（.js）
-  db.mjs         SQLite 数据库（.local/workbench.sqlite）
+  routers/       9 个 API 路由模块（.js），outlook.js 含邮件回复草稿接口
+  db.mjs         SQLite 数据库（.local/workbench.sqlite），含 migrate 机制
   config.mjs     配置读取（dotenv + 环境变量）
+  ai.mjs         AI 适配层（chatJson + draftReply），支持 deepseek/openai/claude/ollama
+  outlook-draft.mjs  邮件回复草稿编排（依赖注入，可单测）
+  outlook-draft.test.mjs  草稿功能单测（用内存 SQLite + mock AI）
   demo.mjs       演示数据生成
 src/             React 前端
   pages/         12 个页面组件（.jsx）
-  components/    共享组件（AppShell、日期导航等）
-  api.js         前端 API 封装
+  components/    共享组件（AppShell、DatePicker、日期导航等）
+  api.js         前端 API 封装（outlookApi 含 draft/getDraft）
   lib/           工具函数
 electron/        Electron 主进程（main.mjs + preload.mjs）
 ```

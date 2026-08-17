@@ -1,0 +1,160 @@
+/* ============================================================
+   概览2 ·「指挥台」Apple 干净风（Action Blue 单一交互色）
+   作用域 .oc，不污染全局样式
+   ============================================================ */
+
+.oc {
+  --oc-paper: #f5f5f7;
+  --oc-surface: #ffffff;
+  --oc-line: #e6e6e9;
+  --oc-line-soft: #efeff2;
+  --oc-ink: #1d1d1f;
+  --oc-ink-soft: #6b6b70;
+  --oc-ink-faint: #8e8e93;
+  --oc-accent: #0066cc;
+  --oc-accent-strong: #004a99;
+  --oc-link: #2997ff;
+  --oc-ok: #34c759;
+  --oc-warn: #ff9f0a;
+  --oc-danger: #ff453a;
+  --oc-muted: #8e8e93;
+  --oc-dark: #1d1d1f;
+  --oc-dark-2: #2a2a2e;
+  --oc-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+
+  max-width: 1280px;
+  margin: 0 auto;
+  background: var(--oc-paper);
+  border-radius: 20px;
+  padding: 28px 32px 36px;
+  color: var(--oc-ink);
+  font-family: var(--oc-font);
+  animation: oc-in 0.5s ease both;
+}
+@keyframes oc-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes oc-spin { to { transform: rotate(360deg); } }
+
+/* ---- 顶部 Header ---- */
+.oc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.oc-header__left { display: flex; flex-direction: column; gap: 4px; }
+.oc-greet { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--oc-ink); }
+.oc-date { font-size: 14px; color: var(--oc-ink-faint); }
+.oc-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.oc-datenav { gap: 6px; }
+.oc-datenav .btn { padding: 7px 10px; font-size: 13px; }
+.oc-syncchip { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 999px; background: #eaf2fc; color: var(--oc-accent); font-size: 13px; }
+.oc-syncdot { width: 8px; height: 8px; border-radius: 999px; background: var(--oc-ok); }
+.oc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border: none; border-radius: 999px; background: var(--oc-accent); color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.18s ease; }
+.oc-btn:hover { background: var(--oc-accent-strong); }
+.oc-btn:disabled { opacity: 0.6; cursor: default; }
+.oc-btn .oc-spin { animation: oc-spin 0.9s linear infinite; }
+.oc-avatar { width: 36px; height: 36px; border-radius: 999px; background: #161618; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+
+/* ---- KPI 行 ---- */
+.oc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+.oc-kpi { display: flex; flex-direction: column; gap: 10px; padding: 20px; border-radius: 18px; background: var(--oc-surface); border: 1px solid var(--oc-line); }
+.oc-kpi__top { display: flex; align-items: center; justify-content: space-between; }
+.oc-kpi__label { font-size: 13px; color: var(--oc-ink-faint); }
+.oc-kpi__ic { width: 30px; height: 30px; border-radius: 8px; background: #eaf2fc; color: var(--oc-accent); display: inline-flex; align-items: center; justify-content: center; }
+.oc-kpi__num { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+.oc-kpi__sub { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--oc-ink-soft); }
+.oc-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
+.oc-dot--ok { background: var(--oc-ok); }
+.oc-dot--warn { background: var(--oc-warn); }
+.oc-dot--danger { background: var(--oc-danger); }
+.oc-dot--muted { background: var(--oc-muted); }
+
+/* ---- AI 建议深色带 ---- */
+.oc-ai { display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: 18px; background: var(--oc-dark); margin-bottom: 24px; }
+.oc-ai__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.oc-ai__titlewrap { display: flex; align-items: center; gap: 10px; }
+.oc-ai__spark { width: 28px; height: 28px; border-radius: 8px; background: var(--oc-link); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.oc-ai__title { font-size: 16px; font-weight: 600; color: #fff; }
+.oc-ai__actions { display: flex; align-items: center; gap: 10px; }
+.oc-ai__regen { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--oc-dark-2); color: #fff; border: none; cursor: pointer; transition: background 0.18s ease; }
+.oc-ai__regen:hover { background: #34343a; }
+.oc-ai__regen:disabled { opacity: 0.5; cursor: default; }
+.oc-ai__link { color: var(--oc-link); font-size: 13px; text-decoration: none; cursor: pointer; align-self: center; }
+.oc-ai__link:hover { text-decoration: underline; }
+.oc-ai__body { font-size: 16px; line-height: 1.6; color: #fff; margin: 0; }
+.oc-ai__tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.oc-chip { padding: 6px 12px; border-radius: 999px; background: var(--oc-dark-2); color: #cfcfd4; font-size: 13px; }
+
+/* ---- 双栏网格 ---- */
+.oc-grid { display: grid; grid-template-columns: 1.95fr 1fr; gap: 24px; align-items: start; }
+.oc-col { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+
+/* ---- 通用卡片 ---- */
+.oc-card { background: var(--oc-surface); border: 1px solid var(--oc-line); border-radius: 18px; padding: 20px; }
+.oc-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+.oc-card__title { font-size: 16px; font-weight: 600; color: var(--oc-ink); }
+.oc-card__count { padding: 3px 10px; border-radius: 999px; background: #eaf2fc; color: var(--oc-accent); font-size: 12px; font-weight: 500; }
+.oc-card__link { background: none; border: none; color: var(--oc-accent); font-size: 13px; cursor: pointer; padding: 0; font-family: inherit; }
+.oc-card__link:hover { text-decoration: underline; }
+
+/* ---- 会议列表 ---- */
+.oc-meet-list { display: flex; flex-direction: column; }
+.oc-meet-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid var(--oc-line-soft); }
+.oc-meet-row:first-child { border-top: none; }
+.oc-meet-time { width: 48px; text-align: right; font-size: 13px; color: var(--oc-ink-faint); flex-shrink: 0; }
+.oc-meet-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.oc-meet-title { font-size: 14px; font-weight: 600; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-meet-sub { font-size: 13px; color: var(--oc-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; flex-shrink: 0; white-space: nowrap; }
+.oc-pill--done { background: #f1f1f4; color: var(--oc-muted); }
+.oc-pill--soon { background: #e7f8ee; color: var(--oc-ok); }
+.oc-pill--wait { background: #eaf2fc; color: var(--oc-accent); }
+.oc-pill--live { background: #fdecec; color: var(--oc-danger); }
+.oc-pill--sched { background: #f1f1f4; color: var(--oc-ink-soft); }
+
+/* ---- 邮件 / 通用行 ---- */
+.oc-list { display: flex; flex-direction: column; }
+.oc-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--oc-line-soft); }
+.oc-row:first-child { border-top: none; }
+.oc-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.oc-row__title { font-size: 14px; font-weight: 600; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-row__sub { font-size: 13px; color: var(--oc-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-tag { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+.oc-tag--p0 { background: var(--oc-danger); color: #fff; }
+.oc-tag--p1 { background: var(--oc-warn); color: #fff; }
+.oc-tag--soft { background: #eaf2fc; color: var(--oc-accent); font-weight: 600; }
+.oc-tag--muted { background: #f1f1f4; color: var(--oc-muted); font-weight: 400; }
+
+/* ---- 风险雷达 ---- */
+.oc-risk-list { display: flex; flex-direction: column; }
+.oc-risk-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--oc-line-soft); }
+.oc-risk-row:first-child { border-top: none; }
+.oc-risk-dot { width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0; }
+.oc-risk-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.oc-risk-name { font-size: 14px; font-weight: 600; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-risk-sub { font-size: 12px; color: var(--oc-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-risk-status { font-size: 13px; font-weight: 500; flex-shrink: 0; }
+
+/* ---- 团队信号 ---- */
+.oc-signals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.oc-signal { display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 12px; background: var(--oc-paper); }
+.oc-signal__num { font-size: 22px; font-weight: 700; line-height: 1; }
+.oc-signal__lab { font-size: 12px; color: var(--oc-ink-faint); }
+
+/* ---- 今日待办 ---- */
+.oc-todo-list { display: flex; flex-direction: column; }
+.oc-todo-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--oc-line-soft); }
+.oc-todo-row:first-child { border-top: none; }
+.oc-check { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--oc-accent); background: #fff; flex-shrink: 0; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 700; transition: background 0.15s ease; }
+.oc-check--done { background: var(--oc-accent); }
+.oc-todo-txt { flex: 1; min-width: 0; font-size: 14px; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-todo-txt--done { color: var(--oc-muted); text-decoration: line-through; }
+
+/* ---- 空态 ---- */
+.oc-empty { display: flex; align-items: center; gap: 8px; padding: 16px 0; color: var(--oc-ink-faint); font-size: 14px; }
+
+/* ---- 响应式 ---- */
+@media (max-width: 1080px) {
+  .oc-kpis { grid-template-columns: repeat(2, 1fr); }
+  .oc-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .oc { padding: 18px 16px 28px; border-radius: 14px; }
+  .oc-kpis { grid-template-columns: 1fr; }
+  .oc-greet { font-size: 20px; }
+}

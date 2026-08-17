@@ -206,6 +206,12 @@ function migrate(d) {
     if (!emCols.includes(c)) d.exec(`ALTER TABLE emails ADD COLUMN ${c} ${t}`);
   }
 
+  // 008：dingtalk_reports 补 dept_name 列（从钉钉 API 响应提取部门信息）
+  const reportCols = d.prepare("PRAGMA table_info(dingtalk_reports)").all().map((c) => c.name);
+  if (!reportCols.includes("dept_name")) {
+    d.exec("ALTER TABLE dingtalk_reports ADD COLUMN dept_name TEXT DEFAULT ''");
+  }
+
   // 007：weekly_reports 的 week_start 需 UNIQUE（/weekly/generate 用 ON CONFLICT(week_start) 覆盖生成）。
   // 旧库的 idx_weekly 是普通索引，ON CONFLICT 会报 "does not match any PRIMARY KEY or UNIQUE constraint"；
   // 把该索引重建为 UNIQUE（SQLite 的 ON CONFLICT 同样认唯一索引），幂等：仅当现有索引非唯一时重建。
