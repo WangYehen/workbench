@@ -3,6 +3,10 @@ node_modules/
 dist/
 release/
 .env
+一键部署方案/coolify.env
+.idea/
+.opencode/
+*.log
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

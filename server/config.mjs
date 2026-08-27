@@ -24,6 +24,7 @@ function bool(value, fallback = false) {
 
 export const config = {
   root: ROOT,
+  displayName: process.env.WORKBENCH_DISPLAY_NAME || "",
   port: Number(process.env.PORT || 8787),
   publicBaseUrl: process.env.PUBLIC_BASE_URL || `http://127.0.0.1:${FRONTEND_PORT}`,
   corsOrigin: process.env.CORS_ORIGIN || `http://127.0.0.1:${FRONTEND_PORT}`,

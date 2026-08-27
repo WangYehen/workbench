@@ -265,6 +265,8 @@ export const dingtalk = {
     const startMs = dayMs(startDateStr);
     const endMs = dayMs(endDateStr) + 24 * 3600 * 1000;
     const events = await this.fetchCalendarRange(startMs, endMs);
+    // 记录最近一次成功同步时间（无论当天有无日程，拉取动作已完成）
+    setKv("calendar_last_sync_at", { at: new Date().toISOString() });
     if (!events.length) return 0;
     const now = new Date().toISOString();
     const rows = events.map((e) => ({
@@ -304,6 +306,17 @@ export const dingtalk = {
       is_manager: u.isLeader || u.isBoss ? 1 : 0,
       updated_at: new Date().toISOString(),
     }));
+  },
+
+  async syncMembers() {
+    const members = await this.fetchMembers();
+    if (!members.length) return [];
+    upsert(
+      "dingtalk_members",
+      members.map((member) => ({ ...member, active: 1 })),
+      ["user_id"],
+    );
+    return members;
   },
 
   async syncReports(dateStr) {
@@ -358,7 +371,7 @@ export const dingtalk = {
             const label = it?.key || it?.label || "";
             const val = it?.value ?? it?.content ?? "";
             return label ? `${label}：${val}` : val;
-          }).trim().filter(Boolean).join("\n");
+          }).map((line) => String(line || "").trim()).filter(Boolean).join("\n");
         }
       } catch { /* 非 JSON */ }
       const lines = text.replace(/\r/g, "").split("\n")
@@ -393,6 +406,8 @@ export const dingtalk = {
         for (const r of reports) upd.run(deriveSummary(r.content_json), r.id);
       }
     }
+    // 记录最近一次成功同步时间（手动同步与定时同步共用）
+    setKv("reports_last_sync_at", { at: new Date().toISOString() });
     return reports;
   },
 };

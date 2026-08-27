@@ -1,0 +1,16 @@
+.recent-data-hint {
+  margin: -6px 0 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #7c5511;
+}
+
+.recent-data-hint button {
+  border: 0;
+  background: transparent;
+  color: #1269b0;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -1,6 +1,8 @@
 import express from "express";
 import { getDb } from "../db.mjs";
 import { ai } from "../ai.mjs";
+import { resolveDateKey } from "../local-date.mjs";
+import { buildDashboard } from "../workbench-domain.mjs";
 
 const router = express.Router();
 
@@ -9,7 +11,7 @@ function safeJson(v, fb) { try { return JSON.parse(v); } catch { return fb; } }
 // 解析 content_json 为结构化 contents 数组，兼容新旧两种格式
 // 新格式：[{sort, type, key, value}] - 钉钉 API 原始结构
 // 旧格式：JSON.stringify("今日完成工作：xxx\n明日工作计划：yyy") - 扁平字符串
-function parseContents(raw) {
+export function parseContents(raw) {
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -91,7 +93,7 @@ function cleanContent(raw) {
 
 router.get("/daily", (req, res) => {
   const db = getDb();
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  let date; try { date = resolveDateKey(req.query.date); } catch (error) { return res.status(400).json({ error: error.message }); }
   const row = db.prepare("SELECT * FROM daily_reports WHERE report_date=?").get(date);
   res.json({ date, report: row ? { ...row, content_json: safeJson(row.content_json, {}) } : null });
 });
@@ -107,26 +109,24 @@ router.get("/dingtalk/dates", (req, res) => {
 // 返回结构化 contents 数组 + 部门列表，支持前端按 key 分区展示和部门筛选
 router.get("/dingtalk", (req, res) => {
   const db = getDb();
-  let date = req.query.date;
-  if (!date) {
-    const r = db.prepare("SELECT MAX(report_date) d FROM dingtalk_reports").get();
-    date = r?.d || new Date().toISOString().slice(0, 10);
-  }
+  let date; try { date = resolveDateKey(req.query.date); } catch (error) { return res.status(400).json({ error: error.message }); }
   const rows = db
     .prepare("SELECT * FROM dingtalk_reports WHERE report_date=? ORDER BY user_name")
     .all(date);
   // 解析 contents 为结构化数组
-  const reports = rows.map((r) => ({
-    id: r.id,
-    user_id: r.user_id,
-    user_name: r.user_name,
-    dept_name: r.dept_name || "",
-    template_name: r.template_name,
-    contents: parseContents(r.content_json),
-    blockers: safeJson(r.blockers, []),
-    needs_review: safeJson(r.needs_review, []),
-    summary: r.summary || "",
-  }));
+  const grouped = new Map();
+  for (const r of rows) {
+    const key = r.user_id || r.user_name;
+    if (!grouped.has(key)) grouped.set(key, { id: key, user_id: key, user_name: r.user_name, dept_name: r.dept_name || "", template_name: r.template_name, contents: [], blockers: [], needs_review: [], summaries: [], reportCount: 0 });
+    const item = grouped.get(key); item.reportCount += 1; item.contents.push(...parseContents(r.content_json)); item.blockers.push(...safeJson(r.blockers, [])); item.needs_review.push(...safeJson(r.needs_review, []));
+    const rawSummary = String(r.summary || "").trim();
+    if (rawSummary && !rawSummary.startsWith("{") && !rawSummary.startsWith("[")) item.summaries.push(rawSummary);
+  }
+  const reports = [...grouped.values()].map((item) => {
+    const explicit = [...new Set(item.summaries)].join("；");
+    const fallback = item.contents.filter((content) => content.key && String(content.value || "").trim() && !["图片", "附件"].includes(content.key)).slice(0, 2).map((content) => `${content.key}：${String(content.value).trim()}`).join("；");
+    return { ...item, summary: explicit || fallback, blockers: [...new Set(item.blockers)], needs_review: [...new Set(item.needs_review)] };
+  });
   // 提取去重的部门列表，供前端筛选
   const departments = [...new Set(reports.map((r) => r.dept_name).filter(Boolean))].sort();
   res.json({ date, reports, departments, total: reports.length });
@@ -135,7 +135,8 @@ router.get("/dingtalk", (req, res) => {
 
 router.post("/daily/generate", async (req, res) => {
   const db = getDb();
-  const date = req.body.date || new Date().toISOString().slice(0, 10);
+  let date; try { date = resolveDateKey(req.body.date); } catch (error) { return res.status(400).json({ error: error.message }); }
+  const dashboard = buildDashboard(db, date);
   const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE needs_action=1 AND date(received_at)=? AND source='outlook'").get(date).c;
   const todos = db.prepare("SELECT COUNT(*) c FROM todos WHERE status!='done' AND due_date=?").get(date).c;
   const reports = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=?").all(date);
@@ -148,6 +149,9 @@ router.post("/daily/generate", async (req, res) => {
     teamBlockers: blockers,
     needManagerReview: reviews,
     summary: `今日需处理邮件 ${emails} 封，待办 ${todos} 项，团队阻塞 ${blockers.length} 项，需主管审核 ${reviews.length} 项。`,
+    inputHash: dashboard.inputHash,
+    sourceRefs: dashboard.attention.map((item) => item.sourceRef),
+    generatedAt: new Date().toISOString(),
   };
   let narrative = "";
   if (ai.available()) {
@@ -166,7 +170,7 @@ router.post("/daily/generate", async (req, res) => {
 // 编辑某日日报（合并更新 content_json，便于人工润色小结）
 router.put("/daily", (req, res) => {
   const db = getDb();
-  const date = req.body.date || new Date().toISOString().slice(0, 10);
+  let date; try { date = resolveDateKey(req.body.date); } catch (error) { return res.status(400).json({ error: error.message }); }
   const row = db.prepare("SELECT * FROM daily_reports WHERE report_date=?").get(date);
   if (!row) return res.status(404).json({ error: "该日期日报不存在，请先生成" });
   const base = safeJson(row.content_json, {});

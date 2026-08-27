@@ -12,7 +12,7 @@ import {
   IconLayoutList,
   IconRefresh,
 } from "@tabler/icons-react";
-import { api } from "../api.js";
+import { api, workbenchApi } from "../api.js";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
 
 // 本地日期字符串（YYYY-MM-DD），避免 toISOString 在东八区把当天算成前一天
@@ -55,6 +55,12 @@ function fmtMonth(y, m) {
   return `${y} 年 ${m + 1} 月`;
 }
 
+// 最近同步时间展示：如 08/18 18:05
+function fmtSyncTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 const WEEK_DAY_LABELS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 
 export default function CalendarPage() {
@@ -70,6 +76,7 @@ export default function CalendarPage() {
   const [syncError, setSyncError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [configured, setConfigured] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState("");
   const [syncNonce, setSyncNonce] = useState(0); // 手动同步后强制各视图重新加载
 
   async function loadDay(date) {
@@ -78,6 +85,7 @@ export default function CalendarPage() {
       setDay(d);
       setConfigured(!!d.configured);
       setSyncError(d.syncError || "");
+      setLastSyncAt(d.lastSyncAt || "");
     } catch (e) {
       setErr(e.message);
     }
@@ -88,7 +96,7 @@ export default function CalendarPage() {
   useEffect(() => {
     const ds = ymd(weekStartDate);
     api.get(`/calendar/week?start=${ds}`)
-      .then((r) => { setWeekData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); })
+      .then((r) => { setWeekData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); setLastSyncAt(r.lastSyncAt || ""); })
       .catch(() => setWeekData([]));
   }, [weekStartDate, syncNonce]);
 
@@ -96,7 +104,7 @@ export default function CalendarPage() {
   useEffect(() => {
     if (viewMode !== "month") return;
     api.get(`/calendar/month?year=${month.y}&month=${month.m}`)
-      .then((r) => { setMonthData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); })
+      .then((r) => { setMonthData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); setLastSyncAt(r.lastSyncAt || ""); })
       .catch(() => setMonthData([]));
   }, [viewMode, month, syncNonce]);
 
@@ -107,9 +115,7 @@ export default function CalendarPage() {
     }
     setSyncing(true);
     try {
-      const start = viewMode === "month" ? ymd(new Date(month.y, month.m, 1)) : ymd(weekStartDate);
-      const end = viewMode === "month" ? ymd(new Date(month.y, month.m + 1, 0)) : ymd(new Date(weekStartDate.getTime() + 6 * 24 * 3600 * 1000));
-      await api.post("/calendar/sync", { start, end });
+      await workbenchApi.syncRun(selected, ["calendar"]);
       setSyncError("");
       setSyncNonce((n) => n + 1); // 触发当日/周/月重新加载
     } catch (e) {
@@ -162,6 +168,12 @@ export default function CalendarPage() {
             <button className="btn sm" onClick={syncNow} disabled={syncing} title="从钉钉拉取最新日程">
               <IconRefresh size={14} stroke={2} /> {syncing ? "同步中…" : "同步钉钉日程"}
             </button>
+            {lastSyncAt && (
+              <span className="meta" style={{ alignSelf: "center" }} title={new Date(lastSyncAt).toLocaleString()}>
+                最近同步：{fmtSyncTime(lastSyncAt)}
+              </span>
+            )}
+            <span className="meta" style={{ alignSelf: "center" }}>每 15 分钟自动同步未来 30 天</span>
             <button className={`btn sm ${viewMode === "week" ? "primary" : ""}`} onClick={() => setViewMode("week")}>
               <IconLayoutList size={14} stroke={2} /> 周视图
             </button>

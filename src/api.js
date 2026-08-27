@@ -45,11 +45,25 @@ export const outlookApi = {
 };
 
 export function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
+
+export const workbenchApi = {
+  dashboard: (date) => api.get(`/dashboard?date=${encodeURIComponent(date || todayStr())}`),
+  attention: (date, filters = {}) => {
+    const params = new URLSearchParams({ date: date || todayStr(), ...filters });
+    return api.get(`/attention?${params}`);
+  },
+  pulse: (date) => api.get(`/team/pulse?date=${encodeURIComponent(date || todayStr())}`),
+  syncStatus: () => api.get("/sync/status"),
+  syncRun: (date, sources) => api.post("/sync/run", { date: date || todayStr(), sources }),
+};
 
 export const teamApi = {
   reports: (date) => api.get(`/team/reports?date=${date}`),
+  reportDetails: (date) => api.get(`/reports/dingtalk?date=${date}`),
+  reportDates: () => api.get("/reports/dingtalk/dates"),
   sync: (date) => api.post("/team/sync/reports", { date }),
   // 手动维护的日志模板（增删改/启停）
   templateList: () => api.get("/team/report-templates"),

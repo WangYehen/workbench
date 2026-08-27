@@ -22,7 +22,7 @@ function json(res, status, value) {
 }
 
 // 把已分类的邮件镜像到本地 emails 表（不含正文），让概览 / 日历 / 系统页继续可用。
-async function mirrorToEmails(service) {
+export async function mirrorToEmails(service) {
   const db = getDb();
   const { items } = await service.list("all");
   if (!items || !items.length) return;
@@ -148,6 +148,10 @@ export default function outlookRouter(service) {
     const message = items.find((m) => m.id === id);
     if (!message) throw new OutlookServiceError("OUTLOOK_MESSAGE_NOT_FOUND", "邮件不存在。");
     const db = getDb();
+    const existing = db.prepare("SELECT * FROM todos WHERE source_type='outlook' AND source_id=?").get(id);
+    if (existing) {
+      return json(res, 200, { ok: true, duplicate: true, id: existing.id, title: existing.title, priority: existing.priority, due_date: existing.due_date });
+    }
     const todoId = "t" + Math.random().toString(36).slice(2, 10);
     const title = message.actionText ? `${message.actionText}（来自 ${message.sender || "邮件"}）` : message.subject;
     const priority = PRIORITY_TO_TODO[message.priority] || "P1";
@@ -160,7 +164,7 @@ export default function outlookRouter(service) {
     ].filter(Boolean).join("\n");
     upsert(
       "todos",
-      [{ id: todoId, title, note: noteParts, status: "inbox", priority, due_date: dueDate, created_at: new Date().toISOString(), completed_at: null }],
+      [{ id: todoId, title, note: noteParts, status: "inbox", priority, due_date: dueDate, created_at: new Date().toISOString(), completed_at: null, source_type: "outlook", source_id: id, project_id: req.body?.projectId || null, assignee_id: req.body?.assigneeId || null }],
       ["id"],
     );
     await service.setMessageStatus(id, "converted");

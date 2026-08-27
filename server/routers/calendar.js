@@ -20,6 +20,12 @@ const SYNC_TTL = 30 * 60 * 1000;
 const syncedDays = new Map();
 let lastSyncError = null;
 
+// 读取最近一次日程成功同步时间（由 dingtalk.syncCalendarForRange 写入）
+function lastCalendarSyncAt(db) {
+  const row = db.prepare("SELECT value_json FROM sync_state WHERE key='calendar_last_sync_at'").get();
+  return row ? (JSON.parse(row.value_json)?.at || "") : "";
+}
+
 async function ensureSynced(startStr, endStr) {
   if (!dingtalk.calendarReady()) return; // 未配置钉钉（或缺主管 userid）：依赖演示/已有数据，不阻塞请求
   const days = [];
@@ -50,6 +56,7 @@ router.get("/meetings", async (req, res) => {
     meetings: rows.map((m) => ({ ...m, start: fmt(m.start_at), end: m.end_at ? fmt(m.end_at) : "" })),
     configured: dingtalk.calendarReady(),
     syncError: lastSyncError,
+    lastSyncAt: lastCalendarSyncAt(db),
   });
 });
 
@@ -71,7 +78,7 @@ router.get("/week", async (req, res) => {
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
   }
-  res.json({ start, days, configured: dingtalk.calendarReady(), syncError: lastSyncError });
+  res.json({ start, days, configured: dingtalk.calendarReady(), syncError: lastSyncError, lastSyncAt: lastCalendarSyncAt(db) });
 });
 
 // 一月摘要：用于日历月视图，显示每天的会议/待办/邮件数量
@@ -94,7 +101,7 @@ router.get("/month", async (req, res) => {
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
   }
-  res.json({ year, month, days, configured: dingtalk.calendarReady(), syncError: lastSyncError });
+  res.json({ year, month, days, configured: dingtalk.calendarReady(), syncError: lastSyncError, lastSyncAt: lastCalendarSyncAt(db) });
 });
 
 // 点击某一天，聚合这一天所有数据
@@ -118,6 +125,7 @@ router.get("/day/:date", async (req, res) => {
     dailyReport: daily,
     configured: dingtalk.calendarReady(),
     syncError: lastSyncError,
+    lastSyncAt: lastCalendarSyncAt(db),
   });
 });
 

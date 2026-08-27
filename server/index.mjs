@@ -17,6 +17,8 @@ import reports from "./routers/reports.js";
 import projects from "./routers/projects.js";
 import aihot from "./routers/aihot.js";
 import system from "./routers/system.js";
+import workbenchRouter from "./routers/workbench.js";
+import { createSyncCoordinator } from "./sync-coordinator.mjs";
 import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undici";
 
 // ---------------------------------------------------------------------------
@@ -110,7 +112,7 @@ const outlookService = createOutlookService({
   },
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
-outlookService.startScheduler();
+const syncCoordinator = createSyncCoordinator({ outlookService });
 
 // 路由
 app.use("/api/outlook", outlookRouter(outlookService));
@@ -121,6 +123,7 @@ app.use("/api/review", review);
 app.use("/api/reports", reports);
 app.use("/api/projects", projects);
 app.use("/api/ai-hot", aihot);
+app.use("/api", workbenchRouter(syncCoordinator));
 app.use("/api", system);
 
 // OAuth 入口：未配置时从系统页点「连接 Outlook」跳到邮件页完成同意+授权流程
@@ -157,10 +160,13 @@ if (config.useDemoData) seedDemoIfEmpty();
 console.log(`[team-workbench] API listening on http://127.0.0.1:${config.port}`);
 
 const server = app.listen(config.port, "127.0.0.1");
+syncCoordinator.start();
+
 
 // 优雅退出：停掉 Outlook 自动同步定时器
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
+    syncCoordinator.close();
     outlookService.close().finally(() => server.close(() => process.exit(0)));
   });
 }

@@ -212,6 +212,28 @@ function migrate(d) {
     d.exec("ALTER TABLE dingtalk_reports ADD COLUMN dept_name TEXT DEFAULT ''");
   }
 
+  // 009：通讯录成员作为团队口径基线，可停用离职/无需提交成员。
+  const memberCols = d.prepare("PRAGMA table_info(dingtalk_members)").all().map((c) => c.name);
+  if (!memberCols.includes("active")) {
+    d.exec("ALTER TABLE dingtalk_members ADD COLUMN active INTEGER NOT NULL DEFAULT 1");
+  }
+
+  // 010：待办保留来源血缘与项目/责任人关联；来源唯一索引保证重复转换幂等。
+  const todoCols = d.prepare("PRAGMA table_info(todos)").all().map((c) => c.name);
+  const todoAdds = {
+    source_type: "TEXT",
+    source_id: "TEXT",
+    project_id: "TEXT",
+    assignee_id: "TEXT",
+  };
+  for (const [column, type] of Object.entries(todoAdds)) {
+    if (!todoCols.includes(column)) d.exec(`ALTER TABLE todos ADD COLUMN ${column} ${type}`);
+  }
+  d.exec(
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_todos_source ON todos(source_type, source_id) " +
+      "WHERE source_type IS NOT NULL AND source_id IS NOT NULL",
+  );
+
   // 007：weekly_reports 的 week_start 需 UNIQUE（/weekly/generate 用 ON CONFLICT(week_start) 覆盖生成）。
   // 旧库的 idx_weekly 是普通索引，ON CONFLICT 会报 "does not match any PRIMARY KEY or UNIQUE constraint"；
   // 把该索引重建为 UNIQUE（SQLite 的 ON CONFLICT 同样认唯一索引），幂等：仅当现有索引非唯一时重建。
@@ -243,10 +265,15 @@ export function upsert(table, rows, conflictCols) {
 // 采用「历史真实提交人」作基线：某天不在 dingtalk_reports 中即视为未提交。
 // 集中于此，便于将来切换为「手动名册」或「钉钉通讯录」基线时只改一处。
 export function getRosterBaseline(db) {
-  return db
+  const roster = db
     .prepare(
-      "SELECT DISTINCT COALESCE(NULLIF(user_id, ''), user_name) AS key, user_name AS name " +
-        "FROM dingtalk_reports WHERE user_name IS NOT NULL AND user_name <> ''",
+      "SELECT user_id AS key, name, dept_name FROM dingtalk_members " +
+        "WHERE COALESCE(active, 1)=1 AND COALESCE(is_manager, 0)=0 AND name IS NOT NULL AND name<>'' ORDER BY name",
     )
     .all();
+  if (roster.length) return roster;
+  return db.prepare(
+    "SELECT DISTINCT COALESCE(NULLIF(user_id, ''), user_name) AS key, user_name AS name, COALESCE(dept_name, '') AS dept_name " +
+      "FROM dingtalk_reports WHERE user_name IS NOT NULL AND user_name <> '' ORDER BY user_name",
+  ).all();
 }

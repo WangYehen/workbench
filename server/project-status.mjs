@@ -1,3 +1,5 @@
+import { localDateString } from "./local-date.mjs";
+
 // 项目进度 / 状态机：派生逻辑集中在此，projects 与 overview 复用
 export const STATUS = {
   normal:  { label: "正常",   pill: "green",  rank: 0 },
@@ -14,11 +16,11 @@ function daysBetween(a, b) {
   return Math.round((toDate(b) - toDate(a)) / 86400000);
 }
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDateString();
 }
 
 // 进度：优先用存储值；未设置时按阶段时间跨度自动估算（0~100）
-export function deriveProgress(project, phases) {
+export function deriveProgress(project, phases, asOf = todayStr()) {
   if (project.progress != null && !Number.isNaN(Number(project.progress))) {
     return Math.max(0, Math.min(100, Number(project.progress)));
   }
@@ -28,14 +30,14 @@ export function deriveProgress(project, phases) {
   const first = starts[0];
   const last = ends[ends.length - 1];
   const total = daysBetween(first, last) || 1;
-  const elapsed = daysBetween(first, todayStr());
+  const elapsed = daysBetween(first, asOf);
   return Math.max(0, Math.min(100, Math.round((elapsed / total) * 100)));
 }
 
 // 状态机：根据进度 + 阶段截止日 + 当前日期自动推导
-export function deriveStatus(project, phases) {
-  const progress = deriveProgress(project, phases);
-  const today = todayStr();
+export function deriveStatus(project, phases, asOf = todayStr()) {
+  const progress = deriveProgress(project, phases, asOf);
+  const today = asOf;
   if (!phases || !phases.length) return "normal";
   const ends = phases.map((p) => p.end_date).sort();
   const lastEnd = ends[ends.length - 1];
@@ -53,8 +55,8 @@ export function deriveStatus(project, phases) {
   return "normal";
 }
 
-export function enrichProject(project, phases) {
-  const progress = deriveProgress(project, phases);
-  const status = deriveStatus(project, phases);
+export function enrichProject(project, phases, asOf = todayStr()) {
+  const progress = deriveProgress(project, phases, asOf);
+  const status = deriveStatus(project, phases, asOf);
   return { ...project, phases, progress, status, statusLabel: STATUS[status].label };
 }

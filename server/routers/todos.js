@@ -11,24 +11,24 @@ router.get("/", (req, res) => {
 
 router.post("/", (req, res) => {
   const db = getDb();
-  const { title, note, priority, due_date } = req.body;
+  const { title, note, priority, due_date, project_id, assignee_id } = req.body;
   if (!title) return res.status(400).json({ error: "标题必填" });
   const id = "t" + Math.random().toString(36).slice(2, 10);
   db.prepare(
-    "INSERT INTO todos(id, title, note, status, priority, due_date, created_at, completed_at) VALUES(?,?,?,?,?,?,?,?)",
-  ).run(id, title, note || "", "inbox", priority || "P1", due_date || null, new Date().toISOString(), null);
+    "INSERT INTO todos(id, title, note, status, priority, due_date, created_at, completed_at, source_type, source_id, project_id, assignee_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+  ).run(id, title, note || "", "inbox", priority || "P1", due_date || null, new Date().toISOString(), null, "manual", null, project_id || null, assignee_id || null);
   res.json({ ok: true, id });
 });
 
 router.patch("/:id", (req, res) => {
   const db = getDb();
-  const { status, title, note, priority, due_date } = req.body;
+  const { status, title, note, priority, due_date, project_id, assignee_id } = req.body;
   const existing = db.prepare("SELECT * FROM todos WHERE id=?").get(req.params.id);
   if (!existing) return res.status(404).json({ error: "未找到" });
   const completed_at = status === "done" && existing.status !== "done" ? new Date().toISOString() : existing.completed_at;
   db.prepare(
-    "UPDATE todos SET status=COALESCE(?,status), title=COALESCE(?,title), note=COALESCE(?,note), priority=COALESCE(?,priority), due_date=COALESCE(?,due_date), completed_at=? WHERE id=?",
-  ).run(status, title, note, priority, due_date, completed_at, req.params.id);
+    "UPDATE todos SET status=COALESCE(?,status), title=COALESCE(?,title), note=COALESCE(?,note), priority=COALESCE(?,priority), due_date=COALESCE(?,due_date), project_id=COALESCE(?,project_id), assignee_id=COALESCE(?,assignee_id), completed_at=? WHERE id=?",
+  ).run(status, title, note, priority, due_date, project_id, assignee_id, completed_at, req.params.id);
   res.json({ ok: true });
 });
 

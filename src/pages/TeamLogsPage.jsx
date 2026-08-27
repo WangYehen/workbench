@@ -4,12 +4,19 @@ import { IconUsersGroup, IconUserX, IconHistory, IconForms, IconTrash, IconPenci
 import { api, teamApi, todayStr } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
 
+// 最近同步时间展示：如 08/18 18:05
+function fmtSyncTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
 export default function TeamLogsPage() {
   const [date, setDate] = useState(todayStr());
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [configured, setConfigured] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState("");
 
   // 手动维护的日志模板（增删改/启停）
   const [tplOpen, setTplOpen] = useState(false);
@@ -25,6 +32,7 @@ export default function TeamLogsPage() {
       const d = await api.get("/team/reports?date=" + date);
       setData(d);
       setConfigured(d.configured);
+      setLastSyncAt(d.lastSyncAt || "");
     } catch (e) {
       setErr(e.message);
     }
@@ -145,6 +153,11 @@ export default function TeamLogsPage() {
               <button className="btn primary" onClick={sync} disabled={syncing}>
                 {syncing ? "同步中…" : "同步钉钉"}
               </button>
+            )}
+            {configured && lastSyncAt && (
+              <span className="meta" style={{ alignSelf: "center" }} title={new Date(lastSyncAt).toLocaleString()}>
+                最近同步：{fmtSyncTime(lastSyncAt)}
+              </span>
             )}
             {!configured && <span className="pill gray">未配置钉钉（演示数据）</span>}
           </div>
