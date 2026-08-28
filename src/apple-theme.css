@@ -213,7 +213,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 .attention-list { gap: 12px; }
 .attention-item { grid-template-columns: 50px minmax(0,1fr) auto; padding: 17px 18px; }
-.attention-item__priority { border-radius: 8px; background: var(--danger-wash); color: var(--danger); }
+.attention-item__priority { border-radius: 8px; background: #f1f1f4; color: #6b6b70; }
+.attention-item__priority--p0 { background: #fdecec; color: #ff453a; }
+.attention-item__priority--p1 { background: #fff4e3; color: #c26f00; }
 .attention-item__action { color: var(--ink-soft); }
 .sync-banner { border-color: #cfe5fa; border-radius: 16px; background: #f0f7ff; }
 .team-metrics { gap: 16px; }

@@ -23,6 +23,18 @@ export function localTimeString(value, timeZone = WORKBENCH_TIME_ZONE) {
   }).format(date);
 }
 
+export function teamMetricDate(selectedDate, now = new Date(), timeZone = WORKBENCH_TIME_ZONE) {
+  const today = localDateString(now, timeZone);
+  if (selectedDate !== today) return { date: selectedDate, isFallbackDate: false, ruleLabel: "按所选日期统计" };
+  const time = localTimeString(now, timeZone);
+  if (time < "17:40") {
+    const previous = new Date(`${today}T00:00:00+08:00`);
+    previous.setUTCDate(previous.getUTCDate() - 1);
+    return { date: localDateString(previous, timeZone), isFallbackDate: true, ruleLabel: "17:40 前默认展示昨日数据" };
+  }
+  return { date: today, isFallbackDate: false, ruleLabel: "17:40 后展示今日数据" };
+}
+
 export function isDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || ""));
 }

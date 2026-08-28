@@ -5,7 +5,7 @@ import { mirrorToEmails } from "./routers/outlook.js";
 
 export const SYNC_POLICIES = {
   outlook: { label: "Outlook 邮件", intervalMinutes: 15, scope: "增量同步收件箱，并更新行动中心" },
-  dingtalk: { label: "钉钉团队日志", intervalMinutes: 15, scope: "同步当天启用模板的日志和团队名册" },
+  dingtalk: { label: "钉钉团队日志", intervalMinutes: 15, scope: "同步当天启用模板的日志" },
   calendar: { label: "钉钉日程", intervalMinutes: 15, scope: "同步今天起 30 天的主管主日历" },
 };
 

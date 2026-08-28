@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar, IconTrash } from "@tabler/icons-react";
+import { DeleteButton } from "../components/DeleteButton";
 import { api } from "../api.js";
 import { StatusPill } from "../lib/project-status.jsx";
 import { DatePicker } from "../components/DatePicker.jsx";
@@ -208,7 +209,7 @@ export default function ProjectsPage() {
                   ) : (
                     <button className="btn sm" onClick={() => openEdit(p)}>设进度</button>
                   )}
-                  <button className="project-delete" onClick={() => delProject(p.id)}><IconTrash size={15} /><span>删除</span></button>
+                  <DeleteButton className="project-delete" onClick={() => delProject(p.id)} />
                 </div>
               </div>
             ))}

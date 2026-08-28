@@ -78,7 +78,15 @@
 .oc-ai__link:hover { text-decoration: underline; }
 .oc-ai__body { font-size: 16px; line-height: 1.6; color: #fff; margin: 0; }
 .oc-ai__tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.oc-chip { padding: 6px 12px; border-radius: 999px; background: var(--oc-dark-2); color: #cfcfd4; font-size: 13px; }
+.oc-chip { padding: 6px 12px; border-radius: 999px; background: transparent; color: #cfcfd4; font-size: 13px; }
+.oc-kpi__label { display:inline-flex; align-items:center; gap:5px; }
+.oc-kpi__hint { position:relative; display:inline-flex; }
+.oc-kpi__hint button { display:grid; place-items:center; padding:0; border:0; background:transparent; color:var(--oc-muted); cursor:help; }
+.oc-kpi__hint > span { position:absolute; z-index:5; top:calc(100% + 8px); left:0; width:230px; padding:9px 11px; border:1px solid var(--oc-line); border-radius:9px; background:#fff; color:var(--oc-ink); box-shadow:0 8px 22px rgba(0,0,0,.12); font-size:12px; font-weight:400; line-height:1.55; opacity:0; pointer-events:none; transform:translateY(-3px); transition:opacity .15s ease,transform .15s ease; }
+.oc-kpi__hint:hover > span, .oc-kpi__hint:focus-within > span { opacity:1; transform:none; }
+.oc-chip__priority--p0 { color: #ff453a; }
+.oc-chip__priority--p1 { color: #ffb340; }
+.oc-chip__priority--p2 { color: #b8b8bd; }
 
 /* ---- 双栏网格 ---- */
 .oc-grid { display: grid; grid-template-columns: 1.95fr 1fr; gap: 24px; align-items: start; }
@@ -134,8 +142,9 @@
 .oc-row__title { font-size: 14px; font-weight: 600; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .oc-row__sub { font-size: 13px; color: var(--oc-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .oc-tag { padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-.oc-tag--p0 { background: var(--oc-danger); color: #fff; }
-.oc-tag--p1 { background: var(--oc-warn); color: #fff; }
+.oc-tag--p0 { background: #fdecec; color: #ff453a; }
+.oc-tag--p1 { background: #fff4e3; color: #c26f00; }
+.oc-tag--p2 { background: #f1f1f4; color: #6b6b70; }
 .oc-tag--soft { background: #eaf2fc; color: var(--oc-accent); font-weight: 600; }
 .oc-tag--muted { background: #f1f1f4; color: var(--oc-muted); font-weight: 400; }
 

@@ -14,6 +14,7 @@ import {
 } from "@tabler/icons-react";
 import { api, workbenchApi } from "../api.js";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
+import { PriorityBadge } from "../components/PriorityBadge";
 
 // 本地日期字符串（YYYY-MM-DD），避免 toISOString 在东八区把当天算成前一天
 function ymd(d) {
@@ -331,7 +332,7 @@ export default function CalendarPage() {
             </div>
             <div className="list">
               {day.todos.map((t) => (
-                <div className="item" key={t.id}><span className={`pill ${t.status === "done" ? "green" : { P0: "p0", P1: "p1", P2: "p2" }[t.priority] || "p2"}`}>{t.priority}</span><div className="title">{t.title}</div></div>
+                <div className="item todo-item" key={t.id}><PriorityBadge priority={t.priority} className="todo-priority" /><div className={`title todo-title ${t.status === "done" ? "is-done" : ""}`}>{t.title}</div></div>
               ))}
               {!day.todos.length && <div className="empty">无</div>}
             </div>

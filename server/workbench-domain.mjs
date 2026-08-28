@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { localTimeString } from "./local-date.mjs";
+import { localTimeString, teamMetricDate } from "./local-date.mjs";
 import { getRosterBaseline } from "./db.mjs";
 import { enrichProject } from "./project-status.mjs";
 
@@ -84,7 +84,7 @@ export function buildTeamPulse(db, date) {
 
 export function buildAttentionItems(db, date) {
   const items = [];
-  const todos = db.prepare("SELECT * FROM todos WHERE status!='done'").all();
+  const todos = db.prepare("SELECT * FROM todos WHERE status!='done' AND (due_date IS NULL OR due_date='' OR due_date<=?)").all(date);
   for (const todo of todos) {
     const overdue = todo.due_date && todo.due_date < date;
     items.push({
@@ -183,8 +183,10 @@ export function buildAttentionItems(db, date) {
   });
 }
 
-export function buildDashboard(db, date) {
+export function buildDashboard(db, date, now = new Date()) {
   const pulse = buildTeamPulse(db, date);
+  const teamRule = teamMetricDate(date, now);
+  const metricPulse = teamRule.date === date ? pulse : buildTeamPulse(db, teamRule.date);
   const attention = buildAttentionItems(db, date);
   const projects = db.prepare("SELECT * FROM projects").all();
   const phases = db.prepare("SELECT * FROM project_phases").all();
@@ -195,7 +197,7 @@ export function buildDashboard(db, date) {
   }
   const enrichedProjects = projects.map((project) => enrichProject(project, phasesByProject.get(project.id) || [], date));
   const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date);
-  const todos = db.prepare("SELECT * FROM todos").all();
+  const todos = db.prepare("SELECT * FROM todos WHERE due_date IS NULL OR due_date='' OR due_date<=?").all(date);
   const latest = db.prepare("SELECT MAX(report_date) AS date FROM dingtalk_reports").get()?.date || null;
   const projectRisk = enrichedProjects.filter((project) => project.status === "at_risk" || project.status === "overdue");
   const openTodos = todos.filter((todo) => todo.status !== "done");
@@ -216,10 +218,13 @@ export function buildDashboard(db, date) {
         p0: attention.filter((item) => item.kind === "email" && item.priority === "P0").length,
       },
       team: {
-        rosterTotal: pulse.rosterTotal,
-        submitted: pulse.submittedUnique,
-        missing: pulse.missing.length,
-        rate: pulse.submissionRate,
+        rosterTotal: metricPulse.rosterTotal,
+        submitted: metricPulse.submittedUnique,
+        missing: metricPulse.missing.length,
+        rate: metricPulse.submissionRate,
+        metricDate: teamRule.date,
+        isFallbackDate: teamRule.isFallbackDate,
+        ruleLabel: teamRule.ruleLabel,
       },
       todos: {
         total: todos.length,

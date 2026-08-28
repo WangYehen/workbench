@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { IconRefresh, IconServer, IconSettings, IconTrash } from "@tabler/icons-react";
+import { DeleteButton } from "../components/DeleteButton";
 import { PageHeader } from "../components/PageHeader";
 import { api, teamApi, todayStr, workbenchApi } from "../api.js";
 import "./SystemPage.css";
@@ -118,7 +119,6 @@ export default function SystemPage() {
             {item.recordCount != null ? <><br />最近变更：{item.recordCount} 条</> : null}
           </div>
           {item.error && <div className="meta" style={{ color: "var(--danger,#c2413b)", marginTop: 5 }}>{item.error}</div>}
-          {item.warning && <div className="meta" style={{ color: "#9a6700", marginTop: 5 }}>{item.warning}</div>}
           <button className="btn sm" style={{ marginTop: 8 }} disabled={!item.ready || syncing === item.source} onClick={() => syncNow(item.source)}>{syncing === item.source ? "同步中…" : "立即同步此数据源"}</button>
         </section>)}
       </div>
@@ -131,7 +131,7 @@ export default function SystemPage() {
           <span>{template.name}</span>
           <div className="settings-template-actions">
             <button className={`btn sm settings-template-toggle ${template.enabled ? "is-enabled" : "is-disabled"}`} onClick={() => toggleTemplate(template)}>{template.enabled ? "已启用" : "已停用"}</button>
-            <button className="settings-template-delete" aria-label={`删除模板 ${template.name}`} title="删除模板" disabled={deletingTemplateId === template.id} onClick={() => deleteTemplate(template)}><IconTrash size={15} /><span>{deletingTemplateId === template.id ? "删除中" : "删除"}</span></button>
+            <DeleteButton className="settings-template-delete" aria-label={`删除模板 ${template.name}`} title="删除模板" disabled={deletingTemplateId === template.id} onClick={() => deleteTemplate(template)}>{deletingTemplateId === template.id ? "删除中" : "删除"}</DeleteButton>
           </div>
         </div>)}
       </div>

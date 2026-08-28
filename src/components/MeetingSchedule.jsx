@@ -24,7 +24,8 @@ function durationMin(start, end) {
 }
 
 function meetingStatus(meeting, now, live) {
-  if (!live) return { key: "day", label: "当日" };
+  // 非当天视图中的会议均属于历史快照，明确标记为已结束，避免“当日”造成误解。
+  if (!live) return { key: "ended", label: "已结束" };
   if (meeting._start <= now && meeting._end >= now) return { key: "live", label: "进行中" };
   if (meeting._start > now) return { key: "upcoming", label: "未开始" };
   return { key: "ended", label: "已结束" };
@@ -71,7 +72,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
       <div className={`meeting-feature-card ${isCurrent ? "is-current" : ""}`}>
         <div className="meeting-feature-card__top">
           <span className="meeting-feature-card__time">
-            {fmtTime(featured.start_at)}–{fmtTime(featured.end_at)}
+            {fmtTime(featured.start_at)}–{fmtTime(featured._end.toISOString())}
           </span>
           <span className={`meeting-status meeting-status--${featuredStatus.key}`}>{featuredStatus.label}</span>
           {featured.source === "dingtalk" && <span className="pill blue">钉钉</span>}

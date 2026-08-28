@@ -5,6 +5,7 @@ import TodosPage from "./TodosPage.jsx";
 import DateNav from "../components/DateNav.jsx";
 import { todayStr, workbenchApi } from "../api.js";
 import "./WorkspacePages.css";
+import { PriorityBadge } from "../components/PriorityBadge";
 
 export default function ActionsPage() {
   const [params, setParams] = useSearchParams();
@@ -20,6 +21,6 @@ export default function ActionsPage() {
     {error && <div className="error">{error}</div>}
     {tab === "email" && <Emails2Page embedded />}
     {tab === "tasks" && <TodosPage embedded />}
-    {tab === "attention" && <div className="attention-list">{items.map((item)=><article className="attention-item" key={item.id}><span className="attention-item__priority">{item.priority}</span><div><h3>{item.title}</h3><p>{item.detail || item.sourceRef}</p></div><span className="attention-item__action">{item.recommendedAction}</span></article>)}{!items.length&&<div className="empty-state">该日期没有待处理注意事项。</div>}</div>}
+    {tab === "attention" && <div className="attention-list">{items.map((item)=><article className="attention-item" key={item.id}><PriorityBadge priority={item.priority}/><div><h3>{item.title}</h3><p>{item.detail || ""}</p></div><span className="attention-item__action">{item.recommendedAction}</span></article>)}{!items.length&&<div className="empty-state">该日期没有待处理注意事项。</div>}</div>}
   </div>;
 }

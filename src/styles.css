@@ -1138,11 +1138,47 @@ label { font-size: var(--text-meta); color: var(--ink-soft); display: block; mar
 
 /* ===== 优先级颜色系统（P0 紧急 / P1 重要 / P2 普通） ===== */
 .pill.p0,
-.pill.priority-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.pill.priority-critical { background: #fdecec; color: #ff453a; border: 1px solid #f7c9c5; }
 .pill.p1,
-.pill.priority-high    { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.pill.priority-high    { background: #fff4e3; color: #c26f00; border: 1px solid #f5d79d; }
 .pill.p2,
-.pill.priority-normal  { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.pill.priority-normal  { background: #f1f1f4; color: #6b6b70; border: 1px solid #dedee3; }
+
+/* 待办列表优先级：固定方块尺寸，和邮件列表徽标对齐 */
+.pill.todo-priority {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 8px !important;
+  flex: 0 0 34px;
+  font-size: 12px;
+  line-height: 1;
+}
+.todo-item { align-items: center; }
+.todo-title.is-done { color: var(--ink-faint); }
+.priority-badge { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; flex:0 0 34px; box-sizing:border-box; border-radius:8px; font-size:12px; font-weight:700; line-height:1; }
+.priority-badge--p0 { background:#fdecec; color:#ff453a; border:1px solid #f7c9c5; }
+.priority-badge--p1 { background:#fff4e3; color:#c26f00; border:1px solid #f5d79d; }
+.priority-badge--p2 { background:#f1f1f4; color:#6b6b70; border:1px solid #dedee3; }
+.todo-load-more { display:block; margin:14px auto 0; border:0; background:transparent; color:var(--accent); cursor:pointer; font-size:13px; }
+.delete-button { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:34px; padding:6px 11px; border:1px solid #f1b9b5; border-radius:10px; background:#fff; color:#c2413b; font:inherit; font-size:13px; font-weight:500; line-height:1; cursor:pointer; }
+.delete-button:hover { border-color:#d45a52; background:#fff5f4; }
+.delete-button:focus-visible { outline:3px solid rgba(194,65,59,.18); outline-offset:2px; }
+.delete-button:disabled { opacity:.55; cursor:not-allowed; }
+.todo-modal-backdrop { position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:20px; background:rgba(0,0,0,.28); backdrop-filter:blur(3px); }
+.todo-modal { width:min(520px,100%); padding:24px; border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:var(--shadow-lg); }
+.todo-modal__head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.todo-modal__head h2 { display:flex; align-items:center; gap:8px; margin:0; font-size:20px; }
+.todo-modal__close { display:grid; place-items:center; border:0; background:transparent; color:var(--ink-soft); cursor:pointer; }
+.todo-modal > input { width:100%; box-sizing:border-box; }
+.todo-modal__fields { display:flex; gap:10px; margin-top:12px; }
+.todo-modal__fields > * { flex:1; min-width:0; }
+.todo-modal__actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+@media (max-width:560px) { .todo-modal__fields { flex-direction:column; } }
 
 /* 优先级左侧色条（用于表格行、卡片等场景） */
 .priority-bar { width: 3px; border-radius: 2px; flex-shrink: 0; }
@@ -1201,9 +1237,17 @@ select:hover { border-color: var(--accent-soft); }
   width: 8px; height: 8px; border-radius: 50%;
   transition: background 0.16s;
 }
-.select-priority[data-priority="P0"]::before { background: #dc2626; }
-.select-priority[data-priority="P1"]::before { background: #d97706; }
-.select-priority[data-priority="P2"]::before { background: #7c3aed; }
+.select-priority[data-priority="P0"]::before { background: #ff453a; }
+.select-priority[data-priority="P1"]::before { background: #c26f00; }
+.select-priority[data-priority="P2"]::before { background: #6b6b70; }
+.select-priority[data-priority="P0"] { background-color: #fdecec; color: #ff453a; border-color: #f7c9c5; }
+.select-priority[data-priority="P1"] { background-color: #fff4e3; color: #c26f00; border-color: #f5d79d; }
+.select-priority[data-priority="P2"] { background-color: #f1f1f4; color: #6b6b70; border-color: #dedee3; }
+
+/* 下拉选项沿用邮件列表的优先级语义色（支持原生 select 的浏览器） */
+.select-priority option[value="P0"] { color: #ff453a; background: #fdecec; }
+.select-priority option[value="P1"] { color: #c26f00; background: #fff4e3; }
+.select-priority option[value="P2"] { color: #6b6b70; background: #f1f1f4; }
 
 /* input[type=date] 隐藏原生日历图标（自定义 DatePicker 会完全替换，此为降级） */
 input[type="date"]::-webkit-calendar-picker-indicator {

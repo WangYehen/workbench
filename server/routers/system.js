@@ -66,6 +66,8 @@ router.get("/overview/suggestion", async (req, res) => {
 
   const summary = {
     date,
+    teamMetricDate: dashboard.metrics.team.metricDate || date,
+    teamMetricRule: dashboard.metrics.team.ruleLabel || "按所选日期统计",
     riskProjects: riskNames.length,
     riskNames,
     pendingEmails: emails.length,
@@ -78,10 +80,10 @@ router.get("/overview/suggestion", async (req, res) => {
 
   const force = req.query.force === "1";
   const feedback = req.query.feedback || "";
-  const cacheKey = `${date}:${dashboard.inputHash}`;
+  const cacheKey = `${date}:${dashboard.metrics.team.metricDate || date}:${dashboard.inputHash}`;
   const cached = suggestionCache.get(cacheKey);
   if (!force && cached && Date.now() - cached.ts < SUGGESTION_TTL) {
-    return res.json({ suggestion: cached.text, cached: true, date, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt: cached.generatedAt });
+    return res.json({ suggestion: cached.text, cached: true, date, teamMetricDate: summary.teamMetricDate, teamMetricRule: summary.teamMetricRule, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt: cached.generatedAt });
   }
 
   let suggestion;
@@ -97,7 +99,7 @@ router.get("/overview/suggestion", async (req, res) => {
   }
   const generatedAt = new Date().toISOString();
   suggestionCache.set(cacheKey, { text: suggestion, ts: Date.now(), generatedAt });
-  res.json({ suggestion, cached: false, date, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt });
+  res.json({ suggestion, cached: false, date, teamMetricDate: summary.teamMetricDate, teamMetricRule: summary.teamMetricRule, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt });
 });
 
 export default router;
