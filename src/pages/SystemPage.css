@@ -8,4 +8,19 @@
 .settings-template-toggle.is-disabled { border-color: #d9d9de; background: #f4f4f6; color: #73737a; }
 .settings-template-toggle:hover { filter: brightness(0.98); }
 .settings-template-error { margin-top: 10px; padding: 9px 11px; border-radius: 8px; background: #fff1f0; color: #b42318; font-size: 13px; }
-@media (max-width: 520px) { .settings-template-row { align-items: flex-start; } .settings-template-actions { flex-wrap: wrap; justify-content: flex-end; } .settings-template-delete span { display: none; } }
+.settings-ai-panel { margin-top: 14px; }
+.settings-ai-subtitle { margin-top: 4px; }
+.settings-ai-routes { display: grid; gap: 8px; margin: 12px 0 14px; padding: 12px 14px; border: 1px solid #d9e8f9; border-radius: 10px; background: #f6faff; }
+.settings-ai-routes > div { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; align-items: start; }
+.settings-ai-routes span { color: var(--muted); font-size: 13px; }
+.settings-ai-routes strong { font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.settings-ai-provider-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.settings-ai-provider { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+.settings-ai-provider.is-ready { border-color: #cce7d5; background: #fbfffc; }
+.settings-ai-provider__head { gap: 8px; margin-bottom: 7px; }
+.settings-ai-provider__head strong { min-width: 0; font-size: 14px; }
+.settings-ai-provider .meta { overflow-wrap: anywhere; }
+.settings-ai-models { margin-top: 7px; color: #4f6073; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.settings-ai-privacy { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: #fff8e8; color: #785a17; font-size: 13px; line-height: 1.55; }
+@media (max-width: 900px) { .settings-ai-provider-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .settings-template-row { align-items: flex-start; } .settings-template-actions { flex-wrap: wrap; justify-content: flex-end; } .settings-template-delete span { display: none; } .settings-ai-provider-grid { grid-template-columns: 1fr; } .settings-ai-routes > div { grid-template-columns: 1fr; gap: 3px; } }

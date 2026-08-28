@@ -77,6 +77,8 @@ function migrate(d) {
       organizer TEXT,
       day TEXT NOT NULL,
       raw_json TEXT,
+      attendee_count INTEGER,
+      accepted_count INTEGER,
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_cal_day ON calendars(day);
@@ -158,6 +160,38 @@ function migrate(d) {
       updated_at TEXT NOT NULL
     );
 
+    -- AI 调度层：只保存领域引用、摘要结果与诊断元数据，不保存邮件正文。
+    CREATE TABLE IF NOT EXISTS ai_artifacts (
+      kind TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      payload_json TEXT,
+      source_refs_json TEXT,
+      ai_meta_json TEXT,
+      generated_at TEXT,
+      last_attempt_at TEXT,
+      last_error TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (kind, scope)
+    );
+    CREATE TABLE IF NOT EXISTS ai_tasks (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      priority INTEGER NOT NULL DEFAULT 0,
+      trigger TEXT NOT NULL DEFAULT 'automatic',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      finished_at TEXT,
+      last_error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_ai_tasks_pending ON ai_tasks(status, priority DESC, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_ai_artifacts_status ON ai_artifacts(status, updated_at DESC);
+
     -- 手动维护的钉钉日志模板（替代旧的“调钉钉接口查全部模板 + 勾选”方案）
     -- name 即钉钉日志接口服务端过滤用的 template_name；enabled=1 才参与同步拉取
     CREATE TABLE IF NOT EXISTS report_templates (
@@ -177,6 +211,7 @@ function migrate(d) {
     "002_dingtalk_members",
     "003_projects",
     "004_ai_hot_cache",
+    "011_ai_scheduler",
   ];
   for (const v of versions) {
     if (!applied.has(v)) {
@@ -242,6 +277,11 @@ function migrate(d) {
     d.exec("DROP INDEX IF EXISTS idx_weekly");
     d.exec("CREATE UNIQUE INDEX idx_weekly ON weekly_reports(week_start)");
   }
+
+  // 012：日程补充参会人数，旧库保留原有会议数据并允许为空。
+  const calendarCols = d.prepare("PRAGMA table_info(calendars)").all().map((c) => c.name);
+  if (!calendarCols.includes("attendee_count")) d.exec("ALTER TABLE calendars ADD COLUMN attendee_count INTEGER");
+  if (!calendarCols.includes("accepted_count")) d.exec("ALTER TABLE calendars ADD COLUMN accepted_count INTEGER");
 }
 
 export function upsert(table, rows, conflictCols) {

@@ -79,7 +79,7 @@ export default function outlookRouter(service) {
     const body = req.body || {};
     assertAllowedObjectKeys(body, new Set(["accepted"]), "OUTLOOK_INVALID_CONSENT");
     if (!body.accepted) {
-      throw new OutlookServiceError("OUTLOOK_CONSENT_REQUIRED", "需要明确同意后才能发送邮件正文至 DeepSeek。");
+      throw new OutlookServiceError("OUTLOOK_CONSENT_REQUIRED", "需要明确同意后才能将邮件正文发送至已配置的 AI 来源。");
     }
     json(res, 200, await service.acceptConsent());
   }));

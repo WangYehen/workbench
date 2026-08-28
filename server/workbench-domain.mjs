@@ -7,6 +7,20 @@ function safeJson(value, fallback = []) {
   try { return JSON.parse(value); } catch { return fallback; }
 }
 
+export function enrichCalendarMeeting(meeting) {
+  if (meeting.location || !meeting.raw_json) return meeting;
+  const raw = safeJson(meeting.raw_json, null);
+  if (!raw) return meeting;
+  const location = raw.location;
+  const direct = typeof location === "string"
+    ? location
+    : location?.displayName || location?.name || location?.address || location?.locationName || location?.placeName || location?.place || "";
+  const rooms = raw.meetingRooms || raw.meeting_rooms;
+  const room = Array.isArray(rooms) ? rooms.find(Boolean) : rooms;
+  const roomLabel = typeof room === "string" ? room : room?.displayName || room?.name || room?.roomName || room?.locationName || "";
+  return { ...meeting, location: direct || roomLabel };
+}
+
 function priorityRank(priority) {
   return { P0: 0, high: 0, P1: 1, medium: 1, P2: 2, low: 2 }[priority] ?? 3;
 }
@@ -196,7 +210,7 @@ export function buildDashboard(db, date, now = new Date()) {
     phasesByProject.get(phase.project_id).push(phase);
   }
   const enrichedProjects = projects.map((project) => enrichProject(project, phasesByProject.get(project.id) || [], date));
-  const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date);
+  const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date).map(enrichCalendarMeeting);
   const todos = db.prepare("SELECT * FROM todos WHERE due_date IS NULL OR due_date='' OR due_date<=?").all(date);
   const latest = db.prepare("SELECT MAX(report_date) AS date FROM dingtalk_reports").get()?.date || null;
   const projectRisk = enrichedProjects.filter((project) => project.status === "at_risk" || project.status === "overdue");

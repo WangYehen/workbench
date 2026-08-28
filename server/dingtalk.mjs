@@ -1,6 +1,5 @@
 import { config } from "./config.mjs";
 import { getDb, upsert } from "./db.mjs";
-import { ai } from "./ai.mjs";
 import { localDateString } from "./local-date.mjs";
 
 const NEW_API = "https://api.dingtalk.com";
@@ -39,6 +38,25 @@ function toEpochMs(v) {
     if (v.date) return Date.parse(`${v.date}T00:00:00`);
   }
   return null;
+}
+
+function attendeeStatusAccepted(attendee) {
+  const status = String(
+    attendee?.responseStatus || attendee?.response_status || attendee?.status || attendee?.rsvpStatus || "",
+  ).toLowerCase();
+  return ["accepted", "accept", "yes", "attending", "confirmed", "参加", "已接受", "1"].includes(status);
+}
+
+function normalizeAttendees(e) {
+  const raw = e.attendees || e.attendee || e.participants || e.invitees || [];
+  const list = Array.isArray(raw) ? raw : (Array.isArray(raw?.items) ? raw.items : []);
+  const totalValue = e.attendeeCount ?? e.attendee_count ?? e.participantCount ?? e.inviteeCount;
+  const acceptedValue = e.acceptedCount ?? e.accepted_count ?? e.acceptCount;
+  const total = Number.isFinite(Number(totalValue)) ? Number(totalValue) : (list.length || null);
+  const accepted = Number.isFinite(Number(acceptedValue))
+    ? Number(acceptedValue)
+    : (list.length ? list.filter(attendeeStatusAccepted).length : null);
+  return { total, accepted };
 }
 
 export const dingtalk = {
@@ -238,11 +256,19 @@ export const dingtalk = {
     if (e.location) {
       location = typeof e.location === "string"
         ? e.location
-        : (e.location.displayName || e.location.name || e.location.address || "");
+        : (e.location.displayName || e.location.name || e.location.address || e.location.locationName || e.location.placeName || e.location.place || "");
+    }
+    if (!location) location = e.meetingRoom || e.roomName || e.venue || "";
+    if (!location && Array.isArray(e.meetingRooms)) {
+      const room = e.meetingRooms.find(Boolean);
+      location = typeof room === "string"
+        ? room
+        : (room?.displayName || room?.name || room?.roomName || room?.locationName || "");
     }
     if (!location && Array.isArray(e.conferences) && e.conferences[0]?.uri) {
       location = e.conferences[0].uri;
     }
+    const attendees = normalizeAttendees(e);
     return {
       id: String(e.id || e.event_id || Math.random()),
       source: "dingtalk",
@@ -251,6 +277,8 @@ export const dingtalk = {
       end_at: endMs ? new Date(endMs).toISOString() : null,
       location,
       organizer,
+      attendee_count: attendees.total,
+      accepted_count: attendees.accepted,
       day,
       raw: e,
     };
@@ -274,6 +302,8 @@ export const dingtalk = {
       end_at: e.end_at,
       location: e.location,
       organizer: e.organizer,
+      attendee_count: e.attendee_count,
+      accepted_count: e.accepted_count,
       day: e.day,
       raw_json: JSON.stringify(e.raw),
       created_at: now,
@@ -376,32 +406,12 @@ export const dingtalk = {
         .filter((l) => l.length > 0 && l !== "[]" && l !== "【】");
       return lines.slice(0, 2).map((l) => l.replace(/[;；]\s*$/, "")).join("；");
     };
-    if (ai.available() && reports.length) {
-      try {
-        const analysis = await ai.analyzeReports(reports);
-        const byUser = new Map();
-        const byName = new Map();
-        for (const m of analysis.members || []) {
-          if (m.userId) byUser.set(String(m.userId), m);
-          if (m.name) byName.set(m.name, m);
-        }
-        const used = new Set();
-        const db = getDb();
-        for (const r of reports) {
-          const a = byUser.get(String(r.user_id)) || byName.get(r.user_name);
-          let summary = a && a.summary ? a.summary : "";
-          // 防止 AI 退化导致多人小结雷同：雷同或为空时回退到真实内容的确定性摘要
-          if (!summary || used.has(summary)) summary = deriveSummary(r.content_json);
-          used.add(summary);
-          db.prepare("UPDATE dingtalk_reports SET blockers=?, needs_review=?, summary=? WHERE id=?")
-            .run(JSON.stringify(a?.blockers || []), JSON.stringify(a?.reviewItems || []), summary, r.id);
-        }
-      } catch {
-        // AI 不可用时统一用确定性小结兜底（仍保证按人区分）
-        const db = getDb();
-        const upd = db.prepare("UPDATE dingtalk_reports SET summary=? WHERE id=?");
-        for (const r of reports) upd.run(deriveSummary(r.content_json), r.id);
-      }
+    // 同步主链路只保留按人可读的确定性摘要。AI 团队分析由 ai-scheduler
+    // 在协调器确认同步成功后后台入队，慢模型和失败都不会阻塞本次同步。
+    if (reports.length) {
+      const db = getDb();
+      const update = db.prepare("UPDATE dingtalk_reports SET blockers=?, needs_review=?, summary=? WHERE id=?");
+      for (const report of reports) update.run("[]", "[]", deriveSummary(report.content_json), report.id);
     }
     // 记录最近一次成功同步时间（手动同步与定时同步共用）
     setKv("reports_last_sync_at", { at: new Date().toISOString() });

@@ -25,7 +25,7 @@ function addDays(date, days) {
   return localDateString(value);
 }
 
-export function createSyncCoordinator({ outlookService, now = () => new Date(), database = getDb, dingtalkService = dingtalk, mirrorEmails = mirrorToEmails }) {
+export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, mirrorEmails = mirrorToEmails }) {
   const running = new Set();
   let timer = null;
 
@@ -87,6 +87,9 @@ export function createSyncCoordinator({ outlookService, now = () => new Date(), 
       const warningState = source === "dingtalk" ? readState(db, "sync_warning_dingtalk") : null;
       const state = { status: "success", trigger, lastAttemptAt: attemptedAt, lastSuccessAt: now().toISOString(), recordCount: Number(recordCount) || 0, error: null, warning: warningState?.warning || null };
       writeState(db, `sync_status_${source}`, state);
+      // AI 仅后台入队，不能拖慢外部数据同步的完成响应。
+      aiScheduler?.dashboardArtifact(date, { trigger: `sync:${source}` });
+      if (source === "dingtalk") aiScheduler?.teamAnalysisArtifact(date, { trigger: "sync:dingtalk" });
       return { source, ...state };
     } catch (error) {
       const previous = readState(db, `sync_status_${source}`) || {};

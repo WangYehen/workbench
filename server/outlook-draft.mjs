@@ -47,9 +47,11 @@ export async function generateDraft({ db, ai, message, tone, force = false, now 
   }
   const ctx = buildDraftContext(message, loadOpenTodos(db), tone);
   let body;
+  let aiMeta = null;
   try {
     const result = await ai.draftReply(ctx);
     body = result?.body;
+    aiMeta = result?.aiMeta || null;
   } catch (err) {
     throw new OutlookServiceError("OUTLOOK_MODEL_REQUEST_FAILED", `回复草稿生成失败：${err?.message || err}`);
   }
@@ -62,5 +64,5 @@ export async function generateDraft({ db, ai, message, tone, force = false, now 
     "INSERT INTO email_drafts(message_id, draft_text, tone, created_at, updated_at) VALUES(?,?,?,?,?) " +
       "ON CONFLICT(message_id) DO UPDATE SET draft_text=excluded.draft_text, tone=excluded.tone, updated_at=excluded.updated_at",
   ).run(message.id, text, tone, ts, ts);
-  return { draft: text, tone, cached: false };
+  return { draft: text, tone, cached: false, aiMeta };
 }

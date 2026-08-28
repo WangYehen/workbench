@@ -77,6 +77,7 @@
 .oc-ai__link { color: var(--oc-link); font-size: 13px; text-decoration: none; cursor: pointer; align-self: center; }
 .oc-ai__link:hover { text-decoration: underline; }
 .oc-ai__body { font-size: 16px; line-height: 1.6; color: #fff; margin: 0; }
+.oc-ai__meta { display: flex; align-items: center; gap: 6px; margin-top: -8px; color: #aeb3bd; font-size: 12px; }
 .oc-ai__tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .oc-chip { padding: 6px 12px; border-radius: 999px; background: transparent; color: #cfcfd4; font-size: 13px; }
 .oc-kpi__label { display:inline-flex; align-items:center; gap:5px; }
@@ -136,8 +137,9 @@
 
 /* ---- 邮件 / 通用行 ---- */
 .oc-list { display: flex; flex-direction: column; }
-.oc-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--oc-line-soft); }
+.oc-row { display: flex; width: 100%; align-items: center; gap: 12px; padding: 10px 0; border: 0; border-top: 1px solid var(--oc-line-soft); background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .oc-row:first-child { border-top: none; }
+.oc-row:hover { background: #f7fbff; border-radius: 8px; }
 .oc-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .oc-row__title { font-size: 14px; font-weight: 600; color: var(--oc-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .oc-row__sub { font-size: 13px; color: var(--oc-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

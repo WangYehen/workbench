@@ -264,6 +264,43 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .progress > span { background: var(--accent); }
 .project-card, .timeline-project, .roadmap-panel { border-color: var(--line); border-radius: var(--r-lg); }
 
+/* 项目时间线：用低饱和阶段色建立顺序，避免大面积高亮色争抢焦点。 */
+.roadmap .phase-bar {
+  border: 1px solid transparent;
+  box-shadow: none;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: box-shadow .16s ease, filter .16s ease, transform .16s ease;
+}
+.roadmap .phase-bar:hover {
+  filter: none;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(29, 29, 31, .08);
+}
+.roadmap .phase-1, .legend .phase-1 { color: #4d6174; background: #eef3f8; border-color: #dce6ef; }
+.roadmap .phase-2, .legend .phase-2 { color: #68538f; background: #f0ebfa; border-color: #e1d8f1; }
+.roadmap .phase-3, .legend .phase-3 { color: #286b9f; background: #e5f0fb; border-color: #cfe2f4; }
+.roadmap .phase-4, .legend .phase-4 { color: #28786f; background: #e4f3f1; border-color: #cce7e3; }
+.roadmap .phase-5, .legend .phase-5 { color: #4c754f; background: #eaf3e9; border-color: #d7e6d5; }
+.roadmap .phase-x, .legend .phase-x { color: #68686d; background: #f0f0f2; border-color: #e1e1e4; }
+.roadmap .phase-bar__date { opacity: .72; }
+.roadmap .progress { height: 7px; background: #eef1f4; }
+.roadmap .progress > span { background: #7fa9d1; }
+.roadmap-today { border-left: 1px dashed #7d9bbb; }
+.roadmap-today > span { color: #416381; background: #edf4fa; border: 1px solid #d7e6f2; }
+.legend { gap: 8px 16px; margin-top: 14px; }
+.legend span { color: var(--ink-soft); font-family: var(--font-body); }
+.legend i.phase-bar {
+  position: static;
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  padding: 0;
+  border-radius: 50% !important;
+  box-shadow: none;
+}
+
 .daily-hot-page, .ai-hot-page { color: var(--ink); }
 
 @media (max-width: 900px) {

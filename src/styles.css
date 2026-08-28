@@ -1061,6 +1061,7 @@ label { font-size: var(--text-meta); color: var(--ink-soft); display: block; mar
 }
 
 /* ===== 旋转动画（重新生成图标） ===== */
+.generate-button__spin { animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ===== pill 扩展色 ===== */
@@ -1126,15 +1127,22 @@ label { font-size: var(--text-meta); color: var(--ink-soft); display: block; mar
 }
 .meeting-compact-list { display: flex; flex-direction: column; gap: 8px; }
 .meeting-compact-row {
-  display: grid; grid-template-columns: 52px minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  display: grid;
+  grid-template-columns: 52px minmax(100px, 1fr) minmax(80px, .8fr) 110px 55px 40px;
+  grid-template-areas: "time title loc people status dur";
+  align-items: center; gap: 6px 8px;
   padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-sm);
   background: var(--surface); transition: border-color 0.16s var(--ease);
 }
 .meeting-compact-row:hover { border-color: var(--accent-soft); }
-.meeting-compact-row__time { font-family: var(--font-mono); font-size: var(--text-meta); font-weight: 600; color: var(--accent-strong); }
-.meeting-compact-row__title { font-size: var(--text-compact); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.meeting-compact-row__loc, .meeting-compact-row__org { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-caption); color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.meeting-compact-row__loc svg, .meeting-compact-row__org svg { flex-shrink: 0; color: var(--accent); }
+.meeting-compact-row__time { grid-area: time; font-family: var(--font-mono); font-size: var(--text-meta); font-weight: 600; color: var(--accent-strong); }
+.meeting-compact-row__title { grid-area: title; min-width: 0; font-size: var(--text-compact); color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.meeting-compact-row__loc, .meeting-compact-row__org, .meeting-compact-row__attendees { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-caption); color: var(--ink-faint); white-space: nowrap; }
+.meeting-compact-row__loc { grid-area: loc; }
+.meeting-compact-row__loc { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.meeting-compact-row__people { grid-area: people; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.meeting-compact-row__status { grid-area: status; align-self: center; }
+.meeting-compact-row__loc svg, .meeting-compact-row__org svg, .meeting-compact-row__attendees svg { flex-shrink: 0; color: var(--accent); }
 
 /* ===== 优先级颜色系统（P0 紧急 / P1 重要 / P2 普通） ===== */
 .pill.p0,
@@ -1334,7 +1342,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   border-radius: var(--r-sm);
 }
 .date-picker__today:hover { background: var(--accent-wash); }
-.meeting-compact-row__dur { font-size: var(--text-caption); color: var(--ink-faint); text-align: right; }
+.meeting-compact-row__dur { grid-area: dur; font-size: var(--text-caption); color: var(--ink-faint); text-align: left; }
 
 .meeting-empty {
   display: flex; align-items: center; gap: 14px; padding: 20px;

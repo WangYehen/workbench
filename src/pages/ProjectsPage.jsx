@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
-import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar, IconTrash } from "@tabler/icons-react";
+import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar, IconTrash, IconX } from "@tabler/icons-react";
 import { DeleteButton } from "../components/DeleteButton";
 import { api } from "../api.js";
 import { StatusPill } from "../lib/project-status.jsx";
@@ -128,6 +128,7 @@ export default function ProjectsPage() {
   const [end, setEnd] = useState("");
   const [editing, setEditing] = useState(null); // 正在编辑进度的项目 id
   const [editVal, setEditVal] = useState(0);
+  const [modal, setModal] = useState(null);
 
   async function load() { setProjects((await api.get("/projects")).items); }
   useEffect(() => { load(); }, []);
@@ -138,9 +139,9 @@ export default function ProjectsPage() {
     setName(""); load();
   }
   async function addPhase() {
-    if (!pid || !start || !end) return;
+    if (!pid || !start || !end) return false;
     await api.post(`/projects/${pid}/phases`, { phase, start_date: start, end_date: end });
-    setStart(""); setEnd(""); load();
+    setStart(""); setEnd(""); load(); return true;
   }
   async function delProject(id) { await api.del(`/projects/${id}`); load(); }
   function openEdit(p) { setEditing(p.id); setEditVal(p.progress); }
@@ -148,6 +149,7 @@ export default function ProjectsPage() {
     await api.patch(`/projects/${editing}`, { progress: Number(editVal) });
     setEditing(null); load();
   }
+  function closeModal() { setModal(null); setEditing(null); }
 
   if (!projects) return <div className="spinner">加载中…</div>;
 
@@ -164,7 +166,11 @@ export default function ProjectsPage() {
       <div className="panel" style={{ marginBottom: 14 }}>
         <div className="panel__head">
           <div className="panel__title"><span className="work-page-icon"><IconRoute size={22} stroke={1.75} /></span>项目时间线</div>
-          <span className="meta">{projects.length} 个项目{riskCount ? ` · ${riskCount} 风险` : ""}</span>
+          <div className="project-timeline__actions">
+            <span className="meta">{projects.length} 个项目{riskCount ? ` · ${riskCount} 风险` : ""}</span>
+            <button className="btn sm" type="button" onClick={() => setModal("projects")}><IconFolderPlus size={15} />项目管理</button>
+            <button className="btn primary sm" type="button" onClick={() => setModal("phase")}><IconCalendarPlus size={15} />添加阶段</button>
+          </div>
         </div>
         <Roadmap projects={projects} />
         <div className="legend">
@@ -174,10 +180,11 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <div className="grid grid-2">
-        <div className="panel">
+      {modal === "projects" && <div className="project-modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && closeModal()}>
+        <section className="project-modal project-modal--projects" role="dialog" aria-modal="true" aria-labelledby="project-manage-title">
           <div className="panel__head">
-            <div className="panel__title"><span className="work-page-icon"><IconFolderPlus size={22} stroke={1.75} /></span>项目管理</div>
+            <div><div className="panel__title" id="project-manage-title"><span className="work-page-icon"><IconFolderPlus size={22} stroke={1.75} /></span>项目管理</div><p className="project-modal__sub">新建项目、查看进度或调整项目状态。</p></div>
+            <button className="project-modal__close" type="button" onClick={closeModal} aria-label="关闭项目管理"><IconX size={20} /></button>
           </div>
           <label>新建项目</label>
           <div className="row">
@@ -214,11 +221,14 @@ export default function ProjectsPage() {
               </div>
             ))}
           </div>
-        </div>
+        </section>
+      </div>}
 
-        <div className="panel">
+      {modal === "phase" && <div className="project-modal-backdrop" role="presentation" onMouseDown={(e) => e.target === e.currentTarget && closeModal()}>
+        <section className="project-modal project-modal--phase" role="dialog" aria-modal="true" aria-labelledby="phase-add-title">
           <div className="panel__head">
-            <div className="panel__title"><span className="work-page-icon"><IconCalendarPlus size={22} stroke={1.75} /></span>添加阶段</div>
+            <div><div className="panel__title" id="phase-add-title"><span className="work-page-icon"><IconCalendarPlus size={22} stroke={1.75} /></span>添加阶段</div><p className="project-modal__sub">为项目补充一个新的时间线阶段。</p></div>
+            <button className="project-modal__close" type="button" onClick={closeModal} aria-label="关闭添加阶段"><IconX size={20} /></button>
           </div>
           <label>选择项目</label>
           <select value={pid} onChange={(e) => setPid(e.target.value)}>
@@ -233,13 +243,13 @@ export default function ProjectsPage() {
             <div className="project-date-field"><label>开始日期</label><DatePicker value={start} onChange={setStart} placeholder="选择开始日期" /></div>
             <div className="project-date-field"><label>结束日期</label><DatePicker value={end} onChange={setEnd} placeholder="选择结束日期" /></div>
           </div>
-          <button className="btn primary" style={{ marginTop: 12 }} onClick={addPhase}>添加阶段</button>
+          <div className="project-modal__footer"><button className="btn" type="button" onClick={closeModal}>取消</button><button className="btn primary" type="button" onClick={async () => { if (await addPhase()) closeModal(); }}>添加阶段</button></div>
           <div className="panel__title" style={{ fontSize: 15, marginTop: 18 }}>
             <span className="work-page-icon" style={{ width: 34, height: 34 }}><IconChartBar size={18} stroke={1.75} /></span>进度说明
           </div>
           <div className="meta">进度可手动在「设进度」中填写（0–100）；状态（正常 / 有风险 / 审核中 / 已逾期 / 待验收）由系统根据进度与阶段截止日自动推算。</div>
-        </div>
-      </div>
+        </section>
+      </div>}
     </div>
   );
 }

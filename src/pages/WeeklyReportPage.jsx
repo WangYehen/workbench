@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { IconCalendarWeek, IconHistory } from "@tabler/icons-react";
 import { api } from "../api.js";
+import GenerateButton from "../components/GenerateButton.jsx";
 
 function fmtDate(dt) {
   const y = dt.getFullYear();
@@ -57,7 +58,7 @@ export default function WeeklyReportPage() {
       <div className="panel">
         <div className="panel__head">
           <div className="panel__title"><span className="work-page-icon"><IconCalendarWeek size={22} stroke={1.75} /></span>本周周报</div>
-          <button className="btn primary sm" onClick={genWeekly} disabled={busy}>生成 / 刷新</button>
+          <GenerateButton onClick={genWeekly} busy={busy} />
         </div>
         <div className="meta" style={{ marginBottom: 12 }}>{week.weekStart} ~ {week.weekEnd}</div>
         {weekly ? (

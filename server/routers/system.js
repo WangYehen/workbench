@@ -2,10 +2,10 @@ import express from "express";
 import { config, configured } from "../config.mjs";
 import { dingtalk } from "../dingtalk.mjs";
 import { getDb } from "../db.mjs";
-import { ai } from "../ai.mjs";
 import { resolveDateKey } from "../local-date.mjs";
 import { buildDashboard } from "../workbench-domain.mjs";
 
+export default function systemRouter(aiScheduler) {
 const router = express.Router();
 
 function fmt(iso) {
@@ -14,14 +14,22 @@ function fmt(iso) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-router.get("/system", (req, res) => {
+router.get("/system", async (req, res) => {
+  const aiRouting = await aiScheduler.aiService.status().catch(() => null);
   res.json({
     configured: configured(),
     useDemoData: config.useDemoData,
-    aiProvider: config.ai.provider,
+    aiProvider: aiScheduler.aiService.label(),
+    aiRouting,
+    aiQueue: aiScheduler.stats(),
     publicBaseUrl: config.publicBaseUrl,
     displayName: config.displayName,
   });
+});
+
+router.post("/system/ai/refresh", async (req, res) => {
+  try { res.json(await aiScheduler.aiService.status({ refresh: true })); }
+  catch (error) { res.status(500).json({ error: error?.message || "AI 来源检测失败" }); }
 });
 
 router.get("/overview", (req, res) => {
@@ -41,65 +49,30 @@ router.get("/overview", (req, res) => {
   } catch (error) { res.status(400).json({ error: error.message }); }
 });
 
-// ---- AI 今日工作建议：数据感知 + LLM 生成，带 1h 缓存 ----
-const suggestionCache = new Map();
-const SUGGESTION_TTL = 3600 * 1000;
-
-function buildFallback(s) {
-  const parts = [];
-  if (s.riskProjects > 0) parts.push(`有 ${s.riskProjects} 个风险项目在跑，今天优先推进它们，别让进度再滑`);
-  if (s.pendingEmails > 0) parts.push(`${s.pendingEmails} 封待处理邮件，先挑高优先级的回掉`);
-  if (s.meetingCount > 0) parts.push(`今天 ${s.firstMeetings?.[0]?.time || ""} 的「${s.firstMeetings?.[0]?.title || "会议"}」会前留 30 分钟准备`);
-  if (s.blockers > 0) parts.push(`${s.blockers} 个团队卡点需要你拍板`);
-  if (s.openTodos > 0) parts.push(`还有 ${s.openTodos} 条未完成待办，先处理最高优先级和已逾期事项`);
-  if (!parts.length) return "当前日期没有高优先级注意事项，可以安排一段不被打断的专注时间。";
-  return parts.join("；") + "。";
-}
-
-router.get("/overview/suggestion", async (req, res) => {
-  const db = getDb();
+// 首屏不等待模型：返回已有 AI 产物，或确定性的即时规则，同时确保后台任务已入队。
+router.get("/overview/suggestion", (req, res) => {
   let date;
   try { date = resolveDateKey(req.query.date); } catch (error) { return res.status(400).json({ error: error.message }); }
-  const dashboard = buildDashboard(db, date);
-  const riskNames = dashboard.projects.filter((item) => item.status === "at_risk" || item.status === "overdue").map((item) => item.name);
-  const emails = dashboard.attention.filter((item) => item.kind === "email");
-
-  const summary = {
-    date,
-    teamMetricDate: dashboard.metrics.team.metricDate || date,
-    teamMetricRule: dashboard.metrics.team.ruleLabel || "按所选日期统计",
-    riskProjects: riskNames.length,
-    riskNames,
-    pendingEmails: emails.length,
-    pendingTop: emails.slice(0, 3).map((item) => ({ subject: item.title, sender: item.detail, priority: item.priority })),
-    meetingCount: dashboard.meetings.length,
-    firstMeetings: dashboard.meetings.slice(0, 2).map((m) => ({ title: m.title, time: m.start })),
-    blockers: dashboard.pulse.blockers.length,
-    openTodos: dashboard.metrics.todos.open,
-  };
-
-  const force = req.query.force === "1";
-  const feedback = req.query.feedback || "";
-  const cacheKey = `${date}:${dashboard.metrics.team.metricDate || date}:${dashboard.inputHash}`;
-  const cached = suggestionCache.get(cacheKey);
-  if (!force && cached && Date.now() - cached.ts < SUGGESTION_TTL) {
-    return res.json({ suggestion: cached.text, cached: true, date, teamMetricDate: summary.teamMetricDate, teamMetricRule: summary.teamMetricRule, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt: cached.generatedAt });
-  }
-
-  let suggestion;
-  if (ai.available()) {
-    try {
-      const r = await ai.dailySuggestion(summary, feedback);
-      suggestion = (r && (r.suggestion || r.text)) || buildFallback(summary);
-    } catch {
-      suggestion = buildFallback(summary);
-    }
-  } else {
-    suggestion = buildFallback(summary);
-  }
-  const generatedAt = new Date().toISOString();
-  suggestionCache.set(cacheKey, { text: suggestion, ts: Date.now(), generatedAt });
-  res.json({ suggestion, cached: false, date, teamMetricDate: summary.teamMetricDate, teamMetricRule: summary.teamMetricRule, inputHash: dashboard.inputHash, sourceRefs: dashboard.attention.slice(0, 6).map((item) => item.sourceRef), generatedAt });
+  const artifact = aiScheduler.dashboardArtifact(date, { force: req.query.force === "1", trigger: req.query.force === "1" ? "manual" : "view" });
+  res.json({
+    suggestion: artifact.payload.text, artifact, cached: artifact.status === "ready", date,
+    inputHash: artifact.inputHash, sourceRefs: artifact.sourceRefs, generatedAt: artifact.generatedAt, aiMeta: artifact.aiMeta || null,
+  });
 });
 
-export default router;
+router.get("/ai/artifacts", (req, res) => {
+  const { kind, scope } = req.query;
+  if (!kind || !scope) return res.status(400).json({ error: "kind 和 scope 为必填项" });
+  const artifact = kind === "dashboard.suggestion" ? aiScheduler.dashboardArtifact(scope) : aiScheduler.read(kind, scope);
+  res.json({ artifact });
+});
+
+router.post("/ai/artifacts/:kind/:scope/regenerate", (req, res) => {
+  const { kind, scope } = req.params;
+  if (kind !== "dashboard.suggestion") return res.status(400).json({ error: "该内容暂不支持后台重新生成" });
+  const artifact = aiScheduler.dashboardArtifact(scope, { force: true, trigger: "manual" });
+  res.status(202).json({ artifact, taskId: null });
+});
+
+return router;
+}

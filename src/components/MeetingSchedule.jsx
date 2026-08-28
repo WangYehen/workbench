@@ -4,7 +4,9 @@ import {
   IconVideo,
   IconClock,
   IconUser,
+  IconUsers,
 } from "@tabler/icons-react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 function fmtTime(iso) {
   if (!iso) return "";
@@ -21,6 +23,31 @@ function fmtTime(iso) {
 function durationMin(start, end) {
   const ms = new Date(end) - new Date(start);
   return Math.max(0, Math.round(ms / 60000));
+}
+
+function attendeeLabel(meeting) {
+  if (meeting.attendee_count == null || meeting.attendee_count === "" || !Number.isFinite(Number(meeting.attendee_count))) return "";
+  const total = Number(meeting.attendee_count);
+  const hasAccepted = meeting.accepted_count != null && meeting.accepted_count !== "" && Number.isFinite(Number(meeting.accepted_count));
+  return hasAccepted ? `${total} 人 · ${Number(meeting.accepted_count)} 人接受` : `${total} 人参会`;
+}
+
+function TruncatedMeetingText({ className, text, children }) {
+  const ref = useRef(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+
+    const measure = () => setIsTruncated(element.scrollWidth > element.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [text]);
+
+  return <span ref={ref} className={className} title={isTruncated ? text : undefined} aria-label={text}>{children}</span>;
 }
 
 function meetingStatus(meeting, now, live) {
@@ -91,6 +118,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
           ) : (
             <span className="meeting-feature-card__loc"><IconMapPin size={15} stroke={1.75} /> 地点未填写</span>
           )}
+          {attendeeLabel(featured) && <span className="meeting-feature-card__loc"><IconUsers size={15} stroke={1.75} /> {attendeeLabel(featured)}</span>}
           {featured.organizer && <span className="meeting-feature-card__org">组织者 {featured.organizer}</span>}
         </div>
 
@@ -118,18 +146,18 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
               return (
                 <div className="meeting-compact-row" key={`${m.id || "meeting"}-${i}`}>
                   <span className="meeting-compact-row__time">{fmtTime(m.start_at)}</span>
-                  <span className="meeting-compact-row__title">{m.title}</span>
-                  <span className="meeting-compact-row__loc">
+                  <TruncatedMeetingText className="meeting-compact-row__title" text={m.title}>{m.title}</TruncatedMeetingText>
+                  <TruncatedMeetingText className="meeting-compact-row__loc" text={locLabel}>
                     {online ? <IconVideo size={13} stroke={1.75} /> : <IconMapPin size={13} stroke={1.75} />}
                     {locLabel}
-                  </span>
-                  {m.organizer && (
-                    <span className="meeting-compact-row__org">
-                      <IconUser size={13} stroke={1.75} />
-                      {m.organizer}
+                  </TruncatedMeetingText>
+                  {(attendeeLabel(m) || m.organizer) && (
+                    <span className="meeting-compact-row__people">
+                      {m.organizer && <span className="meeting-compact-row__org"><IconUser size={13} stroke={1.75} /> {m.organizer}</span>}
+                      {attendeeLabel(m) && <span className="meeting-compact-row__attendees"><IconUsers size={13} stroke={1.75} /> {attendeeLabel(m)}</span>}
                     </span>
                   )}
-                  <span className={`meeting-status meeting-status--${status.key}`}>{status.label}</span>
+                  <span className={`meeting-status meeting-status--${status.key} meeting-compact-row__status`}>{status.label}</span>
                   <span className="meeting-compact-row__dur">{durationMin(m._start, m._end)} 分</span>
                 </div>
               );

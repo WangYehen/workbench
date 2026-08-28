@@ -14,14 +14,6 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import {
-  classifierPromptSystem,
-  reliableClassifierPromptSystem,
-  classifierPromptUser,
-  reliableClassifierPromptUser,
-  classifySystemMessages,
-} from "./prompts/index.mjs";
-
 const STORE_VERSION = 1;
 const MAX_STORE_BYTES = 8 * 1024 * 1024;
 const MAX_MESSAGES_PER_SYNC = 500;
@@ -91,9 +83,7 @@ function normalizeConfig(config = {}) {
     clientId: safeString(config.clientId, 256),
     redirectUri: safeString(config.redirectUri, 1_024),
     tokenKey,
-    deepseekApiKey: safeString(config.deepseekApiKey, 1_024),
-    deepseekBaseUrl: safeString(config.deepseekBaseUrl, 1_024) || "https://api.deepseek.com",
-    deepseekModel: safeString(config.deepseekModel, 256) || "deepseek-chat",
+    modelProvider: safeString(config.modelProvider, 128) || "AI 智能路由",
   };
 }
 
@@ -102,7 +92,6 @@ function missingConfiguration(config) {
   if (!config.clientId) missing.push("OUTLOOK_ENTRA_CLIENT_ID");
   if (!config.redirectUri) missing.push("OUTLOOK_OAUTH_REDIRECT_URI");
   if (!config.tokenKey) missing.push("OUTLOOK_TOKEN_ENCRYPTION_KEY");
-  if (!config.deepseekApiKey) missing.push("DEEPSEEK_API_KEY");
   return missing;
 }
 
@@ -247,8 +236,8 @@ function publicStatus(state, config) {
     localOnly: true,
     configured: missing.length === 0,
     missingConfiguration: missing,
-    modelProvider: "DeepSeek API",
-    consented: Boolean(state.consent?.acceptedAt),
+    modelProvider: config.modelProvider,
+    consented: Boolean(state.consent?.acceptedAt && state.consent?.provider === config.modelProvider),
     connected: Boolean(state.connection?.token?.refreshToken),
     lastSyncAt: state.sync?.lastSuccessAt || null,
     lastAttemptAt: state.sync?.lastAttemptAt || null,
@@ -264,6 +253,7 @@ export function createOutlookService({
   config: suppliedConfig = {},
   stateDirectory = path.resolve(".local/outlook"),
   fetchImpl = fetch,
+  aiService = null,
   now = () => new Date(),
   syncIntervalMs = SYNC_INTERVAL_MS,
 } = {}) {
@@ -303,7 +293,7 @@ export function createOutlookService({
 
   function writeState(nextState) {
     const operation = stateQueue.then(async () => {
-      if (!config.tokenKey) fail("OUTLOOK_NOT_CONFIGURED", "请先配置 Outlook 和 DeepSeek 本地环境变量。");
+      if (!config.tokenKey) fail("OUTLOOK_NOT_CONFIGURED", "请先配置 Outlook 本地环境变量。");
       await ensureStateDirectory(stateDirectory);
       const encrypted = `${JSON.stringify(encrypt(nextState, config.tokenKey), null, 2)}\n`;
       if (Buffer.byteLength(encrypted, "utf8") > MAX_STORE_BYTES) {
@@ -324,7 +314,7 @@ export function createOutlookService({
 
   function requireConfigured() {
     if (missingConfiguration(config).length) {
-      fail("OUTLOOK_NOT_CONFIGURED", "请先完成 Outlook 和 DeepSeek 的本地环境变量配置。");
+      fail("OUTLOOK_NOT_CONFIGURED", "请先完成 Outlook 的本地环境变量配置。");
     }
   }
 
@@ -369,61 +359,19 @@ export function createOutlookService({
 
   async function classify(message) {
     const text = prepareMailText(message.body?.content);
-    const endpoint = `${config.deepseekBaseUrl.replace(/\/+$/, "")}/chat/completions`;
-    let response;
-    try {
-      response = await externalRequest("DeepSeek", endpoint, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.deepseekApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: config.deepseekModel,
-          temperature: 0,
-          // deepseek-v4-flash 是推理模型，会在 reasoning_content 里消耗大量 token；
-          // 原 360 经常被推理吃完导致 content 为空或被截断（JSON.parse 失败 → OUTLOOK_CLASSIFICATION_INVALID）。
-          // 留足空间：推理 ~1500 + JSON 答案 ~500+。
-          // 注意 max_tokens 同时控制 reasoning+content，长邮件/嵌套回复时推理占用会激增。
-          max_tokens: config.deepseekModel.includes("reasoner") || config.deepseekModel.includes("flash")
-            ? 2048
-            : 1024,
-          messages: [
-            ...classifySystemMessages,
-            { role: "user", content: reliableClassifierPromptUser({ subject: message.subject, sender: message.from?.emailAddress?.name || message.from?.emailAddress?.address, text }) },
-          ],
-        }),
+    if (!aiService?.classifyOutlookEmail) {
+      return normalizeClassification({
+        queue: "uncertain", actionType: "other", actionText: "请人工确认邮件分类",
+        dueAt: null, dueSource: "none", priority: "P2", priorityReason: "AI 来源不可用，需人工确认",
+        confidence: 0, summary: message.subject || "邮件等待人工确认",
       });
-    } catch (networkErr) {
-      console.error("[outlook.classify] deepseek request failed", { code: networkErr?.code, message: networkErr?.message });
-      throw networkErr;
     }
-    if (!response.ok) {
-      // DeepSeek 401/429/5xx 都会到这里——把模型返回的具体错误信息透出到状态，
-      // 便于 UI 直接展示真实原因（典型场景：API key 失效、配额超限）。
-      const errBody = await response.text().catch(() => "");
-      let providerMessage = "";
-      try {
-        const parsed = JSON.parse(errBody);
-        providerMessage = parsed?.error?.message || "";
-      } catch {
-        providerMessage = errBody.slice(0, 240);
-      }
-      console.error("[outlook.classify] deepseek non-2xx", response.status, errBody.slice(0, 400));
-      fail("OUTLOOK_MODEL_REQUEST_FAILED", `DeepSeek 邮件分类请求失败（HTTP ${response.status}${providerMessage ? "：" + providerMessage : ""}）。`);
-    }
-    const payload = await response.json().catch(() => null);
-    const content = payload?.choices?.[0]?.message?.content;
-    if (typeof content !== "string" || !content.trim()) {
-      console.error("[outlook.classify] deepseek empty content", JSON.stringify(payload || {}).slice(0, 400));
-      fail("OUTLOOK_MODEL_REQUEST_FAILED", "DeepSeek 分类返回为空，可能被推理模型 reasoning_content 占满 token 预算。");
-    }
-    try {
-      return parseClassifierResponse(content);
-    } catch (parseErr) {
-      console.error("[outlook.classify] classifier parse failed", content.slice(0, 400));
-      throw parseErr;
-    }
+    const result = await aiService.classifyOutlookEmail({
+      subject: message.subject,
+      sender: message.from?.emailAddress?.name || message.from?.emailAddress?.address,
+      text,
+    });
+    return normalizeClassification(result);
   }
 
   function retainedMessage(message, result, currentTime) {
@@ -457,14 +405,19 @@ export function createOutlookService({
   async function runSync() {
     requireConfigured();
     const state = await readState();
-    if (!state.consent?.acceptedAt) fail("OUTLOOK_CONSENT_REQUIRED", "请先确认邮件正文将发送至 DeepSeek 的隐私告知。");
+    if (!state.consent?.acceptedAt || state.consent?.provider !== config.modelProvider) {
+      fail("OUTLOOK_CONSENT_REQUIRED", `请先确认邮件正文将发送至 ${config.modelProvider} 的隐私告知。`);
+    }
     state.sync.lastAttemptAt = asIso(now());
     const token = await accessToken(state);
     // 自愈：之前 sync 可能因为网络/AI 错误留下一批"status=open 但 classifierVersion 没被设置"的失败邮件，
     // 由于 cursorReceivedAt 已经推进，这些邮件永远不会被重新尝试。
     // 这里把 cursor 临时回退到这些遗留邮件最早的时间，强制重试一次；本次 sync 结束后再写回新 cursor。
     const pendingRetries = state.messages
-      .filter((m) => m.status === "open" && m.classifierVersion !== CLASSIFIER_VERSION && m.processingError)
+      .filter((m) => m.status === "open" && (
+        (m.classifierVersion !== CLASSIFIER_VERSION && m.processingError)
+        || m.priorityReason === "AI 来源不可用，需人工确认"
+      ))
       .map((m) => Date.parse(m.receivedAt || ""))
       .filter(Number.isFinite);
     const baseCutoff = state.sync.classifierVersion === CLASSIFIER_VERSION && state.sync.cursorReceivedAt
@@ -493,7 +446,7 @@ export function createOutlookService({
           if (!newest || String(message.receivedDateTime) > newest) newest = message.receivedDateTime;
           const prior = existing.get(message.id);
           if (
-            (prior && prior.status !== "retry" && prior.classifierVersion === CLASSIFIER_VERSION) ||
+            (prior && prior.status !== "retry" && prior.classifierVersion === CLASSIFIER_VERSION && prior.priorityReason !== "AI 来源不可用，需人工确认") ||
             (!prior && message.internetMessageId && knownInternetIds.has(message.internetMessageId))
           ) continue;
           try {
@@ -562,14 +515,16 @@ export function createOutlookService({
     async acceptConsent() {
       requireConfigured();
       const state = await readState();
-      state.consent = { acceptedAt: asIso(now()), provider: "DeepSeek API", version: 1 };
+      state.consent = { acceptedAt: asIso(now()), provider: config.modelProvider, version: 2 };
       await writeState(state);
       return publicStatus(state, config);
     },
     async startOAuth() {
       requireConfigured();
       const state = await readState();
-      if (!state.consent?.acceptedAt) fail("OUTLOOK_CONSENT_REQUIRED", "请先确认隐私告知。");
+      if (!state.consent?.acceptedAt || state.consent?.provider !== config.modelProvider) {
+        fail("OUTLOOK_CONSENT_REQUIRED", "AI 来源已变化，请重新确认隐私告知。");
+      }
       const stateValue = base64Url(randomBytes(32));
       const verifier = base64Url(randomBytes(48));
       sessions.set(stateValue, { verifier, expiresAt: now().getTime() + OAUTH_SESSION_MS });
@@ -612,7 +567,9 @@ export function createOutlookService({
     async startDeviceCode() {
       requireConfigured();
       const state = await readState();
-      if (!state.consent?.acceptedAt) fail("OUTLOOK_CONSENT_REQUIRED", "请先确认隐私告知。");
+      if (!state.consent?.acceptedAt || state.consent?.provider !== config.modelProvider) {
+        fail("OUTLOOK_CONSENT_REQUIRED", "AI 来源已变化，请重新确认隐私告知。");
+      }
       const response = await externalRequest("Microsoft device code",
         `https://login.microsoftonline.com/${encodeURIComponent(config.tenantId)}/oauth2/v2.0/devicecode`,
         {

@@ -20,6 +20,7 @@ import { api } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
 import { StatusPill } from "../lib/project-status.jsx";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
+import GenerateButton from "../components/GenerateButton.jsx";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -169,10 +170,7 @@ export default function OverviewPage() {
             >
               <IconThumbDown size={15} stroke={1.75} />
             </button>
-            <button className="btn sm" onClick={() => regenerate()} disabled={sugLoading}>
-              <IconRefresh size={15} stroke={1.75} style={sugLoading ? { animation: "spin 0.8s linear infinite" } : undefined} />
-              重新生成
-            </button>
+            <GenerateButton onClick={() => regenerate()} busy={sugLoading}>重新生成</GenerateButton>
           </div>
         </div>
         <div className="ai-suggestion__body">

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   IconAlertTriangle, IconArchive, IconArrowUpRight, IconCalendarDue, IconCheck,
   IconCircleCheck, IconClock, IconCopy, IconFileText, IconListCheck, IconMail,
-  IconRefresh, IconSearch, IconSparkles, IconUserQuestion,
+  IconRefresh, IconSearch, IconShieldLock, IconSparkles, IconUserQuestion,
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
 import "./Emails2Page.css";
@@ -46,7 +46,7 @@ function DraftModal({ message, onClose, onFlash }) {
   return <div className="m2-modal-backdrop"><section className="m2-modal" role="dialog" aria-modal="true" aria-label="AI 回复草稿"><header><div><h2>AI 回复草稿</h2><p>{message.sender} · {message.subject}</p></div><button onClick={onClose} aria-label="关闭">×</button></header><div className="m2-tone">{[["formal", "正式简洁"], ["friendly", "温和友好"], ["action", "直接行动"]].map(([key, label]) => <button className={tone === key ? "is-active" : ""} onClick={() => generate(key)} disabled={busy} key={key}>{label}</button>)}</div><textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="点击下方按钮生成回复草稿" disabled={busy} /><footer><button className="m2-btn m2-btn--quiet" onClick={onClose}>关闭</button><button className="m2-btn m2-btn--quiet" onClick={() => generate()} disabled={busy}>{busy ? "生成中…" : "生成草稿"}</button><button className="m2-btn" onClick={copy} disabled={!draft || busy}><IconCopy size={16} />复制草稿</button></footer></section></div>;
 }
 
-export default function Emails2Page({ embedded = false }) {
+export default function Emails2Page({ embedded = false, onStatusChange, onSyncReady }) {
   const nav = useNavigate();
   const [status, setStatus] = useState(null);
   const [data, setData] = useState({ action: [], informational: [], uncertain: [], archive: [] });
@@ -58,12 +58,15 @@ export default function Emails2Page({ embedded = false }) {
   const [drafting, setDrafting] = useState(null);
   const [flash, setFlash] = useState("");
   const [error, setError] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   const refresh = useCallback(async () => {
     const [nextStatus, action, informational, uncertain, archive] = await Promise.all([outlookApi.status(), outlookApi.todos(), outlookApi.informational(), outlookApi.uncertain(), outlookApi.archive()]);
-    setStatus(nextStatus.data || nextStatus);
+    const next = nextStatus.data || nextStatus;
+    setStatus(next);
+    onStatusChange?.(next);
     setData({ action: action.items || [], informational: informational.items || [], uncertain: uncertain.items || [], archive: archive.items || [] });
-  }, []);
+  }, [onStatusChange]);
   useEffect(() => { refresh().catch((e) => setError(e.message)); }, [refresh]);
   useEffect(() => { const first = data[view]?.[0]?.id || null; setSelectedId((current) => data[view]?.some((m) => m.id === current) ? current : first); }, [data, view]);
 
@@ -83,11 +86,22 @@ export default function Emails2Page({ embedded = false }) {
   const high = action.filter((m) => m.priority === "P0").length;
   const run = async (task) => { setPending(true); setError(""); try { await task(); await refresh(); } catch (e) { setError(e.message || "操作失败"); } finally { setPending(false); } };
   const sync = async () => { setSyncing(true); await run(outlookApi.sync); setSyncing(false); };
+  useEffect(() => {
+    if (!onSyncReady) return undefined;
+    onSyncReady(sync);
+    return () => onSyncReady(null);
+  }, [onSyncReady, sync]);
   const convert = (m) => run(async () => { const r = await outlookApi.convert(m.id); setFlash(`已创建待办：${r.title}`); });
   const open = (m) => { if (m.webLink) window.open(m.webLink, "_blank", "noopener,noreferrer"); else window.open(`https://outlook.office.com/mail/search/${encodeURIComponent(`subject:${m.subject || ""}`)}`, "_blank", "noopener,noreferrer"); };
+  const acceptConsent = () => run(async () => {
+    await outlookApi.consent();
+    setFlash("隐私确认已更新，邮件功能已恢复。");
+  });
   if (error && !status) return <div className="error">加载失败：{error}</div>;
   if (!status) return <div className="spinner">加载中…</div>;
-  if (!status.configured || !status.consented || !status.connected) return <div className="m2 m2-setup"><IconMail size={32}/><h1>邮件</h1><p>请先在设置中完成 Outlook 配置与授权。</p><button className="m2-btn" onClick={() => nav("/settings")}>前往设置</button></div>;
+  if (!status.configured) return <div className="m2 m2-setup"><IconMail size={32}/><h1>邮件</h1><p>请先在设置中完成 Outlook 配置。</p><button className="m2-btn" onClick={() => nav("/settings")}>前往设置</button></div>;
+  if (!status.consented && status.connected) return <div className="m2 m2-setup m2-consent"><IconShieldLock size={32}/><h1>重新确认邮件隐私告知</h1><p>当前 Outlook 已连接。由于 AI 内容生成来源已切换为“{status.modelProvider || "已配置来源"}”，需要重新确认后才能继续查看和处理邮件。</p><ul><li>邮件分类与回复草稿会按当前 AI 路由策略处理；分类结果保存在本机。</li><li>应用仅使用 Mail.Read 权限，不会修改 Outlook 邮箱。</li></ul><label className="m2-consent__check"><input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} />我已了解并同意上述处理方式。</label>{error ? <div className="error">{error}</div> : null}<button className="m2-btn" type="button" disabled={!consentAccepted || pending} onClick={acceptConsent}>{pending ? "确认中…" : "确认并继续使用邮件"}</button></div>;
+  if (!status.connected) return <div className="m2 m2-setup"><IconMail size={32}/><h1>连接 Outlook</h1><p>Outlook 已配置，但尚未完成授权。请前往设置完成连接。</p><button className="m2-btn" onClick={() => nav("/settings")}>前往设置</button></div>;
 
   return <div className="m2">
     {!embedded && <header className="m2-header"><div><h1>邮件</h1><p>集中处理需要行动的邮件</p></div><div className="m2-header__actions"><span className="m2-sync"><i />已连接 · {status.lastSyncAt ? "数据已同步" : "等待同步"}</span><button className="m2-btn" onClick={sync} disabled={syncing || pending}><IconRefresh size={16} className={syncing ? "m2-spin" : ""}/>{syncing ? "同步中…" : "立即同步"}</button></div></header>}

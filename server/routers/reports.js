@@ -159,6 +159,7 @@ router.post("/daily/generate", async (req, res) => {
       const r = await ai.weeklySummary([{ report_date: date, content_json: JSON.stringify(content) }]);
       narrative = r.narrative || "";
       content.narrative = narrative;
+      content.aiMeta = r.aiMeta || null;
     } catch { /* 忽略 AI */ }
   }
   db.prepare(

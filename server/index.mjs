@@ -7,6 +7,8 @@ import { getDb } from "./db.mjs";
 import { seedDemoIfEmpty } from "./demo.mjs";
 import { createOutlookService, OutlookServiceError } from "./outlook.mjs";
 import { dingtalk } from "./dingtalk.mjs";
+import { ai } from "./ai.mjs";
+import { createAiScheduler } from "./ai-scheduler.mjs";
 
 import outlookRouter from "./routers/outlook.js";
 import team from "./routers/team.js";
@@ -16,7 +18,7 @@ import review from "./routers/review.js";
 import reports from "./routers/reports.js";
 import projects from "./routers/projects.js";
 import aihot from "./routers/aihot.js";
-import system from "./routers/system.js";
+import systemRouter from "./routers/system.js";
 import workbenchRouter from "./routers/workbench.js";
 import { createSyncCoordinator } from "./sync-coordinator.mjs";
 import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undici";
@@ -24,7 +26,7 @@ import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undic
 // ---------------------------------------------------------------------------
 // 出口网络策略
 // Node 全局 fetch 默认不读代理环境变量，故用 EnvHttpProxyAgent 让对外请求（Microsoft
-// Graph / DeepSeek）走系统代理。钉钉(oapi/api.dingtalk.com)白名单登记的是直连出口 IP，
+// Graph / 外部 AI）走系统代理。钉钉(oapi/api.dingtalk.com)白名单登记的是直连出口 IP，
 // 故显式加入 NO_PROXY 走直连，避免经代理换 IP 被拦（errcode 88 / 60020）。
 //
 // 关键：代理环境变量可能是「陈旧」的——代理软件换端口、关闭，或切到 TUN 透明代理模式后，
@@ -81,7 +83,7 @@ async function configureOutboundProxy() {
     return;
   }
 
-  // 代理不可用：死代理比没有代理更糟（会让 Microsoft Graph / DeepSeek 全部请求失败）。
+  // 代理不可用：死代理比没有代理更糟（会让 Microsoft Graph / 外部 AI 全部请求失败）。
   // 代理软件关闭、换端口，或切到 TUN 透明代理模式时，直连本身即可通。
   if (await reachable(new Agent())) {
     clearProxyEnv();
@@ -106,13 +108,13 @@ const outlookService = createOutlookService({
     tenantId: config.outlook.tenantId,
     redirectUri: config.outlook.redirectUri,
     tokenEncryptionKey: config.outlook.tokenEncryptionKey,
-    deepseekApiKey: config.ai.deepseek.apiKey,
-    deepseekBaseUrl: config.ai.deepseek.baseUrl,
-    deepseekModel: config.ai.deepseek.model,
+    modelProvider: ai.label(),
   },
+  aiService: ai,
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
-const syncCoordinator = createSyncCoordinator({ outlookService });
+const aiScheduler = createAiScheduler({ aiService: ai });
+const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler });
 
 // 路由
 app.use("/api/outlook", outlookRouter(outlookService));
@@ -124,7 +126,7 @@ app.use("/api/reports", reports);
 app.use("/api/projects", projects);
 app.use("/api/ai-hot", aihot);
 app.use("/api", workbenchRouter(syncCoordinator));
-app.use("/api", system);
+app.use("/api", systemRouter(aiScheduler));
 
 // OAuth 入口：未配置时从系统页点「连接 Outlook」跳到邮件页完成同意+授权流程
 app.get("/oauth/outlook", (req, res) => res.redirect(`${config.publicBaseUrl}/emails`));
@@ -160,6 +162,7 @@ if (config.useDemoData) seedDemoIfEmpty();
 console.log(`[team-workbench] API listening on http://127.0.0.1:${config.port}`);
 
 const server = app.listen(config.port, "127.0.0.1");
+aiScheduler.start();
 syncCoordinator.start();
 
 
@@ -167,6 +170,7 @@ syncCoordinator.start();
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => {
     syncCoordinator.close();
+    aiScheduler.close();
     outlookService.close().finally(() => server.close(() => process.exit(0)));
   });
 }

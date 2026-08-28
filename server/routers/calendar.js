@@ -2,6 +2,7 @@ import express from "express";
 import { getDb } from "../db.mjs";
 import { dingtalk } from "../dingtalk.mjs";
 import { localTimeString } from "../local-date.mjs";
+import { enrichCalendarMeeting } from "../workbench-domain.mjs";
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.get("/meetings", async (req, res) => {
   const db = getDb();
   const date = req.query.date || ymd(new Date());
   await ensureSynced(date, date);
-  const rows = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date);
+  const rows = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date).map(enrichCalendarMeeting);
   res.json({
     date,
     meetings: rows.map((m) => ({ ...m, start: fmt(m.start_at), end: m.end_at ? fmt(m.end_at) : "" })),
@@ -72,7 +73,7 @@ router.get("/week", async (req, res) => {
     const d = new Date(startDate);
     d.setDate(d.getDate() + i);
     const ds = ymd(d);
-    const meetings = db.prepare("SELECT id, title, start_at, end_at, location, organizer, source FROM calendars WHERE day=? ORDER BY start_at").all(ds);
+    const meetings = db.prepare("SELECT id, title, start_at, end_at, location, organizer, attendee_count, accepted_count, source, raw_json FROM calendars WHERE day=? ORDER BY start_at").all(ds).map(enrichCalendarMeeting);
     const todos = db.prepare("SELECT COUNT(*) c FROM todos WHERE due_date=?").get(ds).c;
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
@@ -95,7 +96,7 @@ router.get("/month", async (req, res) => {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = ymd(new Date(year, month, d));
-    const meetings = db.prepare("SELECT id, title, start_at, end_at, location, organizer, source FROM calendars WHERE day=? ORDER BY start_at").all(ds);
+    const meetings = db.prepare("SELECT id, title, start_at, end_at, location, organizer, attendee_count, accepted_count, source, raw_json FROM calendars WHERE day=? ORDER BY start_at").all(ds).map(enrichCalendarMeeting);
     const todos = db.prepare("SELECT COUNT(*) c FROM todos WHERE due_date=?").get(ds).c;
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
@@ -110,7 +111,7 @@ router.get("/day/:date", async (req, res) => {
   await ensureSynced(date, date);
   const emails = db.prepare("SELECT * FROM emails WHERE date(received_at)=? AND source='outlook' ORDER BY received_at DESC").all(date);
   const todos = db.prepare("SELECT * FROM todos WHERE due_date=? ORDER BY priority").all(date);
-  const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date);
+  const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date).map(enrichCalendarMeeting);
   const reports = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=?").all(date);
   const review = db.prepare("SELECT * FROM daily_reviews WHERE review_date=?").get(date) || null;
   const daily = db.prepare("SELECT * FROM daily_reports WHERE report_date=?").get(date) || null;

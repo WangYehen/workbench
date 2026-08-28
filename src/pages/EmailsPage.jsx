@@ -19,6 +19,7 @@ import {
   IconMessage,
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
+import GenerateButton from "../components/GenerateButton.jsx";
 
 const queueCopy = {
   action: { label: "需要行动", empty: "没有需要你立即处理的邮件" },
@@ -68,7 +69,7 @@ function SetupPanel({ status }) {
           完成 Outlook 本地配置
         </div>
       </div>
-      <p className="sub">在 <code>.env</code> 中配置 Microsoft Entra 应用、本地加密密钥与 DeepSeek 后，重启服务即可启用行动收件箱。</p>
+      <p className="sub">在 <code>.env</code> 中配置 Microsoft Entra 应用和本地加密密钥后，重启服务即可启用行动收件箱。AI 来源可在设置页单独配置。</p>
       <div className="outlook-config-list">
         {(status?.missingConfiguration || []).map((item) => (
           <code key={item}>{item}</code>
@@ -81,13 +82,13 @@ function SetupPanel({ status }) {
   );
 }
 
-function ConsentPanel({ accepted, onAccepted, onConnect, onDeviceConnect, device, deviceHint, pending }) {
+function ConsentPanel({ accepted, onAccepted, onConnect, onDeviceConnect, device, deviceHint, pending, provider }) {
   return (
     <div className="panel outlook-consent">
       <div className="panel__head">
         <div className="panel__title"><span className="work-page-icon"><IconShieldLock size={22} stroke={1.75} /></span>连接 Outlook 前的隐私确认</div>
       </div>
-      <p className="sub">授权后会读取近 7 天收件箱，并将清洗后的正文发送给 DeepSeek，用于生成行动、截止时间及判断置信度。</p>
+      <p className="sub">授权后会读取近 7 天收件箱，并将清洗后的正文发送给 {provider || "已配置的 AI 来源"}，用于生成行动、截止时间及判断置信度。</p>
       <ul className="outlook-consent__list">
         <li>邮件正文不落盘，分类结果与你的纠正保存在本地加密状态中。</li>
         <li>仅申请 Mail.Read，不会修改 Outlook 邮箱。</li>
@@ -400,10 +401,7 @@ function DraftDialog({ message, onClose, onFlash }) {
                 <IconExternalLink size={14} stroke={2} /> 打开原邮件
               </a>
             )}
-            <button className="btn sm" onClick={() => generate()} disabled={generating} type="button">
-              <IconRefresh size={14} stroke={2} style={generating ? { animation: "spin 0.8s linear infinite" } : undefined} />
-              {generating ? "生成中…" : draft ? "重新生成" : "生成草稿"}
-            </button>
+            <GenerateButton variant="quiet" onClick={() => generate()} busy={generating} type="button">{draft ? "重新生成" : "生成草稿"}</GenerateButton>
             <button className="btn sm primary" onClick={copy} disabled={!draft || generating} type="button">
               <IconCopy size={14} stroke={2} /> 复制草稿
             </button>
@@ -543,6 +541,7 @@ export default function EmailsPage() {
           onConnect={connect}
           onDeviceConnect={deviceConnect}
           pending={pending}
+          provider={status.modelProvider}
         />
       </>
     );

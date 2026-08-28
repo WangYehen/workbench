@@ -22,6 +22,13 @@ function bool(value, fallback = false) {
   return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
 }
 
+function list(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export const config = {
   root: ROOT,
   displayName: process.env.WORKBENCH_DISPLAY_NAME || "",
@@ -32,6 +39,25 @@ export const config = {
 
   ai: {
     provider: process.env.AI_PROVIDER || "deepseek",
+    routingMode: ["legacy", "smart"].includes(process.env.AI_ROUTING_MODE)
+      ? process.env.AI_ROUTING_MODE
+      : "legacy",
+    maxConcurrency: Math.max(1, Number(process.env.AI_MAX_CONCURRENCY || 1)),
+    apiFallbackOrder: list(process.env.AI_API_FALLBACK_ORDER),
+    opencode: {
+      path: process.env.OPENCODE_CLI_PATH || "",
+      freeModelOrder: list(process.env.OPENCODE_FREE_MODEL_ORDER),
+      timeoutMs: Math.max(5_000, Number(process.env.OPENCODE_TIMEOUT_MS || 90_000)),
+    },
+    codex: {
+      path: process.env.CODEX_CLI_PATH || "",
+      // AI 总结以低延迟和稳定结构化输出为主，默认使用高频工作负载模型。
+      model: process.env.CODEX_MODEL || "gpt-5.6-luna",
+      reasoningEffort: ["none", "low", "medium", "high", "xhigh", "max"].includes(process.env.CODEX_REASONING_EFFORT)
+        ? process.env.CODEX_REASONING_EFFORT
+        : "medium",
+      timeoutMs: Math.max(5_000, Number(process.env.CODEX_TIMEOUT_MS || 120_000)),
+    },
     deepseek: {
       apiKey: process.env.DEEPSEEK_API_KEY || "",
       baseUrl: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com",
@@ -49,7 +75,10 @@ export const config = {
     },
     ollama: {
       baseUrl: process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434",
-      model: process.env.OLLM_MODEL || "qwen2.5:14b",
+      model: process.env.OLLAMA_MODEL || process.env.OLLM_MODEL || "qwen2.5:14b",
+      enabled: (process.env.AI_PROVIDER || "deepseek") === "ollama" || Boolean(
+        process.env.OLLAMA_BASE_URL || process.env.OLLAMA_MODEL || process.env.OLLM_MODEL,
+      ),
     },
   },
 
@@ -89,12 +118,12 @@ export function configured() {
     outlook: Boolean(
       config.outlook.clientId &&
         config.outlook.redirectUri &&
-        config.outlook.tokenEncryptionKey &&
-        config.ai.deepseek.apiKey,
+        config.outlook.tokenEncryptionKey,
     ),
     dingtalk: Boolean(config.dingtalk.clientId && config.dingtalk.clientSecret),
     ai: Boolean(
-      (config.ai.provider === "deepseek" && config.ai.deepseek.apiKey) ||
+      config.ai.routingMode === "smart" ||
+        (config.ai.provider === "deepseek" && config.ai.deepseek.apiKey) ||
         (config.ai.provider === "openai" && config.ai.openai.apiKey) ||
         (config.ai.provider === "claude" && config.ai.claude.apiKey) ||
         config.ai.provider === "ollama",
