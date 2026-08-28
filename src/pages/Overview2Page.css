@@ -107,6 +107,25 @@
 .oc-pill--live { background: #fdecec; color: var(--oc-danger); }
 .oc-pill--sched { background: #f1f1f4; color: var(--oc-ink-soft); }
 
+.oc-meeting-card .meeting-schedule { gap: 14px; }
+.oc-meeting-card .meeting-feature-card { border-radius: 14px; background: #f8fbff; border-color: #9ac7ff; }
+.oc-meeting-card .meeting-feature-card.is-current { border-color: #1683ff; box-shadow: 0 10px 24px rgba(0, 102, 204, 0.08); }
+.oc-meeting-card .meeting-feature-card__top { justify-content: flex-start; }
+.oc-meeting-card .meeting-feature-card__top .pill.blue { margin-left: auto; }
+.oc-meeting-card .meeting-feature-card__bar > span { background: var(--oc-accent); }
+.meeting-status { display: inline-flex; align-items: center; justify-content: center; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.meeting-status--live { color: #d92d20; background: #fff0ef; }
+.meeting-status--upcoming { color: var(--oc-accent); background: #eaf2fc; }
+.meeting-status--ended, .meeting-status--day { color: var(--oc-ink-soft); background: #f1f1f4; }
+.oc-meeting-card .meeting-compact-row { grid-template-columns: 52px minmax(100px, 1.3fr) minmax(110px, 1fr) minmax(90px, 1fr) auto auto; }
+
+@media (max-width: 760px) {
+  .oc-meeting-card .meeting-compact-row { grid-template-columns: 48px minmax(0, 1fr) auto; gap: 8px; }
+  .oc-meeting-card .meeting-compact-row__loc,
+  .oc-meeting-card .meeting-compact-row__org { grid-column: 2 / -1; }
+  .oc-meeting-card .meeting-compact-row__dur { grid-column: 3; grid-row: 2; }
+}
+
 /* ---- 邮件 / 通用行 ---- */
 .oc-list { display: flex; flex-direction: column; }
 .oc-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--oc-line-soft); }

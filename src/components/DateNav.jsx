@@ -1,4 +1,5 @@
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
+import { DatePicker } from "./DatePicker.jsx";
 
 // 本地时区安全地加减天数，返回 YYYY-MM-DD。
 // 注意：不能用 new Date(d+"T00:00:00") 再 toISOString().slice(0,10)，
@@ -25,12 +26,7 @@ export default function DateNav({ date, onChange, className = "" }) {
       <button type="button" className="btn sm" onClick={() => onChange(shiftDate(date, -1))}>
         <IconChevronLeft size={16} stroke={1.75} /> 前一天
       </button>
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => e.target.value && onChange(e.target.value)}
-        style={{ width: 160 }}
-      />
+      <DatePicker value={date} onChange={(value) => value && onChange(value)} />
       <button type="button" className="btn sm" onClick={() => onChange(shiftDate(date, 1))}>
         后一天 <IconChevronRight size={16} stroke={1.75} />
       </button>

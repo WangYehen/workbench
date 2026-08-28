@@ -1,13 +1,12 @@
 import express from "express";
 import { getDb } from "../db.mjs";
 import { dingtalk } from "../dingtalk.mjs";
+import { localTimeString } from "../local-date.mjs";
 
 const router = express.Router();
 
 function fmt(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return localTimeString(iso);
 }
 
 // 本地日期字符串（YYYY-MM-DD），避免 toISOString 在东八区把当天算成前一天

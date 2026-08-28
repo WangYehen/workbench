@@ -226,8 +226,8 @@ export default function CalendarPage() {
                     <span className="week-day__date">{d.getDate()}</span>
                   </div>
                   <div className="week-day__events">
-                    {meetings.slice(0, 2).map((m) => (
-                      <span key={m.id} className="week-day__pill">
+                    {meetings.slice(0, 2).map((m, meetingIndex) => (
+                      <span key={`${m.id}-${meetingIndex}`} className="week-day__pill">
                         <span className="dot" /> {(m.title || "").slice(0, 14)}
                       </span>
                     ))}
@@ -255,9 +255,9 @@ export default function CalendarPage() {
               月度视图
             </div>
             <div className="row">
-              <button className="btn sm" onClick={prevMonth}>‹</button>
+              <button className="btn sm btn-icon" onClick={prevMonth} aria-label="上个月"><IconChevronLeft size={14} stroke={2} /></button>
               <span style={{ fontWeight: 600 }}>{fmtMonth(month.y, month.m)}</span>
-              <button className="btn sm" onClick={nextMonth}>›</button>
+              <button className="btn sm btn-icon" onClick={nextMonth} aria-label="下个月"><IconChevronRight size={14} stroke={2} /></button>
               <button className="btn sm" onClick={jumpToToday}>今天</button>
               <button className="btn sm" onClick={() => setViewMode("week")}>
                 <IconLayoutList size={14} stroke={2} /> 收起为周
@@ -291,8 +291,8 @@ export default function CalendarPage() {
                     </div>
                   </div>
                   <div className="cal-cell__events">
-                    {meetings.slice(0, 2).map((m) => (
-                      <span key={m.id} className="cal-cell__pill">
+                    {meetings.slice(0, 2).map((m, meetingIndex) => (
+                      <span key={`${m.id}-${meetingIndex}`} className="cal-cell__pill">
                         <span className="dot" /> {(m.title || "").slice(0, 10)}
                       </span>
                     ))}

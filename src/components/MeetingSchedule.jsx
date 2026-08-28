@@ -9,12 +9,25 @@ import {
 function fmtTime(iso) {
   if (!iso) return "";
   const d = new Date(iso);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
 }
 
 function durationMin(start, end) {
   const ms = new Date(end) - new Date(start);
   return Math.max(0, Math.round(ms / 60000));
+}
+
+function meetingStatus(meeting, now, live) {
+  if (!live) return { key: "day", label: "当日" };
+  if (meeting._start <= now && meeting._end >= now) return { key: "live", label: "进行中" };
+  if (meeting._start > now) return { key: "upcoming", label: "未开始" };
+  return { key: "ended", label: "已结束" };
 }
 
 export default function MeetingSchedule({ meetings, onViewCalendar, live = true }) {
@@ -51,6 +64,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
   const pct = isCurrent ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 0;
   const isOnline = featured.location && /^https?:\/\//i.test(featured.location);
   const durMin = durationMin(featured._start, featured._end);
+  const featuredStatus = meetingStatus(featured, now, live);
 
   return (
     <div className="meeting-schedule">
@@ -59,21 +73,14 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
           <span className="meeting-feature-card__time">
             {fmtTime(featured.start_at)}–{fmtTime(featured.end_at)}
           </span>
-          {isCurrent ? (
-            <span className="pill red">进行中</span>
-          ) : !live ? (
-            <span className="pill gray">当日</span>
-          ) : upcoming.length ? (
-            <span className="pill purple">即将开始</span>
-          ) : (
-            <span className="pill gray">已结束</span>
-          )}
+          <span className={`meeting-status meeting-status--${featuredStatus.key}`}>{featuredStatus.label}</span>
           {featured.source === "dingtalk" && <span className="pill blue">钉钉</span>}
         </div>
 
         <div className="meeting-feature-card__title">{featured.title}</div>
 
         <div className="meeting-feature-card__meta">
+          <span className="meeting-feature-card__loc"><IconClock size={15} stroke={1.75} /> 约 {durMin} 分钟</span>
           {featured.location ? (
             isOnline ? (
               <span className="meeting-feature-card__loc"><IconVideo size={15} stroke={1.75} /> 线上会议</span>
@@ -81,7 +88,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
               <span className="meeting-feature-card__loc"><IconMapPin size={15} stroke={1.75} /> {featured.location}</span>
             )
           ) : (
-            <span className="meeting-feature-card__loc"><IconClock size={15} stroke={1.75} /> 约 {durMin} 分钟</span>
+            <span className="meeting-feature-card__loc"><IconMapPin size={15} stroke={1.75} /> 地点未填写</span>
           )}
           {featured.organizer && <span className="meeting-feature-card__org">组织者 {featured.organizer}</span>}
         </div>
@@ -105,24 +112,23 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
           <div className="meeting-compact-list">
             {rest.map((m, i) => {
               const online = m.location && /^https?:\/\//i.test(m.location);
-              const locLabel = online ? "线上" : m.location;
+              const locLabel = online ? "线上" : (m.location || "地点未填写");
+              const status = meetingStatus(m, now, live);
               return (
-                <div className="meeting-compact-row" key={m.id || `m-${i}`}>
+                <div className="meeting-compact-row" key={`${m.id || "meeting"}-${i}`}>
                   <span className="meeting-compact-row__time">{fmtTime(m.start_at)}</span>
                   <span className="meeting-compact-row__title">{m.title}</span>
-                  {locLabel && (
-                    <span className="meeting-compact-row__loc">
-                      {online ? <IconVideo size={13} stroke={1.75} /> : <IconMapPin size={13} stroke={1.75} />}
-                      {locLabel}
-                    </span>
-                  )}
+                  <span className="meeting-compact-row__loc">
+                    {online ? <IconVideo size={13} stroke={1.75} /> : <IconMapPin size={13} stroke={1.75} />}
+                    {locLabel}
+                  </span>
                   {m.organizer && (
                     <span className="meeting-compact-row__org">
                       <IconUser size={13} stroke={1.75} />
                       {m.organizer}
                     </span>
                   )}
-                  {m.source === "dingtalk" && <span className="meeting-compact-row__org"><span className="pill blue" style={{ padding: "0 6px" }}>钉钉</span></span>}
+                  <span className={`meeting-status meeting-status--${status.key}`}>{status.label}</span>
                   <span className="meeting-compact-row__dur">{durationMin(m._start, m._end)} 分</span>
                 </div>
               );

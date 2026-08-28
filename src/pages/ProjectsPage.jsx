@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
-import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar } from "@tabler/icons-react";
+import { IconRoute, IconFolderPlus, IconCalendarPlus, IconChartBar, IconTrash } from "@tabler/icons-react";
 import { api } from "../api.js";
 import { StatusPill } from "../lib/project-status.jsx";
+import { DatePicker } from "../components/DatePicker.jsx";
+import "./ProjectsPage.css";
 
 const PHASE_ORDER = ["需求评审", "产品设计", "开发", "测试", "上线"];
 
@@ -196,7 +198,7 @@ export default function ProjectsPage() {
                   </div>
                   <div className="meta" style={{ marginTop: 4 }}>进度 {p.progress}%</div>
                 </div>
-                <div className="row" style={{ flexDirection: "column", gap: 6 }}>
+                <div className="row project-actions" style={{ flexDirection: "column", gap: 6 }}>
                   {editing === p.id ? (
                     <>
                       <input type="number" min="0" max="100" value={editVal} onChange={(e) => setEditVal(e.target.value)} style={{ width: 80 }} />
@@ -206,7 +208,7 @@ export default function ProjectsPage() {
                   ) : (
                     <button className="btn sm" onClick={() => openEdit(p)}>设进度</button>
                   )}
-                  <button className="btn sm" onClick={() => delProject(p.id)}>删除</button>
+                  <button className="project-delete" onClick={() => delProject(p.id)}><IconTrash size={15} /><span>删除</span></button>
                 </div>
               </div>
             ))}
@@ -226,9 +228,9 @@ export default function ProjectsPage() {
           <select value={phase} onChange={(e) => setPhase(e.target.value)}>
             {PHASE_ORDER.map((p) => <option key={p}>{p}</option>)}
           </select>
-          <div className="row">
-            <div style={{ flex: 1 }}><label>开始日期</label><input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-            <div style={{ flex: 1 }}><label>结束日期</label><input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+          <div className="row project-date-fields">
+            <div className="project-date-field"><label>开始日期</label><DatePicker value={start} onChange={setStart} placeholder="选择开始日期" /></div>
+            <div className="project-date-field"><label>结束日期</label><DatePicker value={end} onChange={setEnd} placeholder="选择结束日期" /></div>
           </div>
           <button className="btn primary" style={{ marginTop: 12 }} onClick={addPhase}>添加阶段</button>
           <div className="panel__title" style={{ fontSize: 15, marginTop: 18 }}>

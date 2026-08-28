@@ -1,0 +1,33 @@
+/* 单一搜索输入边界，避免移动端外层容器与输入框视觉重叠。 */
+.m2 .m2-search {
+  position: relative;
+  display: block;
+  height: auto;
+  padding: 0;
+  border: 0;
+}
+
+.m2 .m2-search > svg {
+  position: absolute;
+  z-index: 1;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.m2 .m2-search input {
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 38px;
+  border: 1px solid #d7d7db;
+  border-radius: 10px;
+  outline: 0;
+  background: #fff;
+}
+
+.m2 .m2-search input:focus-visible {
+  border-color: var(--m2-blue);
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.13);
+}

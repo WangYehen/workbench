@@ -247,7 +247,7 @@ export default function AiHotPage() {
             {mustRead.length > 0 ? (
               <div className="daily-hot-featured-grid">
                 {mustRead.map((item, index) => (
-                  <HotCard featured index={index} item={item} key={item.id} />
+                  <HotCard featured index={index} item={item} key={`${item.id}-${index}`} />
                 ))}
               </div>
             ) : (
@@ -273,7 +273,7 @@ export default function AiHotPage() {
             </header>
             <div className="daily-hot-browse-list">
               {browse.length > 0 ? (
-                browse.map((item) => <CompactHotRow item={item} key={item.id} />)
+                browse.map((item, index) => <CompactHotRow item={item} key={`${item.id}-${index}`} />)
               ) : (
                 <div className="collection-empty">当前没有更多值得浏览的动态。</div>
               )}
@@ -287,7 +287,7 @@ export default function AiHotPage() {
                 <span>{other.length} 条低优先级候选</span>
               </summary>
               <div className="daily-hot-other__list">
-                {other.map((item) => <CompactHotRow item={item} key={item.id} />)}
+                {other.map((item, index) => <CompactHotRow item={item} key={`${item.id}-${index}`} />)}
               </div>
             </details>
           ) : null}

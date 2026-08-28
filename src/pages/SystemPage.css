@@ -1,0 +1,11 @@
+.settings-template-row { gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.settings-template-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.settings-template-delete { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; padding: 6px 10px; border: 1px solid #f1b9b5; border-radius: 9px; background: #fff; color: #c2413b; font: inherit; font-size: 13px; cursor: pointer; }
+.settings-template-delete:hover { border-color: #d45a52; background: #fff5f4; }
+.settings-template-delete:focus-visible { outline: 3px solid rgba(194, 65, 59, 0.18); outline-offset: 2px; }
+.settings-template-delete:disabled { cursor: default; opacity: 0.55; }
+.settings-template-toggle.is-enabled { border-color: #b7e3c5; background: #e9f8ee; color: #16803a; }
+.settings-template-toggle.is-disabled { border-color: #d9d9de; background: #f4f4f6; color: #73737a; }
+.settings-template-toggle:hover { filter: brightness(0.98); }
+.settings-template-error { margin-top: 10px; padding: 9px 11px; border-radius: 8px; background: #fff1f0; color: #b42318; font-size: 13px; }
+@media (max-width: 520px) { .settings-template-row { align-items: flex-start; } .settings-template-actions { flex-wrap: wrap; justify-content: flex-end; } .settings-template-delete span { display: none; } }

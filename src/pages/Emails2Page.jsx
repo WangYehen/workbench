@@ -7,6 +7,7 @@ import {
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
 import "./Emails2Page.css";
+import "./Emails2PageFixes.css";
 
 const queues = {
   action: { label: "需要行动", empty: "没有需要你立即处理的邮件" },

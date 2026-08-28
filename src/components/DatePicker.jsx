@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { IconChevronUp, IconChevronDown } from "@tabler/icons-react";
+import { useState, useRef, useEffect } from "react";
+import { IconCalendar, IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 
 /**
  * 自定义日期选择器 — 替代原生 <input type="date">
@@ -46,7 +46,7 @@ export function DatePicker({ value, onChange, placeholder = "选择日期" }) {
   }
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDow = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const firstDow = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // 0=Mon
 
   const monthNames = ["01","02","03","04","05","06","07","08","09","10","11","12"];
 
@@ -71,7 +71,7 @@ export function DatePicker({ value, onChange, placeholder = "选择日期" }) {
   const cells = [];
   // 填充月初空白
   for (let i = 0; i < firstDow; i++) {
-    const prevMonth = new Date(viewYear, viewMonth, -i);
+    const prevMonth = new Date(viewYear, viewMonth, i - firstDow + 1);
     cells.push({ day: prevMonth.getDate(), other: true, ymd: ymd(prevMonth) });
   }
   // 当月天数
@@ -85,7 +85,7 @@ export function DatePicker({ value, onChange, placeholder = "选择日期" }) {
     cells.push({ day: d, other: true, ymd: ymd(nextMonth) });
   }
 
-  const displayValue = value || "";
+  const displayValue = value ? value.replaceAll("-", "/") : "";
 
   return (
     <div className="date-picker-wrap" ref={ref} style={{ position: "relative", display: "inline-flex" }}>
@@ -93,29 +93,19 @@ export function DatePicker({ value, onChange, placeholder = "选择日期" }) {
         type="button"
         className="date-picker__trigger"
         onClick={() => setOpen((o) => !o)}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          border: "1px solid var(--line)", borderRadius: "var(--r-md)",
-          padding: "8px 12px", fontSize: "var(--text-body)",
-          fontFamily: "inherit", color: "var(--ink)", background: "var(--paper)",
-          cursor: "pointer", minWidth: 150, transition: "border-color 0.16s, box-shadow 0.16s",
-          outline: "none",
-        }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--accent-ghost)"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.boxShadow = ""; }}
+        aria-expanded={open}
+        aria-haspopup="dialog"
       >
         <span style={{ flex: 1, textAlign: "left", color: displayValue ? "var(--ink)" : "var(--ink-faint)" }}>
           {displayValue || placeholder}
         </span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--ink-faint)", flexShrink: 0 }}>
-          <rect x="3" y="4" width="18" height="18" rx="3" ry="3" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
+        <IconCalendar size={17} stroke={1.8} aria-hidden="true" />
       </button>
 
       {open && (
         <>
           <div className="date-picker-overlay" onClick={() => setOpen(false)} />
-          <div className="date-picker" style={{ left: 0, top: "calc(100% + 6px)" }}>
+          <div className="date-picker" role="dialog" aria-label="选择日期" style={{ top: "calc(100% + 6px)" }}>
             {/* 头部：年月 + 导航 */}
             <div className="date-picker__header">
               <div className="date-picker__year-month">
@@ -124,8 +114,8 @@ export function DatePicker({ value, onChange, placeholder = "选择日期" }) {
                 <span>{monthNames[viewMonth]}</span>
               </div>
               <div className="date-picker__nav">
-                <button type="button" onClick={() => goDeltaMonths(-1)} title="上个月"><IconChevronUp size={16} /></button>
-                <button type="button" onClick={() => goDeltaMonths(1)} title="下个月"><IconChevronDown size={16} /></button>
+                <button type="button" onClick={() => goDeltaMonths(-1)} title="上个月" aria-label="上个月"><IconChevronLeft size={16} /></button>
+                <button type="button" onClick={() => goDeltaMonths(1)} title="下个月" aria-label="下个月"><IconChevronRight size={16} /></button>
               </div>
             </div>
 

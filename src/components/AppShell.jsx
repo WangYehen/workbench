@@ -10,6 +10,7 @@ import {
   IconRoute,
   IconSettings,
   IconMenu,
+  IconCommand,
 } from "@tabler/icons-react";
 
 const NAV_GROUPS = [
@@ -34,10 +35,10 @@ export function AppShell({ children }) {
     <div className={`app${navOpen ? " nav-open" : ""}`}>
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true"></span>
+          <span className="brand-mark" aria-hidden="true"><IconCommand size={19} stroke={1.8} /></span>
           <div>
-            <div className="brand-name">团队每日工作台</div>
-            <small>Team Daily Workbench</small>
+            <div className="brand-name">个人AI工作台</div>
+            <small>Personal AI Workbench</small>
           </div>
         </div>
         <nav className="nav">

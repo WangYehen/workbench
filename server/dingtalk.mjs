@@ -1,6 +1,7 @@
 import { config } from "./config.mjs";
 import { getDb, upsert } from "./db.mjs";
 import { ai } from "./ai.mjs";
+import { localDateString } from "./local-date.mjs";
 
 const NEW_API = "https://api.dingtalk.com";
 const OAPI = "https://oapi.dingtalk.com";
@@ -20,10 +21,6 @@ function setKv(key, obj) {
 function dayMs(dateStr) {
   const d = new Date(`${dateStr}T00:00:00+08:00`);
   return d.getTime();
-}
-
-function ymdLocal(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // 钉钉返回的多种时间形态统一转成 epoch 毫秒。
@@ -228,7 +225,7 @@ export const dingtalk = {
     const startMs = toEpochMs(e.start);
     const endMs = toEpochMs(e.end);
     const start = startMs ? new Date(startMs) : null;
-    const day = start ? ymdLocal(start) : "";
+    const day = start ? localDateString(start) : "";
     let organizer = "";
     if (e.organizer) {
       organizer = typeof e.organizer === "string"

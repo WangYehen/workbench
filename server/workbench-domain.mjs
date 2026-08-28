@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { localTimeString } from "./local-date.mjs";
 import { getRosterBaseline } from "./db.mjs";
 import { enrichProject } from "./project-status.mjs";
 
@@ -229,8 +230,8 @@ export function buildDashboard(db, date) {
     },
     meetings: meetings.map((meeting) => ({
       ...meeting,
-      start: String(meeting.start_at || "").slice(11, 16),
-      end: String(meeting.end_at || "").slice(11, 16),
+      start: localTimeString(meeting.start_at),
+      end: localTimeString(meeting.end_at),
     })),
     attention,
     pulse,

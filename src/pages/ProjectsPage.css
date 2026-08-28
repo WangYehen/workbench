@@ -1,0 +1,69 @@
+.project-date-fields {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.project-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 11px;
+  border: 1px solid #f1b9b5;
+  border-radius: 10px;
+  background: #fff;
+  color: #c2413b;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.project-delete:hover { border-color: #d45a52; background: #fff5f4; }
+.project-delete:focus-visible { outline: 3px solid rgba(194, 65, 59, 0.18); outline-offset: 2px; }
+
+.project-actions > button.btn.sm,
+.project-actions > .project-delete {
+  width: 72px;
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 13px;
+}
+
+.project-date-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-date-field .date-picker-wrap,
+.project-date-field .date-picker__trigger {
+  width: 100%;
+}
+
+.project-date-field .date-picker__trigger {
+  min-height: 40px;
+  border-radius: 11px;
+}
+
+.project-date-field:last-child .date-picker {
+  right: 0;
+  left: auto;
+}
+
+@media (max-width: 640px) {
+  .project-date-fields {
+    flex-direction: column;
+  }
+
+  .project-date-field {
+    width: 100%;
+  }
+
+  .project-date-field .date-picker {
+    right: auto;
+    left: 0;
+    width: min(308px, calc(100vw - 64px));
+  }
+}
