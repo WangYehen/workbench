@@ -160,6 +160,74 @@ function migrate(d) {
       updated_at TEXT NOT NULL
     );
 
+    -- DWS 个人消息：原文在本地归档，SQLite 仅负责索引、状态与关联。
+    CREATE TABLE IF NOT EXISTS dingtalk_chat_conversations (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      title TEXT,
+      peer_user_id TEXT,
+      peer_name TEXT,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      retention_mode TEXT NOT NULL DEFAULT 'inherit',
+      last_message_at TEXT,
+      sync_cursor_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dt_chat_conversations_type ON dingtalk_chat_conversations(type, enabled);
+
+    CREATE TABLE IF NOT EXISTS dingtalk_chat_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES dingtalk_chat_conversations(id) ON DELETE CASCADE,
+      sender_id TEXT,
+      sender_name TEXT,
+      direction TEXT NOT NULL DEFAULT 'inbound',
+      sent_at TEXT NOT NULL,
+      message_type TEXT,
+      content TEXT,
+      mentioned_me INTEGER NOT NULL DEFAULT 0,
+      context_only INTEGER NOT NULL DEFAULT 0,
+      context_root_id TEXT,
+      quoted_message_id TEXT,
+      raw_json TEXT,
+      archive_path TEXT,
+      processing_status TEXT NOT NULL DEFAULT 'new',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dt_chat_messages_conversation ON dingtalk_chat_messages(conversation_id, sent_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_dt_chat_messages_attention ON dingtalk_chat_messages(processing_status, mentioned_me, direction, sent_at DESC);
+
+    CREATE TABLE IF NOT EXISTS dingtalk_message_analysis (
+      message_id TEXT PRIMARY KEY REFERENCES dingtalk_chat_messages(id) ON DELETE CASCADE,
+      classification TEXT NOT NULL DEFAULT 'uncertain',
+      summary TEXT,
+      action_text TEXT,
+      due_date TEXT,
+      priority TEXT,
+      confidence INTEGER NOT NULL DEFAULT 0,
+      assignee_self INTEGER NOT NULL DEFAULT 0,
+      ai_meta_json TEXT,
+      todo_id TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS work_links (
+      id TEXT PRIMARY KEY,
+      source_type TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      confidence INTEGER NOT NULL DEFAULT 0,
+      reason TEXT,
+      status TEXT NOT NULL DEFAULT 'suggested',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(source_type, source_id, target_type, target_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_work_links_source ON work_links(source_type, source_id, status);
+
     -- AI 调度层：只保存领域引用、摘要结果与诊断元数据，不保存邮件正文。
     CREATE TABLE IF NOT EXISTS ai_artifacts (
       kind TEXT NOT NULL,
@@ -282,6 +350,46 @@ function migrate(d) {
   const calendarCols = d.prepare("PRAGMA table_info(calendars)").all().map((c) => c.name);
   if (!calendarCols.includes("attendee_count")) d.exec("ALTER TABLE calendars ADD COLUMN attendee_count INTEGER");
   if (!calendarCols.includes("accepted_count")) d.exec("ALTER TABLE calendars ADD COLUMN accepted_count INTEGER");
+
+  // 014：钉钉个人消息补充会话画像与附件元数据。
+  // 会话画像用于区分群/单聊（DWS +conversation-list 不返回类型）与降权机器人噪声；
+  // 附件只存元数据，真正的文件在用户点击后才经 DWS 下载，避免静默拉取大量二进制。
+  const chatConvCols = d.prepare("PRAGMA table_info(dingtalk_chat_conversations)").all().map((c) => c.name);
+  if (!chatConvCols.includes("chat_mode")) d.exec("ALTER TABLE dingtalk_chat_conversations ADD COLUMN chat_mode TEXT");
+  if (!chatConvCols.includes("is_bot")) d.exec("ALTER TABLE dingtalk_chat_conversations ADD COLUMN is_bot INTEGER NOT NULL DEFAULT 0");
+  if (!chatConvCols.includes("type_known")) d.exec("ALTER TABLE dingtalk_chat_conversations ADD COLUMN type_known INTEGER NOT NULL DEFAULT 0");
+  if (!chatConvCols.includes("last_sync_json")) d.exec("ALTER TABLE dingtalk_chat_conversations ADD COLUMN last_sync_json TEXT");
+
+  const chatMsgCols = d.prepare("PRAGMA table_info(dingtalk_chat_messages)").all().map((c) => c.name);
+  if (!chatMsgCols.includes("attachment_count")) d.exec("ALTER TABLE dingtalk_chat_messages ADD COLUMN attachment_count INTEGER NOT NULL DEFAULT 0");
+
+  // 015：钉钉消息 AI 行动箱待办草稿。分析时一并生成草稿并落库，避免反复调用 AI；
+  // 用户可在右侧编辑后「确认创建待办」（按消息 ID 幂等）。
+  const analysisCols = d.prepare("PRAGMA table_info(dingtalk_message_analysis)").all().map((c) => c.name);
+  if (!analysisCols.includes("draft_title")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_title TEXT");
+  if (!analysisCols.includes("draft_note")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_note TEXT");
+  if (!analysisCols.includes("draft_priority")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_priority TEXT");
+  if (!analysisCols.includes("draft_due_date")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_due_date TEXT");
+  if (!analysisCols.includes("draft_rationale")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_rationale TEXT");
+  if (!analysisCols.includes("draft_generated_at")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_generated_at TEXT");
+
+  d.exec(`
+    CREATE TABLE IF NOT EXISTS dingtalk_chat_attachments (
+      id TEXT PRIMARY KEY,
+      message_id TEXT NOT NULL REFERENCES dingtalk_chat_messages(id) ON DELETE CASCADE,
+      conversation_id TEXT NOT NULL,
+      kind TEXT,
+      name TEXT,
+      mime_type TEXT,
+      size_bytes INTEGER,
+      ref_json TEXT,
+      local_path TEXT,
+      downloaded_at TEXT,
+      download_error TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dt_chat_attachments_message ON dingtalk_chat_attachments(message_id);
+  `);
 }
 
 export function upsert(table, rows, conflictCols) {

@@ -1,0 +1,135 @@
+/* 钉钉消息行动箱：三栏（会话目录 / 消息列表 / 详情）。
+   复用 Emails2Page 的 m2 设计语言；栅格独立成类，避免挤占邮件页的两栏布局。 */
+
+.m2-workspace--three {
+  display: grid;
+  grid-template-columns: minmax(196px, 0.82fr) minmax(0, 1.6fr) minmax(330px, 1.12fr);
+  gap: 16px;
+}
+
+/* 中档窄屏：目录 + 列表两栏，详情整行换到下方 */
+@media (max-width: 1280px) {
+  .m2-workspace--three { grid-template-columns: minmax(170px, 0.9fr) minmax(0, 2fr); }
+  .m2-workspace--three > .m2-detail { grid-column: 1 / -1; }
+}
+
+@media (max-width: 900px) {
+  .m2-workspace--three { grid-template-columns: 1fr; }
+  .m2-workspace--three > .m2-detail { grid-column: auto; }
+}
+
+/* 目录面板：比邮件页的列表更紧凑 */
+.m2-dirs { display: flex; flex-direction: column; gap: 2px; margin: 0 -6px; }
+.m2-dir-section { margin: 0 6px 8px; }
+.m2-dir-section > span {
+  display: block; padding: 8px 4px 4px; font-size: 12px; font-weight: 500;
+  color: var(--m2-soft); border-bottom: 1px solid var(--m2-line);
+}
+.m2-dir {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  border: 0; background: transparent; border-radius: 8px; padding: 8px 9px;
+  cursor: pointer; text-align: left; color: var(--m2-ink);
+}
+.m2-dir:hover { background: #fafafa; }
+.m2-dir.is-selected { background: var(--m2-bluewash); color: var(--m2-blue); }
+.m2-dir__tag {
+  flex: none; width: 22px; height: 22px; border-radius: 6px;
+  display: grid; place-items: center; font-size: 11px; font-weight: 600;
+  background: #f1f1f4; color: #6b6b70;
+}
+.m2-dir__tag--group { background: var(--m2-bluewash); color: var(--m2-blue); }
+.m2-dir__tag--bot { background: #fff4e3; color: #c26f00; }
+.m2-dir__name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 13px;
+}
+.m2-dir__count {
+  flex: none; min-width: 18px; text-align: center; border-radius: 999px;
+  background: var(--m2-red); color: #fff; font-size: 11px; font-weight: 600; padding: 1px 6px;
+}
+.m2-dir__count--quiet { background: #f1f1f4; color: var(--m2-soft); }
+
+/* 筛选 tab：允许超过 4 个自动换行 */
+.m2-tabs--wrap { display: flex; flex-wrap: wrap; border-radius: 10px; }
+.m2-tabs--wrap button { flex: 1 0 auto; border-right: 1px solid var(--m2-line); }
+.m2-tabs--wrap button:last-child { border-right: 0; }
+
+/* 消息行：状态 + 发送人 + 摘要（覆盖邮件页 m2-row 的 4 列栅格） */
+.m2-row--msg {
+  grid-template-columns: 80px minmax(72px, .8fr) minmax(0, 2.2fr);
+}
+.m2-msg-row__status {
+  justify-self: start; border-radius: 6px; padding: 3px 7px;
+  background: #f1f1f4; color: #6b6b70; font-size: 12px; font-weight: 600;
+}
+.m2-msg-row__status--new { background: #fdecec; color: var(--m2-red); }
+.m2-msg-row__status--needs_confirmation { background: #fff4e3; color: #c26f00; }
+.m2-msg-row__status--task_created { background: #e7f8ee; color: #168039; }
+.m2-msg-row__status--informational { background: var(--m2-bluewash); color: var(--m2-blue); }
+.m2-msg-row__conv {
+  display: block; font-size: 11px; color: var(--m2-soft); margin-top: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.m2-list__more { margin-top: 10px; text-align: center; }
+
+/* 详情区 */
+.m2-detail__sync {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: var(--m2-soft); margin-bottom: 10px;
+}
+.m2-detail__sync .pill-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--m2-green); display: inline-block;
+}
+.m2-detail__sync .pill-dot--partial { background: var(--m2-orange); }
+.m2-detail__sync .pill-dot--error { background: var(--m2-red); }
+
+.m2-context {
+  max-height: 300px; overflow: auto; border: 1px solid var(--m2-line);
+  border-radius: 10px; padding: 8px 10px; background: #fafafa;
+}
+.m2-context p { margin: 0; padding: 4px 0; font-size: 12px; line-height: 1.55; color: #4d4d53; }
+.m2-context p b { color: var(--m2-ink); font-weight: 600; }
+.m2-context p.is-root { background: var(--m2-bluewash); border-radius: 5px; padding: 4px 6px; margin: 2px 0; }
+
+.m2-attach {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+  border-bottom: 1px solid var(--m2-line); font-size: 13px;
+}
+.m2-attach__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m2-attach__meta { flex: none; font-size: 11px; color: var(--m2-soft); }
+
+.m2-link-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 0; font-size: 13px;
+  border-bottom: 1px solid var(--m2-line); flex-wrap: wrap;
+}
+.m2-link-row__target { flex: 1; min-width: 0; }
+.m2-link-row__state {
+  flex: none; border-radius: 6px; padding: 2px 7px; font-size: 11px; font-weight: 600;
+  background: #f1f1f4; color: #6b6b70;
+}
+.m2-link-row__state--auto { background: var(--m2-bluewash); color: var(--m2-blue); }
+.m2-link-row__state--confirmed { background: #e7f8ee; color: #168039; }
+.m2-link-row__state--rejected { background: #fdecec; color: var(--m2-red); }
+
+.m2-flash--sticky { margin: 0 0 10px; animation: none; }
+.m2-message-group { border-bottom: 1px solid var(--m2-line, #e8edf3); }
+.m2-message-group:last-child { border-bottom: 0; }
+.m2-message-group__title { padding: 10px 14px 6px; color: var(--m2-soft); font-size: 12px; font-weight: 600; background: #fafbfd; }
+
+/* 待办草稿：生成提示与可编辑表单 */
+.m2-draft-empty { border: 1px dashed var(--m2-line, #d7d7db); border-radius: 12px; padding: 14px; background: #fbfbfc; }
+.m2-draft-empty p { margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: var(--m2-soft); }
+.m2-draft-form { display: flex; flex-direction: column; gap: 10px; }
+.m2-draft-form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--m2-ink); }
+.m2-draft-form input,
+.m2-draft-form textarea,
+.m2-draft-form select {
+  border: 1px solid var(--m2-line, #d7d7db); border-radius: 9px; padding: 8px 10px;
+  font-size: 13px; color: var(--m2-ink); background: #fff; font-weight: 400;
+}
+.m2-draft-form textarea { resize: vertical; line-height: 1.55; }
+.m2-draft-row { display: flex; gap: 10px; }
+.m2-draft-row label { flex: 1; }
+.m2-draft-form__actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.m2-draft__done { font-size: 13px; color: var(--m2-green); font-weight: 600; }
+.m2-draft-created-note { margin: 6px 0 0; font-size: 12px; color: var(--m2-soft); }

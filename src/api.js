@@ -7,7 +7,10 @@ async function request(url, options = {}) {
   });
   if (!res.ok) {
     let msg = `请求失败 ${res.status}`;
-    try { msg = (await res.json()).error || msg; } catch {}
+    try {
+      const body = await res.json();
+      msg = body.error || body.results?.map((item) => item.error).filter(Boolean).join("；") || msg;
+    } catch {}
     throw new Error(msg);
   }
   return res.json();
@@ -58,6 +61,25 @@ export const workbenchApi = {
   pulse: (date) => api.get(`/team/pulse?date=${encodeURIComponent(date || todayStr())}`),
   syncStatus: () => api.get("/sync/status"),
   syncRun: (date, sources) => api.post("/sync/run", { date: date || todayStr(), sources }),
+};
+
+export const dingtalkChatApi = {
+  status: () => api.get("/dingtalk-chat/status"),
+  startAuth: () => api.post("/dingtalk-chat/auth/start", {}),
+  authStatus: (id) => api.get(`/dingtalk-chat/auth/${encodeURIComponent(id)}`),
+  settings: () => api.get("/dingtalk-chat/settings"),
+  updateSettings: (patch) => api.patch("/dingtalk-chat/settings", patch),
+  conversations: () => api.get("/dingtalk-chat/conversations"),
+  updateConversation: (id, patch) => api.patch(`/dingtalk-chat/conversations/${encodeURIComponent(id)}`, patch),
+  messages: (filters = {}) => api.get(`/dingtalk-chat/messages?${new URLSearchParams(filters)}`),
+  message: (id) => api.get(`/dingtalk-chat/messages/${encodeURIComponent(id)}`),
+  updateMessage: (id, processingStatus) => api.patch(`/dingtalk-chat/messages/${encodeURIComponent(id)}`, { processingStatus }),
+  createTodo: (id) => api.post(`/dingtalk-chat/messages/${encodeURIComponent(id)}/task`, {}),
+  generateTodoDraft: (id) => api.post(`/dingtalk-chat/messages/${encodeURIComponent(id)}/draft`, {}),
+  confirmTodoDraft: (id, draft) => api.post(`/dingtalk-chat/messages/${encodeURIComponent(id)}/draft/confirm`, draft),
+  downloadAttachment: (id, attachmentId) => api.post(`/dingtalk-chat/messages/${encodeURIComponent(id)}/attachments/${encodeURIComponent(attachmentId)}/download`, {}),
+  confirmLink: (id) => api.post(`/dingtalk-chat/links/${encodeURIComponent(id)}/confirm`, {}),
+  rejectLink: (id) => api.post(`/dingtalk-chat/links/${encodeURIComponent(id)}/reject`, {}),
 };
 
 export const teamApi = {

@@ -7,6 +7,7 @@ export const SYNC_POLICIES = {
   outlook: { label: "Outlook 邮件", intervalMinutes: 15, scope: "增量同步收件箱，并更新行动中心" },
   dingtalk: { label: "钉钉团队日志", intervalMinutes: 15, scope: "同步当天启用模板的日志" },
   calendar: { label: "钉钉日程", intervalMinutes: 15, scope: "同步今天起 30 天的主管主日历" },
+  dingtalk_chat: { label: "钉钉个人消息", intervalMinutes: 15, scope: "同步私聊及启用群的 @我 消息" },
 };
 
 function readState(db, key) {
@@ -25,7 +26,7 @@ function addDays(date, days) {
   return localDateString(value);
 }
 
-export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, mirrorEmails = mirrorToEmails }) {
+export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, dingtalkChatService = null, mirrorEmails = mirrorToEmails }) {
   const running = new Set();
   let timer = null;
 
@@ -35,6 +36,10 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       return { configured: Boolean(status.configured), ready: Boolean(status.configured && status.consented && status.connected), reason: !status.configured ? "未配置" : !status.consented ? "待确认隐私授权" : !status.connected ? "待连接" : null };
     }
     if (source === "calendar") return { configured: dingtalkService.isConfigured(), ready: dingtalkService.calendarReady(), reason: !dingtalkService.isConfigured() ? "未配置" : !dingtalkService.calendarReady() ? "缺少主管用户 ID" : null };
+    if (source === "dingtalk_chat") {
+      const chat = dingtalkChatService ? await dingtalkChatService.status() : { installed: false, connected: false };
+      return { configured: Boolean(chat.installed), ready: Boolean(chat.installed && chat.connected), reason: !chat.installed ? "未安装 DWS" : !chat.connected ? "待连接个人钉钉" : null };
+    }
     return { configured: dingtalkService.isConfigured(), ready: dingtalkService.isConfigured(), reason: dingtalkService.isConfigured() ? null : "未配置" };
   }
 
@@ -53,9 +58,14 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
         trigger: state.trigger || null,
         lastAttemptAt: state.lastAttemptAt || null,
         lastSuccessAt: state.lastSuccessAt || null,
-        nextRunAt: ready.ready && base ? new Date(Date.parse(base) + policy.intervalMinutes * 60000).toISOString() : ready.ready ? "on-startup" : null,
+        nextRunAt: state.blocked ? null : ready.ready && base ? new Date(Date.parse(base) + policy.intervalMinutes * 60000).toISOString() : ready.ready ? "on-startup" : null,
         recordCount: state.recordCount ?? null,
         error: state.error || ready.reason || null,
+        errorCode: state.errorCode || null,
+        blocked: Boolean(state.blocked),
+        retryable: state.retryable !== false,
+        usingCachedData: Boolean(state.usingCachedData),
+        egressIp: state.egressIp || null,
         warning: state.warning || null,
       };
     }));
@@ -81,11 +91,15 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
         try { await dingtalkService.syncMembers(); } catch (error) { warning = `团队名册刷新失败，已保留本地名册：${error.message}`; }
         recordCount = (await dingtalkService.syncReports(date)).length;
         if (warning) writeState(db, "sync_warning_dingtalk", { warning, at: now().toISOString() });
+      } else if (source === "dingtalk_chat") {
+        const result = await dingtalkChatService.sync();
+        recordCount = result.count;
+        if (!result.firstSync && result.added?.length) aiScheduler?.dingtalkChatMessagesArtifact?.(result.added.map((item) => item.id), { trigger: "sync:dingtalk_chat" });
       } else {
         recordCount = await dingtalkService.syncCalendarForRange(date, addDays(date, 30));
       }
       const warningState = source === "dingtalk" ? readState(db, "sync_warning_dingtalk") : null;
-      const state = { status: "success", trigger, lastAttemptAt: attemptedAt, lastSuccessAt: now().toISOString(), recordCount: Number(recordCount) || 0, error: null, warning: warningState?.warning || null };
+      const state = { status: "success", trigger, lastAttemptAt: attemptedAt, lastSuccessAt: now().toISOString(), recordCount: Number(recordCount) || 0, error: null, errorCode: null, blocked: false, retryable: true, usingCachedData: false, egressIp: null, warning: warningState?.warning || null };
       writeState(db, `sync_status_${source}`, state);
       // AI 仅后台入队，不能拖慢外部数据同步的完成响应。
       aiScheduler?.dashboardArtifact(date, { trigger: `sync:${source}` });
@@ -93,7 +107,20 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       return { source, ...state };
     } catch (error) {
       const previous = readState(db, `sync_status_${source}`) || {};
-      const state = { status: "error", trigger, lastAttemptAt: attemptedAt, lastSuccessAt: previous.lastSuccessAt || null, recordCount: 0, error: error.message };
+      const blocked = Boolean(error?.blocked);
+      const state = {
+        status: "error",
+        trigger,
+        lastAttemptAt: attemptedAt,
+        lastSuccessAt: previous.lastSuccessAt || null,
+        recordCount: 0,
+        error: error.message,
+        errorCode: error?.code || null,
+        blocked,
+        retryable: error?.retryable !== false,
+        usingCachedData: Boolean(previous.lastSuccessAt),
+        egressIp: error?.egressIp || null,
+      };
       writeState(db, `sync_status_${source}`, state);
       throw Object.assign(error, { syncResult: { source, ...state } });
     } finally { running.delete(source); }

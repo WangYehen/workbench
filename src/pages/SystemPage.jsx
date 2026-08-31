@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { IconBrain, IconRefresh, IconServer, IconSettings } from "@tabler/icons-react";
 import { DeleteButton } from "../components/DeleteButton";
 import { PageHeader } from "../components/PageHeader";
-import { api, teamApi, todayStr, workbenchApi } from "../api.js";
+import { api, dingtalkChatApi, teamApi, todayStr, workbenchApi } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import "./SystemPage.css";
 
 const statusText = { success: "成功", error: "失败", running: "同步中", waiting: "等待配置", never: "等待首次同步" };
 const aiProviderNames = { opencode: "OpenCode 免费模型", codex: "Codex CLI", ollama: "Ollama", deepseek: "DeepSeek API", openai: "OpenAI API", claude: "Claude API", local: "本地规则" };
+const CHAT_PAGE_SIZE = 10;
 
 function ConfigRow({ label, ok }) {
   return <div className="row spread" style={{ padding: "8px 0", borderBottom: "1px solid var(--line)" }}><span>{label}</span><span className={`pill ${ok ? "green" : "gray"}`}>{ok ? "已配置" : "未配置"}</span></div>;
@@ -39,15 +41,20 @@ export default function SystemPage() {
   const [deletingTemplateId, setDeletingTemplateId] = useState(null);
   const [refreshingAi, setRefreshingAi] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [dws, setDws] = useState(null);
+  const [chatConversations, setChatConversations] = useState([]);
+  const [chatSearch, setChatSearch] = useState("");
+  const [chatPage, setChatPage] = useState(1);
 
   const loadSync = () => workbenchApi.syncStatus().then((status) => setSync(status.items || []));
 
   useEffect(() => {
-    Promise.all([api.get("/system"), api.get("/sync/status"), teamApi.templateList()])
-      .then(([system, status, templateResult]) => {
+    Promise.all([api.get("/system"), api.get("/sync/status"), teamApi.templateList(), dingtalkChatApi.status(), dingtalkChatApi.conversations()])
+      .then(([system, status, templateResult, chatStatus, chatResult]) => {
         setSys(system);
         setSync(status.items || []);
         setTemplates(templateResult.templates || []);
+        setDws(chatStatus); setChatConversations(chatResult.items || []);
       })
       .catch(() => setSys({ error: true }));
   }, []);
@@ -105,6 +112,38 @@ export default function SystemPage() {
     }
   }
 
+  async function connectDws() {
+    try { const result = await dingtalkChatApi.startAuth(); setDws((current) => ({ ...current, loginAttempt: result.attempt })); }
+    catch (error) { setTemplateError(error.message || "无法启动 DWS 登录"); }
+  }
+  async function toggleChatConversation(item) {
+    try { const result = await dingtalkChatApi.updateConversation(item.id, { enabled: !item.enabled }); setChatConversations((items) => items.map((entry) => entry.id === item.id ? result.item : entry)); }
+    catch (error) { setTemplateError(error.message || "更新群聊设置失败"); }
+  }
+  async function toggleChatRetention(item) {
+    const next = item.retention_mode === "permanent" ? "inherit" : "permanent";
+    try { const result = await dingtalkChatApi.updateConversation(item.id, { retention_mode: next }); setChatConversations((items) => items.map((entry) => entry.id === item.id ? result.item : entry)); }
+    catch (error) { setTemplateError(error.message || "更新保留策略失败"); }
+  }
+  async function setPermanent(permanent) {
+    try { const result = await dingtalkChatApi.updateSettings({ permanent }); setDws((current) => ({ ...current, settings: result.settings })); }
+    catch (error) { setTemplateError(error.message || "更新保留策略失败"); }
+  }
+
+  const filteredChatConversations = useMemo(() => {
+    const keyword = chatSearch.trim().toLocaleLowerCase();
+    return chatConversations
+      .filter((item) => item.type === "group" || item.retention_mode === "permanent")
+      .filter((item) => !keyword || item.title?.toLocaleLowerCase().includes(keyword))
+      .toSorted((left, right) => {
+        const enabledOrder = Number(Boolean(right.enabled)) - Number(Boolean(left.enabled));
+        return enabledOrder || (left.title || "").localeCompare(right.title || "", "zh-CN");
+      });
+  }, [chatConversations, chatSearch]);
+  const chatPageCount = Math.max(1, Math.ceil(filteredChatConversations.length / CHAT_PAGE_SIZE));
+  const visibleChatPage = Math.min(chatPage, chatPageCount);
+  const pagedChatConversations = filteredChatConversations.slice((visibleChatPage - 1) * CHAT_PAGE_SIZE, visibleChatPage * CHAT_PAGE_SIZE);
+
   if (!sys) return <div className="spinner">加载中…</div>;
   const configured = sys.configured || {};
 
@@ -127,12 +166,13 @@ export default function SystemPage() {
 
       <div className="panel">
         <div className="panel__head"><div className="panel__title"><span className="work-page-icon"><IconServer size={22} stroke={1.75} /></span>运行信息</div></div>
+        <div className="meta">版本：{sys.appVersion || "dev"} · {sys.runtimeMode === "web-installer" ? "本机网页版" : "开发模式"}</div>
         <div className="meta">AI 提供方：{sys.aiProvider}</div>
         <div className="meta">演示数据兜底：{sys.useDemoData ? "开启" : "关闭"}</div>
-        <div className="meta">数据库：.local/workbench.sqlite（数据库仅保存在本机；AI 输入按下方路由策略处理）</div>
+        <div className="meta">数据目录：{sys.dataDirectory || ".local"}（数据库仅保存在本机；AI 输入按下方路由策略处理）</div>
         <div className="panel__title" style={{ fontSize: 15, marginTop: 16 }}><div className="sub">如何接入真实数据</div></div>
         <div className="meta">
-          1. 复制 .env.example 为 .env；<br />
+          1. 由 IT 编辑配置文件 <code>{sys.configPath || ".env"}</code>；<br />
           2. 在 Azure Entra 注册「多租户」应用（无需 Secret），权限 Mail.Read + offline_access，并登记回调 <code>{sys.publicBaseUrl}/api/outlook/oauth/callback</code>；<br />
           3. 填入 OUTLOOK_ENTRA_CLIENT_ID、OUTLOOK_OAUTH_REDIRECT_URI、OUTLOOK_TOKEN_ENCRYPTION_KEY（openssl rand -base64 32 生成）；<br />
           4. 重启服务，进入「邮件处理」页完成隐私同意并连接 Outlook。AI 来源可独立配置，不影响邮箱连接。
@@ -170,19 +210,43 @@ export default function SystemPage() {
       {aiError ? <div className="settings-template-error" role="alert">{aiError}</div> : null}
     </section>
 
+    <section className="panel" style={{ marginTop: 14 }}>
+      <div className="panel__head"><div><div className="panel__title">钉钉个人消息（DWS）</div><div className="meta" style={{ marginTop: 4 }}>私聊完整上下文与群聊 @我 消息，本地保存并可生成待办</div></div><button className="btn sm" onClick={() => dingtalkChatApi.status().then(setDws)}><IconRefresh size={14}/>刷新检测</button></div>
+      {dws?.installed ? <><div className="row spread"><span>运行时：{dws.version || "已安装"}</span><span className={`pill ${dws.connected ? "green" : "gray"}`}>{dws.connected ? "已连接" : "待登录"}</span></div>{!dws.connected && <button className="btn primary sm" style={{ marginTop: 10 }} onClick={connectDws}>连接个人钉钉</button>}{dws.loginAttempt && <div className="meta" style={{ marginTop: 8 }}>登录任务已启动，请按终端/浏览器提示完成授权。</div>}{dws.capabilities && !dws.capabilities.coreReady && <div className="meta" style={{ marginTop: 8, color: "#8a6116" }}>当前 DWS 缺少部分核心能力，同步可能不完整，请升级 DWS。</div>}<div className="row" style={{ marginTop: 12 }}><span className="meta">消息保留：</span><button className={`btn sm ${!dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(false)}>180天</button><button className={`btn sm ${dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(true)}>永久</button></div>
+      <div className="row" style={{ marginTop: 12, gap: 8 }}><input value={chatSearch} onChange={(e) => { setChatSearch(e.target.value); setChatPage(1); }} placeholder="搜索会话名称" style={{ maxWidth: 260 }} /></div>
+      <div className="meta" style={{ marginTop: 8 }}>群聊默认启用；关闭后不再采集新的 @我 消息。单个会话可覆盖为永久保留。</div>
+      {pagedChatConversations
+        .map((item) => <div className="row spread settings-template-row dingtalk-chat-row" key={item.id}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 240 }} title={item.title}>{item.type === "group" ? "群" : "私"} · {item.title}{item.is_bot ? " · 机器人" : ""}</span>
+          <div className="settings-template-actions" style={{ gap: 6 }}>
+            {item.type === "group" && <button className={`btn sm ${item.enabled ? "settings-template-toggle is-enabled" : "settings-template-toggle is-disabled"}`} onClick={() => toggleChatConversation(item)}>{item.enabled ? "已启用" : "已停用"}</button>}
+            <button className={`btn sm ${item.retention_mode === "permanent" ? "primary" : ""}`} title="单个会话永久保留，跳过全局清理" onClick={() => toggleChatRetention(item)}>{item.retention_mode === "permanent" ? "永久保留" : "默认保留"}</button>
+          </div>
+        </div>)}
+      {filteredChatConversations.length > 0 && <div className="row spread" style={{ marginTop: 12 }}>
+        <span className="meta">共 {filteredChatConversations.length} 个会话 · 第 {visibleChatPage}/{chatPageCount} 页</span>
+        <div className="row" style={{ gap: 6 }}>
+          <button className="btn sm" disabled={visibleChatPage <= 1} onClick={() => setChatPage((page) => Math.max(1, page - 1))}>上一页</button>
+          <button className="btn sm" disabled={visibleChatPage >= chatPageCount} onClick={() => setChatPage((page) => Math.min(chatPageCount, page + 1))}>下一页</button>
+        </div>
+      </div>}
+      </> : <><div className="meta">未检测到 DWS。请在 PowerShell 执行 <code>npm install -g dingtalk-workspace-cli</code>，再点击刷新检测。</div>{dws?.error && <div className="settings-template-error" role="alert">{dws.error}</div>}</>}
+    </section>
+
     <div className="grid grid-2" style={{ marginTop: 14 }}>
       <div className="panel">
         <div className="panel__head"><div><div className="panel__title">自动同步</div><div className="meta" style={{ marginTop: 4 }}>服务启动后自动运行，无需停留在页面</div></div><button className="btn sm" onClick={loadSync}><IconRefresh size={14} />刷新状态</button></div>
         {sync.map((item) => <section key={item.source} style={{ padding: "13px 0", borderBottom: "1px solid var(--line)" }}>
-          <div className="row spread"><div><strong>{item.label}</strong><div className="meta">每 {item.intervalMinutes} 分钟 · {item.scope}</div></div><span className={`pill ${item.status === "success" ? "green" : item.status === "error" ? "red" : "gray"}`}>{statusText[item.status] || item.status}</span></div>
+          <div className="row spread"><div><strong>{item.label}</strong><div className="meta">每 {item.intervalMinutes} 分钟 · {item.scope}</div></div><span className={`pill ${item.status === "success" ? "green" : item.status === "error" ? "red" : "gray"}`}>{item.blocked ? "需更新白名单" : statusText[item.status] || item.status}</span></div>
           <div className="meta" style={{ marginTop: 7 }}>
             最近尝试：{item.lastAttemptAt ? new Date(item.lastAttemptAt).toLocaleString("zh-CN") : "—"}<br />
             最近成功：{item.lastSuccessAt ? new Date(item.lastSuccessAt).toLocaleString("zh-CN") : "—"}
             {item.nextRunAt && item.nextRunAt !== "on-startup" ? <><br />下次检查：{new Date(item.nextRunAt).toLocaleString("zh-CN")}</> : null}
             {item.recordCount != null ? <><br />最近变更：{item.recordCount} 条</> : null}
           </div>
+          {item.usingCachedData && <div className="meta" style={{ color: "#8a6116", marginTop: 5 }}>当前继续展示上次成功同步的本地缓存数据。</div>}
           {item.error && <div className="meta" style={{ color: "var(--danger,#c2413b)", marginTop: 5 }}>{item.error}</div>}
-          <button className="btn sm" style={{ marginTop: 8 }} disabled={!item.ready || syncing === item.source} onClick={() => syncNow(item.source)}>{syncing === item.source ? "同步中…" : "立即同步此数据源"}</button>
+          <SyncButton className="btn sm" style={{ marginTop: 8 }} disabled={!item.ready} syncing={syncing === item.source} onClick={() => syncNow(item.source)}>{item.blocked ? "更新白名单后重新同步" : "立即同步此数据源"}</SyncButton>
         </section>)}
       </div>
 

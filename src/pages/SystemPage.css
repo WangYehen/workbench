@@ -1,4 +1,7 @@
 .settings-template-row { gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.dingtalk-chat-row { border-radius: 8px; transition: background-color 120ms ease; }
+.dingtalk-chat-row:hover { background: #f3f7fc; }
+.dingtalk-chat-row:focus-within { background: #f3f7fc; }
 .settings-template-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .settings-template-delete { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px; padding: 6px 10px; border: 1px solid #f1b9b5; border-radius: 9px; background: #fff; color: #c2413b; font: inherit; font-size: 13px; cursor: pointer; }
 .settings-template-delete:hover { border-color: #d45a52; background: #fff5f4; }

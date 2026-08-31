@@ -5,6 +5,7 @@ import { buildDashboard } from "./workbench-domain.mjs";
 
 const PRIORITY = {
   "email.classify": 500,
+  "dingtalk.message.classify": 450,
   "dashboard.suggestion": 400,
   "team.analysis": 300,
   "report.daily": 200,
@@ -13,6 +14,18 @@ const PRIORITY = {
   "email.draft": 100,
 };
 const DASHBOARD_ARTIFACT_VERSION = "v2-opencode-text-output";
+const DINGTALK_NOISE_PHRASES = new Set([
+  "嗯", "嗯嗯", "哦", "哦哦", "啊", "哈哈", "哈哈哈", "好的", "好滴", "收到", "了解", "明白",
+  "行", "可以", "没问题", "没事", "谢谢", "感谢", "在吗", "来了", "到了", "ok", "okay", "thanks",
+]);
+
+function isDingtalkNoiseMessage(content) {
+  const text = String(content || "").trim().toLocaleLowerCase().replace(/[\s，。！？、,.!?~～]+/g, "");
+  if (!text) return true;
+  if (DINGTALK_NOISE_PHRASES.has(text)) return true;
+  // 仅拦截极短、没有数字/链接/任务动词的确认回复，避免误伤正常事项。
+  return text.length <= 2 && !/[0-9一二三四五六七八九十]/.test(text);
+}
 
 function json(value, fallback) { try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
 
@@ -99,6 +112,50 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     return { task, artifact: read(kind, scope) };
   }
   async function execute(task) {
+    if (task.kind === "dingtalk.message.classify") {
+      const message = db().prepare(`SELECT m.*,c.title AS conversation_title,c.type AS conversation_type FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?`).get(task.scope);
+      if (!message) throw Object.assign(new Error("钉钉消息不存在"), { code: "message_not_found" });
+      const context = db().prepare("SELECT sender_name,content,sent_at FROM dingtalk_chat_messages WHERE conversation_id=? ORDER BY ABS(strftime('%s', sent_at)-strftime('%s', ?)) LIMIT 21").all(message.conversation_id, message.sent_at);
+      if (isDingtalkNoiseMessage(message.content)) {
+        const stamp = now().toISOString();
+        db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,confidence=excluded.confidence,ai_meta_json=excluded.ai_meta_json,updated_at=excluded.updated_at`)
+          .run(message.id, "informational", "低价值确认或寒暄", "无需处理", null, "P2", 99, 0, JSON.stringify({ source: "noise-filter", reason: "short_acknowledgement" }), null, null, null, null, null, null, null, stamp, stamp);
+        db().prepare("UPDATE dingtalk_chat_messages SET processing_status='ignored',updated_at=? WHERE id=?").run(stamp, message.id);
+        return { payload: { classification: "noise", confidence: 99, todoId: null }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: { source: "noise-filter" } };
+      }
+      const result = await aiService.analyzeDingtalkMessage({ ...message, context });
+      const stamp = now().toISOString();
+      db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,due_date=excluded.due_date,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,draft_generated_at=excluded.draft_generated_at,updated_at=excluded.updated_at`)
+        .run(message.id, result.classification, result.summary, result.actionText, result.dueDate, result.priority, result.confidence, result.assigneeSelf ? 1 : 0, JSON.stringify(result.aiMeta || null), null,
+          result.draftTitle || result.actionText || null, result.draftNote || null, result.draftPriority || result.priority || "P2", result.draftDueDate || null, result.draftRationale || null, stamp, stamp, stamp);
+      let todoId = null;
+      if (result.classification === "action" && result.assigneeSelf && result.confidence >= 90) {
+        const existing = db().prepare("SELECT id FROM todos WHERE source_type='dingtalk_message' AND source_id=?").get(message.id);
+        if (!existing) {
+          todoId = `t${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+          db().prepare("INSERT INTO todos(id,title,note,status,priority,due_date,created_at,completed_at,source_type,source_id,project_id,assignee_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+            .run(todoId, result.actionText || result.summary, `来自钉钉：${message.sender_name || "成员"} · ${message.content || ""}`.slice(0, 2000), "inbox", result.priority || "P2", result.dueDate || null, stamp, null, "dingtalk_message", message.id, null, null);
+        } else todoId = existing.id;
+        db().prepare("UPDATE dingtalk_message_analysis SET todo_id=?,updated_at=? WHERE message_id=?").run(todoId, stamp, message.id);
+        db().prepare("UPDATE dingtalk_chat_messages SET processing_status='task_created',updated_at=? WHERE id=?").run(stamp, message.id);
+      } else {
+        db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(result.classification === "action" ? "needs_confirmation" : result.classification === "informational" ? "informational" : "needs_confirmation", stamp, message.id);
+      }
+      const content = String(message.content || "");
+      const targets = [
+        ["outlook", "emails", "id", "subject"], ["calendar", "calendars", "id", "title"], ["project", "projects", "id", "name"],
+      ];
+      for (const [targetType, table, idField, textField] of targets) {
+        const candidates = db().prepare(`SELECT ${idField} id, ${textField} title FROM ${table} WHERE ${textField} IS NOT NULL AND length(${textField})>=4 LIMIT 100`).all()
+          .filter((item) => content.includes(item.title) || item.title.includes(content.slice(0, 40)));
+        if (candidates.length === 1) db().prepare(`INSERT INTO work_links(id,source_type,source_id,target_type,target_id,confidence,reason,status,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_type,source_id,target_type,target_id) DO NOTHING`)
+          .run(crypto.randomUUID(), "dingtalk_message", message.id, targetType, String(candidates[0].id), 90, "消息内容与标题唯一匹配", "auto", stamp, stamp);
+      }
+      return { payload: { classification: result.classification, confidence: result.confidence, todoId }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
+    }
     if (task.kind === "dashboard.suggestion") {
       const context = dashboardSummary(db(), task.scope);
       const result = await aiService.dailySuggestion(context.summary);
@@ -153,6 +210,14 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     if (reports.length) enqueue({ kind: "team.analysis", scope: date, inputHash, trigger });
     return read("team.analysis", date);
   }
+  function dingtalkChatMessagesArtifact(ids, { trigger = "sync" } = {}) {
+    for (const id of ids || []) {
+      const message = db().prepare(`SELECT m.id,m.content,m.sent_at,m.direction,m.mentioned_me,m.context_only,c.type FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?`).get(id);
+      if (!message || message.direction !== "inbound" || message.context_only || (message.type === "group" && !message.mentioned_me)) continue;
+      const inputHash = crypto.createHash("sha256").update(JSON.stringify([message.id, message.content, message.sent_at])).digest("hex");
+      enqueue({ kind: "dingtalk.message.classify", scope: message.id, inputHash, trigger });
+    }
+  }
   function stats() {
     const rows = db().prepare("SELECT status, COUNT(*) count FROM ai_tasks GROUP BY status").all();
     const byStatus = Object.fromEntries(rows.map((row) => [row.status, row.count]));
@@ -167,5 +232,5 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     db().prepare("UPDATE ai_tasks SET status='queued', started_at=NULL WHERE status='running'").run();
     void pump();
   }
-  return { start, close() { closed = true; }, read, enqueue, dashboardArtifact, teamAnalysisArtifact, stats, priority: PRIORITY, aiService };
+  return { start, close() { closed = true; }, read, enqueue, dashboardArtifact, teamAnalysisArtifact, dingtalkChatMessagesArtifact, stats, priority: PRIORITY, aiService };
 }

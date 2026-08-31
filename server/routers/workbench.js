@@ -37,11 +37,11 @@ export default function workbenchRouter(syncCoordinator) {
     try { date = resolveDateKey(req.body?.date); } catch (error) { return res.status(400).json({ error: error.message }); }
     const requested = Array.isArray(req.body?.sources) && req.body.sources.length
       ? req.body.sources
-      : ["outlook", "dingtalk", "calendar"];
-    const allowed = new Set(["outlook", "dingtalk", "calendar"]);
+      : ["outlook", "dingtalk", "calendar", "dingtalk_chat"];
+    const allowed = new Set(["outlook", "dingtalk", "calendar", "dingtalk_chat"]);
     const sources = [...new Set(requested)].filter((source) => allowed.has(source));
     const results = await syncCoordinator.run(sources, { date, trigger: "manual" });
-    res.status(results.some((item) => item.status === "success") ? 200 : 502).json({ date, results });
+    res.status(results.some((item) => item.status === "success" || item.status === "running") ? 200 : 502).json({ date, results });
   });
 
   return router;

@@ -5,17 +5,25 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-// 前端端口：与仓库对齐，默认 5174（可用 WORKBENCH_PORT 覆盖），决定 OAuth 回跳/跨域源
-const FRONTEND_PORT = Number(process.env.WORKBENCH_PORT || 5174);
 
 // 关键：dotenv 默认不会覆盖已经存在的环境变量。
 // 一旦 shell/WorkBuddy 桌面进程里挂着过期的 DEEPSEEK_API_KEY 等凭据，.env 里更新过的密钥会被静默吞掉，
 // 导致"按文档改了 .env 还是报错"的诡异现象。
 // 这里强制以 .env 为准：与代码仓库版本一致、便于团队多人协作与 CI。
-const ENV_PATH = path.resolve(__dirname, "..", ".env");
+const ENV_PATH = process.env.WORKBENCH_CONFIG_PATH
+  ? path.resolve(process.env.WORKBENCH_CONFIG_PATH)
+  : path.resolve(__dirname, "..", ".env");
 if (fs.existsSync(ENV_PATH)) {
   dotenv.config({ path: ENV_PATH, override: true });
 }
+
+// 开发环境前端走 Vite 5174；安装包生产环境由 Express 在 8787 同时托管前后端。
+const FRONTEND_PORT = Number(process.env.WORKBENCH_PORT || 5174);
+const SERVICE_PORT = Number(process.env.PORT || 8787);
+const IS_PROD = process.env.NODE_ENV === "production";
+const DEFAULT_PUBLIC_BASE_URL = IS_PROD
+  ? `http://127.0.0.1:${SERVICE_PORT}`
+  : `http://127.0.0.1:${FRONTEND_PORT}`;
 
 function bool(value, fallback = false) {
   if (value === undefined || value === null || value === "") return fallback;
@@ -31,11 +39,16 @@ function list(value) {
 
 export const config = {
   root: ROOT,
+  installRoot: process.env.WORKBENCH_INSTALL_ROOT || ROOT,
+  configPath: ENV_PATH,
+  appVersion: process.env.WORKBENCH_APP_VERSION || "dev",
+  runtimeMode: process.env.WORKBENCH_RUNTIME_MODE || (IS_PROD ? "web-installer" : "development"),
   displayName: process.env.WORKBENCH_DISPLAY_NAME || "",
-  port: Number(process.env.PORT || 8787),
-  publicBaseUrl: process.env.PUBLIC_BASE_URL || `http://127.0.0.1:${FRONTEND_PORT}`,
-  corsOrigin: process.env.CORS_ORIGIN || `http://127.0.0.1:${FRONTEND_PORT}`,
-  isProd: bool(process.env.NODE_ENV === "production"),
+  host: process.env.HOST || "127.0.0.1",
+  port: SERVICE_PORT,
+  publicBaseUrl: process.env.PUBLIC_BASE_URL || DEFAULT_PUBLIC_BASE_URL,
+  corsOrigin: process.env.CORS_ORIGIN || DEFAULT_PUBLIC_BASE_URL,
+  isProd: IS_PROD,
 
   ai: {
     provider: process.env.AI_PROVIDER || "deepseek",
@@ -87,17 +100,22 @@ export const config = {
   outlook: {
     clientId: process.env.OUTLOOK_ENTRA_CLIENT_ID || "",
     tenantId: process.env.OUTLOOK_ENTRA_TENANT_ID || "common",
-    redirectUri: process.env.OUTLOOK_OAUTH_REDIRECT_URI || `http://127.0.0.1:${FRONTEND_PORT}/api/outlook/oauth/callback`,
+    redirectUri: process.env.OUTLOOK_OAUTH_REDIRECT_URI || `${DEFAULT_PUBLIC_BASE_URL}/api/outlook/oauth/callback`,
     tokenEncryptionKey: process.env.OUTLOOK_TOKEN_ENCRYPTION_KEY || "",
   },
 
   dingtalk: {
     clientId: process.env.DINGTALK_CLIENT_ID || "",
     clientSecret: process.env.DINGTALK_CLIENT_SECRET || "",
-    redirectUri: process.env.DINGTALK_REDIRECT_URI || `http://127.0.0.1:${FRONTEND_PORT}/oauth/dingtalk/callback`,
+    redirectUri: process.env.DINGTALK_REDIRECT_URI || `${DEFAULT_PUBLIC_BASE_URL}/oauth/dingtalk/callback`,
     managerUserId: process.env.DINGTALK_MANAGER_USER_ID || "",
     reportTemplateId: process.env.DINGTALK_REPORT_TEMPLATE_ID || "",
     agentId: process.env.DINGTALK_AGENT_ID || "",
+  },
+
+  // DWS 负责当前登录用户的个人/群聊消息；认证材料由 DWS 自己的安全存储管理。
+  dws: {
+    executable: process.env.DWS_EXECUTABLE || "dws",
   },
 
   aiHot: {
@@ -106,7 +124,9 @@ export const config = {
 
   useDemoData: bool(process.env.USE_DEMO_DATA, true),
 
-  dataDir: path.join(ROOT, ".local"),
+  dataDir: process.env.WORKBENCH_DATA_DIR
+    ? path.resolve(process.env.WORKBENCH_DATA_DIR)
+    : path.join(ROOT, ".local"),
 };
 
 export function ensureDataDir() {

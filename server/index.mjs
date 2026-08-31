@@ -7,6 +7,7 @@ import { getDb } from "./db.mjs";
 import { seedDemoIfEmpty } from "./demo.mjs";
 import { createOutlookService, OutlookServiceError } from "./outlook.mjs";
 import { dingtalk } from "./dingtalk.mjs";
+import { dingtalkChat } from "./dingtalk-chat.mjs";
 import { ai } from "./ai.mjs";
 import { createAiScheduler } from "./ai-scheduler.mjs";
 
@@ -20,6 +21,7 @@ import projects from "./routers/projects.js";
 import aihot from "./routers/aihot.js";
 import systemRouter from "./routers/system.js";
 import workbenchRouter from "./routers/workbench.js";
+import dingtalkChatRouter from "./routers/dingtalk-chat.js";
 import { createSyncCoordinator } from "./sync-coordinator.mjs";
 import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undici";
 
@@ -101,6 +103,15 @@ const app = express();
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json({ limit: "2mb" }));
 
+// 启动器用该接口区分“工作台已就绪”和“8787 被其他程序占用”。
+app.get("/api/health", (req, res) => res.json({
+  ok: true,
+  service: "team-daily-workbench",
+  version: config.appVersion,
+  runtimeMode: config.runtimeMode,
+  instanceId: process.env.WORKBENCH_INSTANCE_ID || "development",
+}));
+
 // Outlook / Microsoft Graph（PKCE 公共客户端 + 本地加密状态）
 const outlookService = createOutlookService({
   config: {
@@ -114,7 +125,7 @@ const outlookService = createOutlookService({
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
 const aiScheduler = createAiScheduler({ aiService: ai });
-const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler });
+const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat });
 
 // 路由
 app.use("/api/outlook", outlookRouter(outlookService));
@@ -125,6 +136,7 @@ app.use("/api/review", review);
 app.use("/api/reports", reports);
 app.use("/api/projects", projects);
 app.use("/api/ai-hot", aihot);
+app.use("/api/dingtalk-chat", dingtalkChatRouter(dingtalkChat));
 app.use("/api", workbenchRouter(syncCoordinator));
 app.use("/api", systemRouter(aiScheduler));
 
@@ -159,11 +171,19 @@ if (config.isProd && fs.existsSync(distClient)) {
 // 初始化
 getDb();
 if (config.useDemoData) seedDemoIfEmpty();
-console.log(`[team-workbench] API listening on http://127.0.0.1:${config.port}`);
 
-const server = app.listen(config.port, "127.0.0.1");
-aiScheduler.start();
-syncCoordinator.start();
+const server = app.listen(config.port, config.host, () => {
+  console.log(`[team-workbench] API listening on http://${config.host}:${config.port}`);
+  aiScheduler.start();
+  syncCoordinator.start();
+});
+server.on("error", async (error) => {
+  console.error(`[team-workbench] server failed: ${error?.message || error}`);
+  syncCoordinator.close();
+  aiScheduler.close();
+  await outlookService.close().catch(() => {});
+  process.exit(1);
+});
 
 
 // 优雅退出：停掉 Outlook 自动同步定时器
