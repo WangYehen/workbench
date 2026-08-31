@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { IconUsersGroup, IconUserX, IconHistory, IconForms, IconTrash, IconPencil, IconCheck, IconX } from "@tabler/icons-react";
-import { api, teamApi, todayStr } from "../api.js";
+import { api, teamApi, todayStr, workbenchApi } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import DateNav from "../components/DateNav.jsx";
 
 // 最近同步时间展示：如 08/18 18:05
@@ -55,7 +56,7 @@ export default function TeamLogsPage() {
     setSyncing(true);
     setErr("");
     try {
-      await teamApi.sync(date);
+      await workbenchApi.syncRun(date, ["dingtalk"]);
       await load();
     } catch (e) {
       setErr(e.message);
@@ -150,9 +151,7 @@ export default function TeamLogsPage() {
               </button>
             )}
             {configured && (
-              <button className="btn primary" onClick={sync} disabled={syncing}>
-                {syncing ? "同步中…" : "同步钉钉"}
-              </button>
+              <SyncButton className="btn primary" onClick={sync} syncing={syncing}>同步钉钉</SyncButton>
             )}
             {configured && lastSyncAt && (
               <span className="meta" style={{ alignSelf: "center" }} title={new Date(lastSyncAt).toLocaleString()}>

@@ -22,6 +22,8 @@ const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 const OAUTH_SESSION_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_WINDOW_MS = 2 * 60 * 1000;
 const CLASSIFIER_VERSION = 6;
+const STATE_REPLACE_RETRY_DELAYS_MS = [25, 50, 100, 200, 400, 800, 1_600];
+const STATE_REPLACE_RETRY_CODES = new Set(["EACCES", "EBUSY", "EPERM"]);
 
 export class OutlookServiceError extends Error {
   constructor(code, message, details = undefined) {
@@ -134,6 +136,26 @@ async function ensureStateDirectory(directory) {
   const details = await lstat(directory);
   if (!details.isDirectory() || details.isSymbolicLink()) {
     fail("OUTLOOK_STATE_DIRECTORY_UNSAFE", "Outlook 本地状态目录必须是普通目录，不能是符号链接。");
+  }
+}
+
+export async function replaceStateFile(
+  temporary,
+  statePath,
+  {
+    renameFile = rename,
+    wait = (delay) => new Promise((resolve) => setTimeout(resolve, delay)),
+  } = {},
+) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await renameFile(temporary, statePath);
+      return;
+    } catch (error) {
+      const delay = STATE_REPLACE_RETRY_DELAYS_MS[attempt];
+      if (!STATE_REPLACE_RETRY_CODES.has(error?.code) || delay == null) throw error;
+      await wait(delay);
+    }
   }
 }
 
@@ -302,7 +324,7 @@ export function createOutlookService({
       const temporary = `${statePath}.${randomUUID()}.tmp`;
       try {
         await writeFile(temporary, encrypted, { encoding: "utf8", flag: "wx", mode: 0o600 });
-        await rename(temporary, statePath);
+        await replaceStateFile(temporary, statePath);
       } finally {
         await unlink(temporary).catch(() => {});
       }

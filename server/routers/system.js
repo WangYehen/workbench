@@ -24,6 +24,10 @@ router.get("/system", async (req, res) => {
     aiQueue: aiScheduler.stats(),
     publicBaseUrl: config.publicBaseUrl,
     displayName: config.displayName,
+    appVersion: config.appVersion,
+    runtimeMode: config.runtimeMode,
+    dataDirectory: config.dataDir,
+    configPath: config.configPath,
   });
 });
 

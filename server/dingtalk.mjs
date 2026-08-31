@@ -4,6 +4,48 @@ import { localDateString } from "./local-date.mjs";
 
 const NEW_API = "https://api.dingtalk.com";
 const OAPI = "https://oapi.dingtalk.com";
+export const DINGTALK_IP_NOT_WHITELISTED = "DINGTALK_IP_NOT_WHITELISTED";
+
+const WHITE_LIST_CODES = new Set(["88", "60020", "Forbidden.AccessDenied.IpNotInWhiteList"]);
+
+export function classifyDingtalkFailure({ code, message = "", httpStatus = null } = {}) {
+  const normalizedCode = code == null ? "" : String(code);
+  const text = String(message || "");
+  const blocked = WHITE_LIST_CODES.has(normalizedCode) || /(?:ip.*(?:白名单|white\s*list)|(?:白名单|white\s*list).*ip)/i.test(text);
+  const egressIp = text.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/)?.[0] || null;
+  return {
+    code: blocked ? DINGTALK_IP_NOT_WHITELISTED : (normalizedCode || (httpStatus ? `DINGTALK_HTTP_${httpStatus}` : "DINGTALK_API_ERROR")),
+    blocked,
+    retryable: !blocked,
+    egressIp,
+  };
+}
+
+function dingtalkError(context, { code, message, httpStatus }) {
+  const details = classifyDingtalkFailure({ code, message, httpStatus });
+  const suffix = [code != null ? `错误 ${code}` : null, message].filter(Boolean).join("：");
+  const error = new Error(details.blocked
+    ? `钉钉拒绝了当前出口 IP，请在开放平台白名单中添加后手动重新同步${details.egressIp ? `（${details.egressIp}）` : ""}`
+    : `钉钉 ${context} 失败${suffix ? `：${suffix}` : ""}`);
+  Object.assign(error, details, { source: "dingtalk", httpStatus });
+  return error;
+}
+
+async function dingtalkJson(response, context) {
+  const text = await response.text();
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; }
+  catch {
+    throw dingtalkError(context, { message: text.slice(0, 240) || `HTTP ${response.status}`, httpStatus: response.status });
+  }
+  const apiCode = data?.errcode ?? data?.code;
+  const apiMessage = data?.errmsg || data?.message || data?.errorMessage || "";
+  const successCode = apiCode == null || ["0", "OK", "Success"].includes(String(apiCode));
+  if (!response.ok || !successCode || data?.success === false) {
+    throw dingtalkError(context, { code: apiCode, message: apiMessage || text.slice(0, 240), httpStatus: response.status });
+  }
+  return data;
+}
 
 function kv(key) {
   const db = getDb();
@@ -95,8 +137,7 @@ export const dingtalk = {
         code,
       }),
     });
-    if (!res.ok) throw new Error(`钉钉 userToken HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await dingtalkJson(res, "userToken");
     setKv("dt_user_token", { ...data, obtained_at: Date.now() });
     return data;
   },
@@ -112,8 +153,7 @@ export const dingtalk = {
         appSecret: config.dingtalk.clientSecret,
       }),
     });
-    if (!res.ok) throw new Error(`钉钉 appToken HTTP ${res.status}`);
-    const data = await res.json();
+    const data = await dingtalkJson(res, "appToken");
     setKv("dt_app_token", { accessToken: data.accessToken, expireIn: data.expireIn, obtained_at: Date.now() });
     return data.accessToken;
   },
@@ -140,11 +180,7 @@ export const dingtalk = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(`钉钉 report HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.errcode && data.errcode !== 0) {
-        throw new Error(`钉钉 report API errcode ${data.errcode}：${data.errmsg || ""}`);
-      }
+      const data = await dingtalkJson(res, "report");
       const page = this.normalizeReports(data);
       reports.push(...page);
       if (!data?.result?.has_more || !page.length) break;
@@ -193,11 +229,7 @@ export const dingtalk = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userid: staffId }),
     });
-    if (!res.ok) throw new Error(`钉钉 user/get HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.errcode && data.errcode !== 0) {
-      throw new Error(`钉钉 user/get errcode ${data.errcode}：${data.errmsg || ""}`);
-    }
+    const data = await dingtalkJson(res, "user/get");
     const unionId = data?.result?.unionid || data?.result?.userid || staffId;
     this._unionCache[staffId] = unionId;
     return unionId;
@@ -223,14 +255,7 @@ export const dingtalk = {
       url.searchParams.set("maxResults", "100");
       if (nextToken) url.searchParams.set("nextToken", nextToken);
       const res = await fetch(url, { method: "GET", headers: { "x-acs-dingtalk-access-token": token } });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`钉钉日程 HTTP ${res.status}：${txt.slice(0, 240)}`);
-      }
-      const data = await res.json();
-      if (data?.code && String(data.code) !== "0") {
-        throw new Error(`钉钉日程 API 错误 ${data.code}：${data.message || ""}`);
-      }
+      const data = await dingtalkJson(res, "日程");
       const items = data?.events || data?.result?.events || [];
       for (const e of items) events.push(this.normalizeCalendarEvent(e));
       nextToken = data?.nextToken || data?.result?.nextToken || null;
@@ -319,11 +344,7 @@ export const dingtalk = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dept_id: 1, cursor: 0, size: 100 }),
     });
-    if (!res.ok) throw new Error(`钉钉 members HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.errcode && data.errcode !== 0) {
-      throw new Error(`钉钉 members API errcode ${data.errcode}：${data.errmsg || ""}`);
-    }
+    const data = await dingtalkJson(res, "members");
     const users = data?.result?.list || [];
     return users.map((u) => ({
       user_id: String(u.userid),

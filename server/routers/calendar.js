@@ -28,6 +28,10 @@ function lastCalendarSyncAt(db) {
 
 async function ensureSynced(startStr, endStr) {
   if (!dingtalk.calendarReady()) return; // 未配置钉钉（或缺主管 userid）：依赖演示/已有数据，不阻塞请求
+  const blockedRow = getDb().prepare("SELECT value_json FROM sync_state WHERE key='sync_status_calendar'").get();
+  try {
+    if (blockedRow && JSON.parse(blockedRow.value_json)?.blocked) return;
+  } catch { /* 损坏的状态不应阻止正常同步。 */ }
   const days = [];
   const s = new Date(startStr + "T00:00:00");
   const e = new Date(endStr + "T00:00:00");
