@@ -2,6 +2,8 @@ node_modules/
 .local/
 dist/
 release/
+release-web/
+.web-build/
 .env
 一键部署方案/coolify.env
 .idea/

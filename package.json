@@ -1,6 +1,6 @@
 {
   "name": "team-daily-workbench",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "面向团队主管的每日工作台：Outlook 邮件 AI 分类、钉钉日志/日程、每日/周报、待办、复盘、日历与项目时间线",
@@ -11,6 +11,7 @@
     "start": "cross-env NODE_ENV=production node server/index.mjs",
     "electron:dev": "concurrently -k -n SERVER,CLIENT -c blue,green \"node server/index.mjs\" \"vite\"",
     "electron:build": "vite build && electron-builder",
+    "web:installer": "node scripts/build-web-installer.mjs",
     "test": "node --test server/"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "react-dom": "19.2.0",
     "react-router-dom": "^7.9.4",
     "recharts": "^2.15.4",
+    "undici": "^7.29.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
