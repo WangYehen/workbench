@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { IconAlertTriangle, IconFileText, IconRefresh, IconX } from "@tabler/icons-react";
+import { IconAlertTriangle, IconFileText, IconX } from "@tabler/icons-react";
 import DateNav from "../components/DateNav.jsx";
 import { teamApi, todayStr, workbenchApi } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import "./WorkspacePages.css";
 import "./TeamPageEnhancements.css";
 
@@ -36,7 +37,7 @@ export default function TeamPage(){
   const syncNow=async()=>{setSyncing(true);setError("");try{await workbenchApi.syncRun(date,["dingtalk"]);await load()}catch(e){setError(e.message)}finally{setSyncing(false)}};
 
   if(!pulse&&!error)return <div className="spinner">加载中…</div>;
-  return <div className="workspace-page"><header className="workspace-head"><div><h1>团队态势</h1><p>查看缺交、阻塞、待决策，并下钻阅读每位成员的完整日志</p></div><div className="team-head-actions"><DateNav date={date} onChange={setDate}/><button className="btn primary" onClick={syncNow} disabled={syncing}><IconRefresh size={16}/>{syncing?"同步中…":"立即同步团队日志"}</button></div></header>
+  return <div className="workspace-page"><header className="workspace-head"><div><h1>团队态势</h1><p>查看缺交、阻塞、待决策，并下钻阅读每位成员的完整日志</p></div><div className="team-head-actions"><DateNav date={date} onChange={setDate}/><SyncButton className="btn primary" onClick={syncNow} syncing={syncing}>立即同步团队日志</SyncButton></div></header>
     <section className="sync-banner"><span className={`sync-banner__dot sync-banner__dot--${syncInfo?.status||"waiting"}`}/><div><strong>钉钉日志每 15 分钟自动同步</strong><p>同步当天启用模板的日志 · 最近成功：{formatTime(syncInfo?.lastSuccessAt)}{syncInfo?.nextRunAt&&syncInfo.nextRunAt!=="on-startup"?` · 下次检查：${formatTime(syncInfo.nextRunAt)}`:""}</p>{syncInfo?.error&&<small>{syncInfo.error}</small>}</div></section>
     {!reports.length&&availableDates[0]&&availableDates[0]!==date&&<div className="recent-data-hint">所选日期暂无成员日志。最近有数据日期：<button onClick={()=>setDate(availableDates[0])}>{availableDates[0]}</button></div>}
     {error&&<div className="error">{error}</div>}{pulse&&<><div className="team-metrics"><div className="team-metric"><span>提交人数</span><strong>{pulse.submittedUnique}/{pulse.rosterTotal}</strong></div><div className="team-metric"><span>提交率</span><strong>{pulse.submissionRate==null?"—":`${pulse.submissionRate}%`}</strong></div><div className="team-metric"><span>阻塞</span><strong>{pulse.blockers.length}</strong></div><div className="team-metric"><span>待决策</span><strong>{pulse.reviewRequests.length}</strong></div></div>

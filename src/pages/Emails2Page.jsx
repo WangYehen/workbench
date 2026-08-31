@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import {
   IconAlertTriangle, IconArchive, IconArrowUpRight, IconCalendarDue, IconCheck,
   IconCircleCheck, IconClock, IconCopy, IconFileText, IconListCheck, IconMail,
-  IconRefresh, IconSearch, IconShieldLock, IconSparkles, IconUserQuestion,
+  IconSearch, IconShieldLock, IconSparkles, IconUserQuestion,
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import "./Emails2Page.css";
 import "./Emails2PageFixes.css";
 
@@ -46,7 +47,7 @@ function DraftModal({ message, onClose, onFlash }) {
   return <div className="m2-modal-backdrop"><section className="m2-modal" role="dialog" aria-modal="true" aria-label="AI 回复草稿"><header><div><h2>AI 回复草稿</h2><p>{message.sender} · {message.subject}</p></div><button onClick={onClose} aria-label="关闭">×</button></header><div className="m2-tone">{[["formal", "正式简洁"], ["friendly", "温和友好"], ["action", "直接行动"]].map(([key, label]) => <button className={tone === key ? "is-active" : ""} onClick={() => generate(key)} disabled={busy} key={key}>{label}</button>)}</div><textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="点击下方按钮生成回复草稿" disabled={busy} /><footer><button className="m2-btn m2-btn--quiet" onClick={onClose}>关闭</button><button className="m2-btn m2-btn--quiet" onClick={() => generate()} disabled={busy}>{busy ? "生成中…" : "生成草稿"}</button><button className="m2-btn" onClick={copy} disabled={!draft || busy}><IconCopy size={16} />复制草稿</button></footer></section></div>;
 }
 
-export default function Emails2Page({ embedded = false, onStatusChange, onSyncReady }) {
+export default function Emails2Page({ embedded = false, onStatusChange, onSyncReady, onSyncingChange }) {
   const nav = useNavigate();
   const [status, setStatus] = useState(null);
   const [data, setData] = useState({ action: [], informational: [], uncertain: [], archive: [] });
@@ -85,7 +86,7 @@ export default function Emails2Page({ embedded = false, onStatusChange, onSyncRe
   const today = action.filter((m) => dueInfo(m).tone === "today").length;
   const high = action.filter((m) => m.priority === "P0").length;
   const run = async (task) => { setPending(true); setError(""); try { await task(); await refresh(); } catch (e) { setError(e.message || "操作失败"); } finally { setPending(false); } };
-  const sync = async () => { setSyncing(true); await run(outlookApi.sync); setSyncing(false); };
+  const sync = async () => { setSyncing(true); onSyncingChange?.(true); try { await run(outlookApi.sync); } finally { setSyncing(false); onSyncingChange?.(false); } };
   useEffect(() => {
     if (!onSyncReady) return undefined;
     onSyncReady(sync);
@@ -104,7 +105,7 @@ export default function Emails2Page({ embedded = false, onStatusChange, onSyncRe
   if (!status.connected) return <div className="m2 m2-setup"><IconMail size={32}/><h1>连接 Outlook</h1><p>Outlook 已配置，但尚未完成授权。请前往设置完成连接。</p><button className="m2-btn" onClick={() => nav("/settings")}>前往设置</button></div>;
 
   return <div className="m2">
-    {!embedded && <header className="m2-header"><div><h1>邮件</h1><p>集中处理需要行动的邮件</p></div><div className="m2-header__actions"><span className="m2-sync"><i />已连接 · {status.lastSyncAt ? "数据已同步" : "等待同步"}</span><button className="m2-btn" onClick={sync} disabled={syncing || pending}><IconRefresh size={16} className={syncing ? "m2-spin" : ""}/>{syncing ? "同步中…" : "立即同步"}</button></div></header>}
+    {!embedded && <header className="m2-header"><div><h1>邮件</h1><p>集中处理需要行动的邮件</p></div><div className="m2-header__actions"><span className="m2-sync"><i />已连接 · {status.lastSyncAt ? "数据已同步" : "等待同步"}</span><SyncButton className="m2-btn" onClick={sync} syncing={syncing} disabled={pending}>立即同步</SyncButton></div></header>}
     <div className="m2-kpis"><Kpi icon={<IconMail size={21}/>} label="待处理" value={action.length} detail="需要你行动的邮件"/><Kpi icon={<IconAlertTriangle size={21}/>} label="P0 高优先级" value={high} detail="需要立即处理" tone="danger"/><Kpi icon={<IconCalendarDue size={21}/>} label="今天截止" value={today} detail={overdue ? `${overdue} 封已逾期` : "暂无逾期邮件"} tone="warn"/><Kpi icon={<IconUserQuestion size={21}/>} label="AI 待确认" value={data.uncertain.length} detail="建议你确认分类" tone="purple"/></div>
     {flash && <div className="m2-flash" onAnimationEnd={() => setFlash("")}>{flash}</div>}{error && <div className="error">{error}</div>}
     <div className="m2-workspace"><section className="m2-queue"><div className="m2-search"><IconSearch size={18}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索邮件" aria-label="搜索邮件" /></div><div className="m2-tabs">{Object.entries(queues).map(([key, item]) => <button key={key} onClick={() => setView(key)} className={view === key ? "is-active" : ""}>{item.label}<span>{data[key].length}</span></button>)}</div><div className="m2-list-head"><span>优先级</span><span>发件人</span><span>邮件主题</span><span>时间 / 截止</span></div><div className="m2-list">{visible.map((m) => { const due = dueInfo(m); return <button key={m.id} className={`m2-row ${selected?.id === m.id ? "is-selected" : ""}`} onClick={() => setSelectedId(m.id)}><span className={`m2-priority ${m.priority ? `m2-priority--${m.priority.toLowerCase()}` : ""}`}>{m.priority || "—"}</span><span className="m2-row__sender">{m.sender || "未知发件人"}</span><span className="m2-row__subject">{m.subject || "（无主题）"}</span><span className={`m2-row__due m2-row__due--${due.tone}`}><b>{due.tone === "overdue" ? <IconAlertTriangle size={14}/> : due.tone === "today" ? <IconClock size={14}/> : null}{due.label}</b><small>{receivedAt(m)}</small></span></button>; })}{!visible.length && <div className="m2-empty">{queues[view].empty}</div>}</div><section className="m2-ai"><span><IconSparkles size={20}/></span><div><strong>AI 建议</strong><p>{high ? `共识别到 ${high} 封 P0 邮件，建议优先处理今天到期或已逾期的事项。` : data.uncertain.length ? `还有 ${data.uncertain.length} 封邮件等待人工确认，请先完成分类，再按截止时间处理行动队列。` : "当前没有 P0 高优先级邮件，可按截止时间处理队列。"}</p></div></section></section>

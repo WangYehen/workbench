@@ -10,9 +10,9 @@ import {
   IconChevronRight,
   IconLayoutGrid,
   IconLayoutList,
-  IconRefresh,
 } from "@tabler/icons-react";
 import { api, workbenchApi } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
 import { PriorityBadge } from "../components/PriorityBadge";
 
@@ -166,9 +166,7 @@ export default function CalendarPage() {
             <span className={`pill ${configured ? "green" : "gray"}`}>
               {configured ? "钉钉日程已接入" : "演示数据（未接入钉钉）"}
             </span>
-            <button className="btn sm" onClick={syncNow} disabled={syncing} title="从钉钉拉取最新日程">
-              <IconRefresh size={14} stroke={2} /> {syncing ? "同步中…" : "同步钉钉日程"}
-            </button>
+            <SyncButton className="btn sm" onClick={syncNow} syncing={syncing} iconSize={14} iconStroke={2} title="从钉钉拉取最新日程">同步钉钉日程</SyncButton>
             {lastSyncAt && (
               <span className="meta" style={{ alignSelf: "center" }} title={new Date(lastSyncAt).toLocaleString()}>
                 最近同步：{fmtSyncTime(lastSyncAt)}

@@ -13,12 +13,12 @@ import {
   IconShieldLock,
   IconLink,
   IconTrash,
-  IconRefresh,
   IconDeviceMobile,
   IconCopy,
   IconMessage,
 } from "@tabler/icons-react";
 import { outlookApi, todayStr } from "../api.js";
+import SyncButton from "../components/SyncButton.jsx";
 import GenerateButton from "../components/GenerateButton.jsx";
 
 const queueCopy = {
@@ -569,9 +569,7 @@ export default function EmailsPage() {
         description="把邮件分为需要行动、仅供知晓和无法判断，所有 AI 判断都可以随时纠正。"
         actions={
           <div className="row">
-            <button className="btn primary" onClick={doSync} disabled={syncing || pending}>
-              <IconRefresh size={16} /> {syncing ? "同步中…" : "立即同步"}
-            </button>
+            <SyncButton className="btn primary" onClick={doSync} syncing={syncing} disabled={pending}>立即同步</SyncButton>
             <button className="btn" onClick={doDisconnect} disabled={pending}>
               <IconTrash size={15} /> 断开连接
             </button>
