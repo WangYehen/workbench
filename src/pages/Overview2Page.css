@@ -26,7 +26,7 @@
   margin: 0 auto;
   background: var(--oc-paper);
   border-radius: 20px;
-  padding: 28px 32px 36px;
+  padding: 0 0 36px;
   color: var(--oc-ink);
   font-family: var(--oc-font);
   animation: oc-in 0.5s ease both;
@@ -37,7 +37,7 @@
 /* ---- 顶部 Header ---- */
 .oc-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .oc-header__left { display: flex; flex-direction: column; gap: 4px; }
-.oc-greet { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; color: var(--oc-ink); }
+.oc-greet { font-size: 28px; line-height: 1.15; font-weight: 650; letter-spacing: -0.035em; color: var(--oc-ink); }
 .oc-date { font-size: 14px; color: var(--oc-ink-faint); }
 .oc-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .oc-datenav { gap: 6px; }
