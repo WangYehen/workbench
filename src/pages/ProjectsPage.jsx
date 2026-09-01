@@ -171,6 +171,12 @@ export default function ProjectsPage() {
     };
     bar.addEventListener("pointermove", move); bar.addEventListener("pointerup", end); bar.addEventListener("pointercancel", end);
   }
+  function wheelProgress(p, event) {
+    event.preventDefault();
+    const current = editing === p.id ? Number(editVal) : Number(p.progress) || 0;
+    setEditing(p.id);
+    setEditVal(Math.max(0, Math.min(100, current + (event.deltaY < 0 ? 1 : -1))));
+  }
   function closeModal() { setModal(null); setEditing(null); }
 
   if (!projects) return <div className="spinner">加载中…</div>;
@@ -223,7 +229,7 @@ export default function ProjectsPage() {
                     {p.name} <StatusPill status={p.status} />
                   </div>
                   <div className="sub">{p.note}</div>
-                  <div className="progress project-progress-bar" style={{ marginTop: 8 }} role="slider" aria-label={`拖动设置${p.name}进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={dragTip?.id === p.id ? dragTip.value : p.progress} onPointerDown={(event) => dragProgress(p, event)}>
+                  <div className="progress project-progress-bar" style={{ marginTop: 8 }} role="slider" aria-label={`拖动设置${p.name}进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={editing === p.id ? editVal : p.progress} onPointerDown={(event) => dragProgress(p, event)} onWheel={(event) => wheelProgress(p, event)}>
                     <span style={{ width: `${dragTip?.id === p.id ? dragTip.value : p.progress}%` }}></span>
                     {dragTip?.id === p.id && <span className="project-progress-tooltip" style={{ left: `${dragTip.value}%` }}>{dragTip.value}%</span>}
                   </div>
@@ -232,7 +238,8 @@ export default function ProjectsPage() {
                 <div className="row project-actions" style={{ flexDirection: "column", gap: 6 }}>
                   {editing === p.id ? (
                     <>
-                      <span className="project-progress-value" aria-hidden="true" />
+                      <input className="project-progress-input" type="number" min="0" max="100" value={editVal} onChange={(e) => setEditVal(e.target.value)} aria-label={`输入${p.name}进度`} />
+                      <button className="btn primary sm" onClick={saveProgress}>保存</button>
                       <button className="btn sm" onClick={() => setEditing(null)}>取消</button>
                     </>
                   ) : (
