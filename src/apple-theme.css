@@ -309,12 +309,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .daily-hot-page, .ai-hot-page { color: var(--ink); }
 
 @media (max-width: 900px) {
-  .main { padding: 18px 16px 42px; }
+  .main { padding: 28px 32px 42px; }
   .nav-toggle { width: 40px; height: 40px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-sm); }
   .sidebar { width: min(278px, 84vw); }
   .workspace-page { padding-inline: 0; }
   .page-header, .workspace-head { gap: 14px; }
-  .page-header__title, .workspace-head h1 { font-size: 25px; }
   .date-nav { width: 100%; }
   .date-picker-wrap { flex: 1 !important; }
   .date-picker__trigger { width: 100%; }
@@ -327,6 +326,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 }
 
 @media (max-width: 520px) {
+  .main { padding: 18px 16px 42px; }
   .page-header__title, .workspace-head h1 { font-size: 24px; }
   .page-header__actions { gap: 8px; }
   .page-header__actions > .row { gap: 8px; }
