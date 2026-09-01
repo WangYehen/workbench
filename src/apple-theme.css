@@ -76,7 +76,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .nav a svg { stroke-width: 1.8; }
 
 .main { min-width: 0; padding: 28px 32px 56px; background: var(--paper); background-image: none; }
-.main > :not(.nav-toggle) { width: min(100%, 1280px); margin-inline: auto; }
+.main > :not(.nav-toggle) { width: min(100%, 1480px); margin-inline: auto; }
 
 h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.035em; }
 .page-header, .workspace-head { min-height: auto; margin-bottom: 24px; padding: 2px 0 0; }
@@ -128,7 +128,7 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.035em; }
 .btn.ghost { background: transparent; }
 .btn:disabled { opacity: .46; }
 
-.workspace-page { max-width: 1280px; padding: 2px 0 40px; }
+.workspace-page { max-width: 1480px; padding: 2px 0 40px; }
 .workspace-head { align-items: flex-start; }
 .workspace-tabs {
   gap: 2px;
