@@ -257,7 +257,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
   --oc-accent-strong: var(--accent-strong);
   --oc-link: var(--accent-soft);
   --oc-font: var(--font-body);
-  padding: 28px 32px 36px;
+  padding: 0 0 36px;
 }
 .oc-btn { background: var(--accent); box-shadow: 0 3px 10px rgba(0,113,227,.16); }
 .oc-syncchip, .oc-kpi__ic, .oc-card__count, .oc-pill--wait { background: var(--accent-wash); }
@@ -310,6 +310,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 @media (max-width: 900px) {
   .main { padding: 28px 32px 42px; }
+  .oc { padding: 20px 14px 36px; }
   .nav-toggle { width: 40px; height: 40px; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); box-shadow: var(--shadow-sm); }
   .sidebar { width: min(278px, 84vw); }
   .workspace-page { padding-inline: 0; }
@@ -327,6 +328,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 
 @media (max-width: 520px) {
   .main { padding: 18px 16px 42px; }
+  .oc { padding: 18px 16px 28px; }
   .page-header__title, .workspace-head h1 { font-size: 24px; }
   .page-header__actions { gap: 8px; }
   .page-header__actions > .row { gap: 8px; }
