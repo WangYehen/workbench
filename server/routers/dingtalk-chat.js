@@ -9,8 +9,8 @@ function respond(res, fn, status = 200) {
 export default function dingtalkChatRouter(service) {
   const router = express.Router();
   router.get("/status", (req, res) => respond(res, async () => {
-    const [detail, lastSync] = await Promise.all([service.status(), Promise.resolve(service.lastSync())]);
-    return { ...detail, lastSync };
+    if (req.query.refresh === "1") return service.status({ force: true });
+    return service.statusSnapshot();
   }));
   router.post("/auth/start", (req, res) => respond(res, () => ({ attempt: service.startLogin() }), 202));
   router.get("/auth/:attemptId", (req, res) => {
@@ -20,7 +20,10 @@ export default function dingtalkChatRouter(service) {
   });
   router.get("/settings", (req, res) => res.json({ settings: service.settings() }));
   router.patch("/settings", (req, res) => respond(res, () => ({ settings: service.updateSettings(req.body || {}) })));
-  router.get("/conversations", (req, res) => res.json({ items: service.listConversations() }));
+  router.get("/conversations", (req, res) => {
+    const result = service.listConversations({ q: req.query.q, scope: req.query.scope, limit: req.query.limit, offset: req.query.offset });
+    res.json(result);
+  });
   router.patch("/conversations/:id", (req, res) => respond(res, () => ({ item: service.setConversation(req.params.id, req.body || {}) })));
   router.get("/messages", (req, res) => {
     const includeBots = req.query.includeBots !== "false";

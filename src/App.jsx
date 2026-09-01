@@ -1,19 +1,20 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
 import Overview2Page from "./pages/Overview2Page.jsx";
-import EmailsPage from "./pages/EmailsPage.jsx";
-import ActionsPage from "./pages/ActionsPage.jsx";
-import TeamPage from "./pages/TeamPage.jsx";
-import ReportsPage from "./pages/ReportsPage.jsx";
-import CalendarPage from "./pages/CalendarPage.jsx";
-import AiHotPage from "./pages/AiHotPage.jsx";
-import ProjectsPage from "./pages/ProjectsPage.jsx";
-import SystemPage from "./pages/SystemPage.jsx";
+const EmailsPage = lazy(() => import("./pages/EmailsPage.jsx"));
+const ActionsPage = lazy(() => import("./pages/ActionsPage.jsx"));
+const TeamPage = lazy(() => import("./pages/TeamPage.jsx"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage.jsx"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage.jsx"));
+const AiHotPage = lazy(() => import("./pages/AiHotPage.jsx"));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage.jsx"));
+const SystemPage = lazy(() => import("./pages/SystemPage.jsx"));
 
 export default function App() {
   return (
     <AppShell>
-      <Routes>
+      <Suspense fallback={<div className="spinner">加载中…</div>}><Routes>
         <Route path="/" element={<Overview2Page />} />
         <Route path="/actions" element={<ActionsPage />} />
         <Route path="/team" element={<TeamPage />} />
@@ -33,7 +34,7 @@ export default function App() {
         <Route path="/team-load" element={<Navigate to="/team?tab=pulse" replace />} />
         <Route path="/system" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      </Routes></Suspense>
     </AppShell>
   );
 }

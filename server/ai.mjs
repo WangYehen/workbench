@@ -198,6 +198,7 @@ function providerLabel(id) {
 
 export function createAiService({ runtimeConfig = config, adapters = createDefaultAiAdapters(runtimeConfig), now = () => new Date() } = {}) {
   let statusCache = null;
+  let statusInFlight = null;
 
   function routeFor(sensitivity) {
     if (runtimeConfig.ai.routingMode !== "smart") return [runtimeConfig.ai.provider];
@@ -259,8 +260,15 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
       return runtimeConfig.ai.routingMode === "smart" ? "智能路由" : providerLabel(runtimeConfig.ai.provider);
     },
 
+    statusSnapshot() {
+      if (!statusCache) return null;
+      return { ...statusCache.value, checkedAt: new Date(statusCache.at).toISOString(), stale: Date.now() - statusCache.at >= 30_000 };
+    },
+
     async status({ refresh = false } = {}) {
       if (!refresh && statusCache && Date.now() - statusCache.at < 30_000) return statusCache.value;
+      if (!refresh && statusInFlight) return statusInFlight;
+      statusInFlight = (async () => {
       const ids = ["opencode", "codex", "ollama", "deepseek", "openai", "claude"];
       const providers = await Promise.all(ids.map(async (id) => {
         try {
@@ -290,6 +298,9 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
       };
       statusCache = { at: Date.now(), value };
       return value;
+      })();
+      try { return await statusInFlight; }
+      finally { statusInFlight = null; }
     },
 
     async classifyOutlookEmail(message) {

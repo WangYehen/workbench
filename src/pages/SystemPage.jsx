@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { IconBrain, IconRefresh, IconServer, IconSettings } from "@tabler/icons-react";
 import { DeleteButton } from "../components/DeleteButton";
 import { PageHeader } from "../components/PageHeader";
@@ -43,21 +43,42 @@ export default function SystemPage() {
   const [aiError, setAiError] = useState("");
   const [dws, setDws] = useState(null);
   const [chatConversations, setChatConversations] = useState([]);
+  const [chatTotal, setChatTotal] = useState(0);
+  const [chatLoading, setChatLoading] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
   const [chatPage, setChatPage] = useState(1);
 
   const loadSync = () => workbenchApi.syncStatus().then((status) => setSync(status.items || []));
+  const loadChats = () => {
+    setChatLoading(true);
+    return dingtalkChatApi.conversations({ q: chatSearch.trim(), scope: "groups_or_permanent", limit: CHAT_PAGE_SIZE, offset: (chatPage - 1) * CHAT_PAGE_SIZE })
+      .then((result) => { setChatConversations(result.items || []); setChatTotal(result.total || 0); })
+      .finally(() => setChatLoading(false));
+  };
 
   useEffect(() => {
-    Promise.all([api.get("/system"), api.get("/sync/status"), teamApi.templateList(), dingtalkChatApi.status(), dingtalkChatApi.conversations()])
-      .then(([system, status, templateResult, chatStatus, chatResult]) => {
-        setSys(system);
-        setSync(status.items || []);
-        setTemplates(templateResult.templates || []);
-        setDws(chatStatus); setChatConversations(chatResult.items || []);
-      })
-      .catch(() => setSys({ error: true }));
+    let live = true;
+    api.get("/system").then((system) => live && setSys(system)).catch(() => live && setSys({ error: true }));
+    loadSync().catch(() => {});
+    teamApi.templateList().then((result) => live && setTemplates(result.templates || [])).catch(() => {});
+    dingtalkChatApi.status().then((result) => live && setDws(result)).catch(() => {});
+    return () => { live = false; };
   }, []);
+
+  useEffect(() => {
+    if (!sys?.aiRoutingChecking && !dws?.checking) return undefined;
+    const timer = setTimeout(() => {
+      if (sys?.aiRoutingChecking) api.get("/system").then(setSys).catch(() => {});
+      if (dws?.checking) dingtalkChatApi.status().then(setDws).catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [sys?.aiRoutingChecking, dws?.checking]);
+
+  useEffect(() => {
+    if (!sys) return undefined;
+    const timer = setTimeout(() => { loadChats().catch(() => {}); }, 150);
+    return () => clearTimeout(timer);
+  }, [sys, chatSearch, chatPage]);
 
   async function syncNow(source) {
     setSyncing(source);
@@ -71,7 +92,7 @@ export default function SystemPage() {
     setAiError("");
     try {
       const aiRouting = await api.post("/system/ai/refresh");
-      setSys((current) => ({ ...current, aiRouting, aiProvider: aiRouting.modeLabel }));
+      setSys((current) => ({ ...current, aiRouting, aiRoutingChecking: false, aiProvider: aiRouting.modeLabel }));
     } catch (error) {
       setAiError(error.message || "AI 来源检测失败");
     } finally {
@@ -117,12 +138,12 @@ export default function SystemPage() {
     catch (error) { setTemplateError(error.message || "无法启动 DWS 登录"); }
   }
   async function toggleChatConversation(item) {
-    try { const result = await dingtalkChatApi.updateConversation(item.id, { enabled: !item.enabled }); setChatConversations((items) => items.map((entry) => entry.id === item.id ? result.item : entry)); }
+    try { await dingtalkChatApi.updateConversation(item.id, { enabled: !item.enabled }); await loadChats(); }
     catch (error) { setTemplateError(error.message || "更新群聊设置失败"); }
   }
   async function toggleChatRetention(item) {
     const next = item.retention_mode === "permanent" ? "inherit" : "permanent";
-    try { const result = await dingtalkChatApi.updateConversation(item.id, { retention_mode: next }); setChatConversations((items) => items.map((entry) => entry.id === item.id ? result.item : entry)); }
+    try { await dingtalkChatApi.updateConversation(item.id, { retention_mode: next }); await loadChats(); }
     catch (error) { setTemplateError(error.message || "更新保留策略失败"); }
   }
   async function setPermanent(permanent) {
@@ -130,19 +151,10 @@ export default function SystemPage() {
     catch (error) { setTemplateError(error.message || "更新保留策略失败"); }
   }
 
-  const filteredChatConversations = useMemo(() => {
-    const keyword = chatSearch.trim().toLocaleLowerCase();
-    return chatConversations
-      .filter((item) => item.type === "group" || item.retention_mode === "permanent")
-      .filter((item) => !keyword || item.title?.toLocaleLowerCase().includes(keyword))
-      .toSorted((left, right) => {
-        const enabledOrder = Number(Boolean(right.enabled)) - Number(Boolean(left.enabled));
-        return enabledOrder || (left.title || "").localeCompare(right.title || "", "zh-CN");
-      });
-  }, [chatConversations, chatSearch]);
-  const chatPageCount = Math.max(1, Math.ceil(filteredChatConversations.length / CHAT_PAGE_SIZE));
+  const filteredChatConversations = chatConversations;
+  const chatPageCount = Math.max(1, Math.ceil(chatTotal / CHAT_PAGE_SIZE));
   const visibleChatPage = Math.min(chatPage, chatPageCount);
-  const pagedChatConversations = filteredChatConversations.slice((visibleChatPage - 1) * CHAT_PAGE_SIZE, visibleChatPage * CHAT_PAGE_SIZE);
+  const pagedChatConversations = filteredChatConversations;
 
   if (!sys) return <div className="spinner">加载中…</div>;
   const configured = sys.configured || {};
@@ -206,13 +218,13 @@ export default function SystemPage() {
           {sys.aiQueue?.recentSuccess ? <> · 最近真实生成：{new Date(sys.aiQueue.recentSuccess.finished_at).toLocaleString("zh-CN")}</> : null}
           {sys.aiQueue?.recentFailure ? <> · 最近失败：{sys.aiQueue.recentFailure.kind}</> : null}
         </div>
-      </> : <div className="meta">AI 来源状态暂不可用，请点击“刷新检测”。</div>}
+      </> : <div className="meta">{sys.aiRoutingChecking ? "正在后台检测 AI 来源…" : "AI 来源状态暂不可用，请点击“刷新检测”。"}</div>}
       {aiError ? <div className="settings-template-error" role="alert">{aiError}</div> : null}
     </section>
 
     <section className="panel" style={{ marginTop: 14 }}>
-      <div className="panel__head"><div><div className="panel__title">钉钉个人消息（DWS）</div><div className="meta" style={{ marginTop: 4 }}>私聊完整上下文与群聊 @我 消息，本地保存并可生成待办</div></div><button className="btn sm" onClick={() => dingtalkChatApi.status().then(setDws)}><IconRefresh size={14}/>刷新检测</button></div>
-      {dws?.installed ? <><div className="row spread"><span>运行时：{dws.version || "已安装"}</span><span className={`pill ${dws.connected ? "green" : "gray"}`}>{dws.connected ? "已连接" : "待登录"}</span></div>{!dws.connected && <button className="btn primary sm" style={{ marginTop: 10 }} onClick={connectDws}>连接个人钉钉</button>}{dws.loginAttempt && <div className="meta" style={{ marginTop: 8 }}>登录任务已启动，请按终端/浏览器提示完成授权。</div>}{dws.capabilities && !dws.capabilities.coreReady && <div className="meta" style={{ marginTop: 8, color: "#8a6116" }}>当前 DWS 缺少部分核心能力，同步可能不完整，请升级 DWS。</div>}<div className="row" style={{ marginTop: 12 }}><span className="meta">消息保留：</span><button className={`btn sm ${!dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(false)}>180天</button><button className={`btn sm ${dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(true)}>永久</button></div>
+      <div className="panel__head"><div><div className="panel__title">钉钉个人消息（DWS）</div><div className="meta" style={{ marginTop: 4 }}>私聊完整上下文与群聊 @我 消息，本地保存并可生成待办</div></div><button className="btn sm" onClick={() => dingtalkChatApi.status({ refresh: true }).then(setDws)}><IconRefresh size={14}/>刷新检测</button></div>
+      {dws?.checking ? <div className="meta">正在后台检测 DWS 状态…</div> : dws?.installed ? <><div className="row spread"><span>运行时：{dws.version || "已安装"}</span><span className={`pill ${dws.connected ? "green" : "gray"}`}>{dws.connected ? "已连接" : "待登录"}</span></div>{!dws.connected && <button className="btn primary sm" style={{ marginTop: 10 }} onClick={connectDws}>连接个人钉钉</button>}{dws.loginAttempt && <div className="meta" style={{ marginTop: 8 }}>登录任务已启动，请按终端/浏览器提示完成授权。</div>}{dws.capabilities && !dws.capabilities.coreReady && <div className="meta" style={{ marginTop: 8, color: "#8a6116" }}>当前 DWS 缺少部分核心能力，同步可能不完整，请升级 DWS。</div>}<div className="row" style={{ marginTop: 12 }}><span className="meta">消息保留：</span><button className={`btn sm ${!dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(false)}>180天</button><button className={`btn sm ${dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(true)}>永久</button></div>
       <div className="row" style={{ marginTop: 12, gap: 8 }}><input value={chatSearch} onChange={(e) => { setChatSearch(e.target.value); setChatPage(1); }} placeholder="搜索会话名称" style={{ maxWidth: 260 }} /></div>
       <div className="meta" style={{ marginTop: 8 }}>群聊默认启用；关闭后不再采集新的 @我 消息。单个会话可覆盖为永久保留。</div>
       {pagedChatConversations
@@ -223,8 +235,9 @@ export default function SystemPage() {
             <button className={`btn sm ${item.retention_mode === "permanent" ? "primary" : ""}`} title="单个会话永久保留，跳过全局清理" onClick={() => toggleChatRetention(item)}>{item.retention_mode === "permanent" ? "永久保留" : "默认保留"}</button>
           </div>
         </div>)}
-      {filteredChatConversations.length > 0 && <div className="row spread" style={{ marginTop: 12 }}>
-        <span className="meta">共 {filteredChatConversations.length} 个会话 · 第 {visibleChatPage}/{chatPageCount} 页</span>
+      {chatLoading && <div className="meta" style={{ marginTop: 8 }}>正在加载会话…</div>}
+      {chatTotal > 0 && <div className="row spread" style={{ marginTop: 12 }}>
+        <span className="meta">共 {chatTotal} 个会话 · 第 {visibleChatPage}/{chatPageCount} 页</span>
         <div className="row" style={{ gap: 6 }}>
           <button className="btn sm" disabled={visibleChatPage <= 1} onClick={() => setChatPage((page) => Math.max(1, page - 1))}>上一页</button>
           <button className="btn sm" disabled={visibleChatPage >= chatPageCount} onClick={() => setChatPage((page) => Math.min(chatPageCount, page + 1))}>下一页</button>

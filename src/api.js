@@ -64,12 +64,12 @@ export const workbenchApi = {
 };
 
 export const dingtalkChatApi = {
-  status: () => api.get("/dingtalk-chat/status"),
+  status: ({ refresh = false } = {}) => api.get(`/dingtalk-chat/status${refresh ? "?refresh=1" : ""}`),
   startAuth: () => api.post("/dingtalk-chat/auth/start", {}),
   authStatus: (id) => api.get(`/dingtalk-chat/auth/${encodeURIComponent(id)}`),
   settings: () => api.get("/dingtalk-chat/settings"),
   updateSettings: (patch) => api.patch("/dingtalk-chat/settings", patch),
-  conversations: () => api.get("/dingtalk-chat/conversations"),
+  conversations: (filters = {}) => api.get(`/dingtalk-chat/conversations?${new URLSearchParams(filters)}`),
   updateConversation: (id, patch) => api.patch(`/dingtalk-chat/conversations/${encodeURIComponent(id)}`, patch),
   messages: (filters = {}) => api.get(`/dingtalk-chat/messages?${new URLSearchParams(filters)}`),
   message: (id) => api.get(`/dingtalk-chat/messages/${encodeURIComponent(id)}`),

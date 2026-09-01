@@ -174,6 +174,8 @@ if (config.useDemoData) seedDemoIfEmpty();
 
 const server = app.listen(config.port, config.host, () => {
   console.log(`[team-workbench] API listening on http://${config.host}:${config.port}`);
+  void ai.status().catch(() => {});
+  void dingtalkChat.status({ probeCapabilities: false }).catch(() => {});
   aiScheduler.start();
   syncCoordinator.start();
 });

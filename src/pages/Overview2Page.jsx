@@ -8,6 +8,11 @@ import SyncButton from "../components/SyncButton.jsx";
 import "./Overview2Page.css";
 
 const WEEK=["周日","周一","周二","周三","周四","周五","周六"];
+const dashboardRequests = new Map();
+function loadDashboard(date) {
+ const existing=dashboardRequests.get(date);if(existing)return existing;
+ const request=workbenchApi.dashboard(date).finally(()=>dashboardRequests.delete(date));dashboardRequests.set(date,request);return request;
+}
 function fmtDateCn(iso){const [y,m,d]=iso.split("-").map(Number);return `${y}年${m}月${d}日 ${WEEK[new Date(y,m-1,d).getDay()]}`}
 function greeting(){const h=new Date().getHours();return h<11?"早上好":h<14?"中午好":h<18?"下午好":"晚上好"}
 function Kpi({label,icon,num,sub,subTone="muted",hint}){return <section className="oc-kpi"><div className="oc-kpi__top"><span className="oc-kpi__label">{label}{hint&&<span className="oc-kpi__hint"><button type="button" aria-label="查看统计规则"><IconInfoCircle size={14}/></button><span>{hint}</span></span>}</span><span className="oc-kpi__ic">{icon}</span></div><div className="oc-kpi__num">{num}</div><div className="oc-kpi__sub"><span className={`oc-dot oc-dot--${subTone}`}/>{sub}</div></section>}
@@ -15,7 +20,7 @@ function SuggestionBand({date,data}){const [result,setResult]=useState(null);con
 
 export default function Overview2Page(){
  const [date,setDate]=useState(todayStr());const [data,setData]=useState(null);const [error,setError]=useState("");const [syncing,setSyncing]=useState(false);const nav=useNavigate();
- const load=()=>workbenchApi.dashboard(date).then(setData).catch((e)=>setError(e.message));useEffect(()=>{load()},[date]);
+ const load=()=>loadDashboard(date).then(setData).catch((e)=>setError(e.message));useEffect(()=>{let live=true;loadDashboard(date).then((result)=>live&&setData(result)).catch((e)=>live&&setError(e.message));return()=>{live=false}},[date]);
  const sync=async()=>{setSyncing(true);setError("");try{await workbenchApi.syncRun(date);await load()}catch(e){setError(e.message)}finally{setSyncing(false)}};
  if(!data&&!error)return <div className="spinner">加载中…</div>; if(!data)return <div className="error">加载失败：{error}</div>;
  const m=data.metrics;const latest=data.freshness.map((x)=>x.lastSuccessAt).filter(Boolean).sort().at(-1);const risks=data.projects.filter((p)=>["at_risk","overdue"].includes(p.status));const todoItems=data.attention.filter((x)=>x.kind==="todo");const mailItems=data.attention.filter((x)=>x.kind==="email");

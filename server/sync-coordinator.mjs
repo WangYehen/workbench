@@ -28,53 +28,61 @@ function addDays(date, days) {
 
 export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, dingtalkChatService = null, mirrorEmails = mirrorToEmails }) {
   const running = new Set();
+  const readinessCache = new Map();
   let timer = null;
 
-  async function readiness(source) {
+  async function readiness(source, { force = false } = {}) {
     if (source === "outlook") {
       const status = await outlookService.status();
       return { configured: Boolean(status.configured), ready: Boolean(status.configured && status.consented && status.connected), reason: !status.configured ? "未配置" : !status.consented ? "待确认隐私授权" : !status.connected ? "待连接" : null };
     }
     if (source === "calendar") return { configured: dingtalkService.isConfigured(), ready: dingtalkService.calendarReady(), reason: !dingtalkService.isConfigured() ? "未配置" : !dingtalkService.calendarReady() ? "缺少主管用户 ID" : null };
     if (source === "dingtalk_chat") {
-      const chat = dingtalkChatService ? await dingtalkChatService.status() : { installed: false, connected: false };
+      const chat = dingtalkChatService ? await dingtalkChatService.status({ probeCapabilities: false, force }) : { installed: false, connected: false };
       return { configured: Boolean(chat.installed), ready: Boolean(chat.installed && chat.connected), reason: !chat.installed ? "未安装 DWS" : !chat.connected ? "待连接个人钉钉" : null };
     }
     return { configured: dingtalkService.isConfigured(), ready: dingtalkService.isConfigured(), reason: dingtalkService.isConfigured() ? null : "未配置" };
   }
 
-  async function status() {
+  function statusItem(source, ready) {
     const db = database();
-    return Promise.all(Object.entries(SYNC_POLICIES).map(async ([source, policy]) => {
-      const state = readState(db, `sync_status_${source}`) || {};
+    const policy = SYNC_POLICIES[source];
+    const state = readState(db, `sync_status_${source}`) || {};
+    const base = state.lastAttemptAt || state.lastSuccessAt;
+    return {
+      source, ...policy, automatic: true, ...ready,
+      status: running.has(source) ? "running" : state.status || (ready.ready ? "never" : "waiting"),
+      trigger: state.trigger || null, lastAttemptAt: state.lastAttemptAt || null, lastSuccessAt: state.lastSuccessAt || null,
+      nextRunAt: state.blocked ? null : ready.ready && base ? new Date(Date.parse(base) + policy.intervalMinutes * 60000).toISOString() : ready.ready ? "on-startup" : null,
+      recordCount: state.recordCount ?? null, error: state.error || ready.reason || null, errorCode: state.errorCode || null,
+      blocked: Boolean(state.blocked), retryable: state.retryable !== false, usingCachedData: Boolean(state.usingCachedData),
+      egressIp: state.egressIp || null, warning: state.warning || null,
+      checkedAt: ready.checkedAt || null, checking: Boolean(ready.checking), stale: Boolean(ready.stale),
+    };
+  }
+
+  async function status() {
+    const entries = await Promise.all(Object.keys(SYNC_POLICIES).map(async (source) => {
       const ready = await readiness(source);
-      const base = state.lastAttemptAt || state.lastSuccessAt;
-      return {
-        source,
-        ...policy,
-        automatic: true,
-        ...ready,
-        status: running.has(source) ? "running" : state.status || (ready.ready ? "never" : "waiting"),
-        trigger: state.trigger || null,
-        lastAttemptAt: state.lastAttemptAt || null,
-        lastSuccessAt: state.lastSuccessAt || null,
-        nextRunAt: state.blocked ? null : ready.ready && base ? new Date(Date.parse(base) + policy.intervalMinutes * 60000).toISOString() : ready.ready ? "on-startup" : null,
-        recordCount: state.recordCount ?? null,
-        error: state.error || ready.reason || null,
-        errorCode: state.errorCode || null,
-        blocked: Boolean(state.blocked),
-        retryable: state.retryable !== false,
-        usingCachedData: Boolean(state.usingCachedData),
-        egressIp: state.egressIp || null,
-        warning: state.warning || null,
-      };
+      const cached = { ...ready, checkedAt: now().toISOString(), checking: false, stale: false };
+      readinessCache.set(source, cached);
+      return statusItem(source, cached);
     }));
+    return entries;
+  }
+
+  function statusSnapshot() {
+    return Object.keys(SYNC_POLICIES).map((source) => {
+      const ready = readinessCache.get(source) || { configured: null, ready: false, reason: "状态检查中", checking: true, stale: false, checkedAt: null };
+      return statusItem(source, ready);
+    });
   }
 
   async function runSource(source, { date = localDateString(now()), trigger = "manual" } = {}) {
     if (!SYNC_POLICIES[source]) throw new Error(`不支持的数据源：${source}`);
     if (running.has(source)) return { source, status: "running", trigger };
-    const ready = await readiness(source);
+    const ready = await readiness(source, { force: true });
+    readinessCache.set(source, { ...ready, checkedAt: now().toISOString(), checking: false, stale: false });
     if (!ready.ready) throw new Error(`${SYNC_POLICIES[source].label}${ready.reason || "尚未就绪"}`);
     const db = database();
     const attemptedAt = now().toISOString();
@@ -139,6 +147,7 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
 
   return {
     status,
+    statusSnapshot,
     run,
     start() {
       if (timer) return;

@@ -11,7 +11,7 @@ export default function workbenchRouter(syncCoordinator) {
     try {
       const date = resolveDateKey(req.query.date);
       const db = getDb();
-      res.json({ ...buildDashboard(db, date), freshness: await syncCoordinator.status(), displayName: config.displayName });
+      res.json({ ...buildDashboard(db, date), freshness: syncCoordinator.statusSnapshot(), displayName: config.displayName });
     } catch (error) { res.status(400).json({ error: error.message }); }
   });
 
@@ -30,7 +30,7 @@ export default function workbenchRouter(syncCoordinator) {
     catch (error) { res.status(400).json({ error: error.message }); }
   });
 
-  router.get("/sync/status", async (req, res) => res.json({ items: await syncCoordinator.status() }));
+  router.get("/sync/status", (req, res) => res.json({ items: syncCoordinator.statusSnapshot() }));
 
   router.post("/sync/run", async (req, res) => {
     let date;

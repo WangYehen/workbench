@@ -14,13 +14,14 @@ function fmt(iso) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-router.get("/system", async (req, res) => {
-  const aiRouting = await aiScheduler.aiService.status().catch(() => null);
+router.get("/system", (req, res) => {
+  const aiRouting = aiScheduler.aiService.statusSnapshot?.() || null;
   res.json({
     configured: configured(),
     useDemoData: config.useDemoData,
     aiProvider: aiScheduler.aiService.label(),
     aiRouting,
+    aiRoutingChecking: !aiRouting,
     aiQueue: aiScheduler.stats(),
     publicBaseUrl: config.publicBaseUrl,
     displayName: config.displayName,

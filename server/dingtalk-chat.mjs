@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
 };
 const loginAttempts = new Map();
 const CAPABILITY_TTL_MS = 10 * 60 * 1000;
+const STATUS_TTL_MS = 60 * 1000;
 
 // 机器人 / 通知类会话：这些会话消息量极大（监控告警、构建通知），
 // 与「需要 Charles 亲自行动」无关。默认降级，不进待处理视图、不排队进 AI，但照常归档。
@@ -152,6 +153,8 @@ function normalizeMessage(raw, conversationId, fallbackType, { mentionedMe = fal
 export function createDingtalkChatService({ database = getDb, executable = config.dws.executable, dataDir = config.dataDir, run = null, now = () => new Date(), aiService = defaultAi } = {}) {
   // 命令探测缓存挂在实例上：生产单例 10 分钟内复用，测试的每个实例天然隔离。
   const capabilityCache = new Map();
+  let statusCache = null;
+  let statusInFlight = null;
   function db() { return database(); }
   function settings() { return { ...DEFAULT_SETTINGS, ...(getState(db(), "dingtalk_chat_settings", {}) || {}) }; }
   function updateSettings(patch) {
@@ -236,19 +239,29 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     return value;
   }
 
-  async function status({ probeCapabilities = true } = {}) {
+  function invalidateStatus() { statusCache = null; }
+  function statusSnapshot() {
     const base = { executable, settings: settings(), lastSync: lastSync() };
+    if (!statusCache) return { ...base, installed: null, connected: null, checking: true, stale: false, checkedAt: null, capabilities: null };
+    return { ...base, ...statusCache.value, checking: false, stale: Date.now() - statusCache.at >= STATUS_TTL_MS, checkedAt: new Date(statusCache.at).toISOString() };
+  }
+
+  async function readStatus({ force = false } = {}) {
+    if (!force && statusCache && Date.now() - statusCache.at < STATUS_TTL_MS) return statusCache.value;
+    if (!force && statusInFlight) return statusInFlight;
+    statusInFlight = (async () => {
     try {
-      const version = await execute(["version", "--format", "json"], { timeoutMs: 10_000 });
-      let auth = null; let profiles = null;
-      try { auth = await execute(["auth", "status", "--format", "json"], { timeoutMs: 10_000 }); } catch { /* 未登录 */ }
-      try { profiles = await execute(["profile", "list", "--format", "json"], { timeoutMs: 10_000 }); } catch { /* 可选 */ }
+      const [version, authResult, profilesResult] = await Promise.all([
+        execute(["version", "--format", "json"], { timeoutMs: 10_000 }),
+        execute(["auth", "status", "--format", "json"], { timeoutMs: 10_000 }).catch(() => null),
+        execute(["profile", "list", "--format", "json"], { timeoutMs: 10_000 }).catch(() => null),
+      ]);
+      const auth = authResult; const profiles = profilesResult;
       // 只回传展示所需的字段，绝不把 DWS 的原始认证对象（可能含令牌）透出到前端。
       const authPayload = auth?.payload || {};
       const profileList = asArray(valueAt(profiles?.payload, ["profiles", "result.profiles", "items"], []));
       const current = profileList.find((item) => item?.current || item?.active) || profileList[0] || null;
       return {
-        ...base,
         installed: true,
         connected: Boolean(valueAt(authPayload, ["connected", "authenticated", "result.connected", "result.authenticated"], false)),
         version: valueAt(version.payload, ["version", "result.version"], "已安装"),
@@ -258,14 +271,28 @@ export function createDingtalkChatService({ database = getDb, executable = confi
           userId: valueAt(authPayload, ["userId", "result.userId", "unionId"], null),
           profile: valueAt(profiles?.payload, ["currentProfile", "result.currentProfile"], null) || (current ? [current.corpName || current.corpId, current.userName || current.userId].filter(Boolean).join(":") : null),
         },
-        capabilities: probeCapabilities ? await capabilities() : null,
       };
     } catch (error) {
-      return { ...base, installed: false, connected: false, error: error.message, errorCode: error.code || "DWS_NOT_INSTALLED" };
+      return { installed: false, connected: false, error: error.message, errorCode: error.code || "DWS_NOT_INSTALLED", account: null };
     }
+    })();
+    try {
+      const value = await statusInFlight;
+      statusCache = { at: Date.now(), value };
+      return value;
+    } finally { statusInFlight = null; }
+  }
+
+  async function status({ probeCapabilities = true, force = false } = {}) {
+    const value = await readStatus({ force });
+    return {
+      ...statusSnapshot(), ...value, checking: false, stale: false,
+      capabilities: probeCapabilities ? await capabilities() : null,
+    };
   }
 
   function startLogin() {
+    invalidateStatus();
     const id = crypto.randomUUID();
     const attempt = { id, status: "running", startedAt: nowIso(), error: null, output: "" };
     loginAttempts.set(id, attempt);
@@ -281,7 +308,11 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     });
     return attempt;
   }
-  function loginStatus(id) { return loginAttempts.get(id) || null; }
+  function loginStatus(id) {
+    const attempt = loginAttempts.get(id) || null;
+    if (attempt?.status === "ready" && !attempt.statusCacheInvalidated) { invalidateStatus(); attempt.statusCacheInvalidated = true; }
+    return attempt;
+  }
 
   // 优先 +chat-list（返回 conversationType/chatMode/name）；
   // 不可用时用 +chat-list-all（只返回群）∪ +conversation-list（全部）拼出类型；
@@ -589,6 +620,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       finishedAt: nowIso(),
     };
     writeLastSync({ ...result, added: undefined });
+    invalidateStatus();
     return result;
   }
 
@@ -605,13 +637,21 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     return changed;
   }
 
-  function listConversations() {
-    return db().prepare(`SELECT c.*,
+  function listConversations({ q = "", scope = "all", limit = 100, offset = 0 } = {}) {
+    const filters = []; const values = [];
+    if (scope === "groups_or_permanent") filters.push("(c.type='group' OR c.retention_mode='permanent')");
+    if (q) { filters.push("c.title LIKE ?"); values.push(`%${q}%`); }
+    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+    const boundedLimit = Math.min(100, Math.max(1, Number(limit) || 100));
+    const boundedOffset = Math.max(0, Number(offset) || 0);
+    const total = db().prepare(`SELECT COUNT(*) AS total FROM dingtalk_chat_conversations c ${where}`).get(...values).total;
+    const items = db().prepare(`SELECT c.*,
       (SELECT COUNT(*) FROM dingtalk_chat_messages m WHERE m.conversation_id=c.id AND m.context_only=0 AND m.processing_status IN ('new','needs_confirmation')) AS open_count,
       (SELECT COUNT(*) FROM dingtalk_chat_messages m WHERE m.conversation_id=c.id AND m.context_only=0 AND m.processing_status IN ('new','needs_confirmation')) AS pending_count,
       (SELECT COUNT(*) FROM dingtalk_chat_messages m WHERE m.conversation_id=c.id) AS message_count,
       (SELECT MAX(m.sent_at) FROM dingtalk_chat_messages m WHERE m.conversation_id=c.id) AS last_message_at
-      FROM dingtalk_chat_conversations c ORDER BY c.is_bot, c.type, c.title COLLATE NOCASE`).all();
+      FROM dingtalk_chat_conversations c ${where} ORDER BY c.is_bot, c.type, c.title COLLATE NOCASE LIMIT ? OFFSET ?`).all(...values, boundedLimit, boundedOffset);
+    return { items, total };
   }
   function setConversation(id, patch) {
     const item = db().prepare("SELECT * FROM dingtalk_chat_conversations WHERE id=?").get(id);
@@ -843,7 +883,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
   }
 
   return {
-    status, startLogin, loginStatus, settings, updateSettings, sync, cleanup, capabilities,
+    status, statusSnapshot, invalidateStatus, startLogin, loginStatus, settings, updateSettings, sync, cleanup, capabilities,
     listConversations, setConversation, listMessages, countByStatus, message, setMessageStatus,
     createTodo, setLink, downloadAttachment, lastSync, generateTodoDraft, confirmTodoDraft,
   };

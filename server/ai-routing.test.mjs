@@ -34,6 +34,21 @@ function fakeAdapters(log, results = {}) {
   }]));
 }
 
+test("AI 状态快照不触发探测，状态检测在缓存期内复用结果", async () => {
+  let calls = 0;
+  const adapters = fakeAdapters([]);
+  for (const adapter of Object.values(adapters)) {
+    adapter.status = async () => { calls += 1; return { installed: true, ready: true, authenticated: true, version: "test", detail: "ready", models: [] }; };
+  }
+  const service = createAiService({ runtimeConfig: runtimeConfig(), adapters });
+  assert.equal(service.statusSnapshot(), null);
+  await service.status();
+  assert.equal(calls, 6);
+  assert.ok(service.statusSnapshot()?.checkedAt);
+  await service.status();
+  assert.equal(calls, 6);
+});
+
 test("普通内容优先走 OpenCode 免费模型", async () => {
   const log = [];
   const service = createAiService({ runtimeConfig: runtimeConfig(), adapters: fakeAdapters(log) });
@@ -110,4 +125,3 @@ test("邮件所有模型不可用时返回人工确认，不做行动猜测", as
   assert.equal(result.confidence, 0);
   assert.equal(result.aiMeta.provider, "local");
 });
-

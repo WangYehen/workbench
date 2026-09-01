@@ -203,6 +203,41 @@ test("status 不透出 DWS 原始认证对象", async () => {
   db.close(); await fs.rm(folder, { recursive: true, force: true });
 });
 
+test("DWS 状态快照不启动命令，缓存命中与强制刷新行为正确", async () => {
+  let calls = 0;
+  const db = memoryDb();
+  const folder = await fs.mkdtemp(path.join(os.tmpdir(), "dws-chat-"));
+  const run = async (args) => {
+    calls += 1;
+    if (args[0] === "version") return { version: "1.0.60" };
+    if (args[0] === "auth") return { connected: true };
+    if (args[0] === "profile") return { currentProfile: "corp:user" };
+    return {};
+  };
+  const service = createDingtalkChatService({ database: () => db, dataDir: folder, run });
+  assert.equal(service.statusSnapshot().checking, true);
+  await service.status({ probeCapabilities: false });
+  assert.equal(calls, 3);
+  await service.status({ probeCapabilities: false });
+  assert.equal(calls, 3, "缓存命中不得再次启动 DWS 命令");
+  await service.status({ probeCapabilities: false, force: true });
+  assert.equal(calls, 6, "强制刷新必须重新探测");
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
+test("会话列表支持服务端范围筛选、搜索与分页", async () => {
+  const { db, folder, service } = await makeService();
+  await service.sync();
+  service.setConversation("dm1", { retention_mode: "permanent" });
+  const first = service.listConversations({ scope: "groups_or_permanent", limit: 1, offset: 0 });
+  assert.equal(first.total, 3);
+  assert.equal(first.items.length, 1);
+  const search = service.listConversations({ scope: "groups_or_permanent", q: "项目" });
+  assert.equal(search.total, 1);
+  assert.equal(search.items[0].id, "g1");
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
 test("消息详情：上下文来自同一根消息，附件与关联一并返回", async () => {
   const { db, folder, service } = await makeService();
   await service.sync();

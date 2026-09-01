@@ -10,6 +10,17 @@ test("同步策略覆盖邮件、团队日志、日程和个人消息",()=>{
   for(const policy of Object.values(SYNC_POLICIES))assert.equal(policy.intervalMinutes,15);
 });
 
+test("状态快照读取不触发连接器探测",()=>{
+  const memory=db(); let calls=0;
+  const coordinator=createSyncCoordinator({
+    outlookService:{status:async()=>{calls+=1;return {configured:false}}}, dingtalkService:{isConfigured:()=>false,calendarReady:()=>false}, database:()=>memory,
+  });
+  const snapshot=coordinator.statusSnapshot();
+  assert.equal(calls,0);
+  assert.equal(snapshot.find((item)=>item.source==="outlook").checking,true);
+  memory.close();
+});
+
 test("个人消息同步使用 DWS 状态并只将新增消息交给 AI",async()=>{
   const memory=db();let received=[];
   const coordinator=createSyncCoordinator({
