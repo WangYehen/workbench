@@ -128,7 +128,7 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.035em; }
 .btn.ghost { background: transparent; }
 .btn:disabled { opacity: .46; }
 
-.workspace-page { max-width: 1480px; padding: 2px 0 40px; }
+.workspace-page { max-width: 1480px; padding: 0 0 40px; }
 .workspace-head { align-items: flex-start; }
 .workspace-tabs {
   gap: 2px;

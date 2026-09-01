@@ -22,7 +22,7 @@
   --oc-dark-2: #2a2a2e;
   --oc-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 
-  max-width: 1280px;
+  max-width: 1480px;
   margin: 0 auto;
   background: var(--oc-paper);
   border-radius: 20px;
