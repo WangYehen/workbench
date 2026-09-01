@@ -128,6 +128,7 @@ export default function ProjectsPage() {
   const [end, setEnd] = useState("");
   const [editing, setEditing] = useState(null); // 正在编辑进度的项目 id
   const [editVal, setEditVal] = useState(0);
+  const [dragTip, setDragTip] = useState(null);
   const [modal, setModal] = useState(null);
 
   async function load() { setProjects((await api.get("/projects")).items); }
@@ -154,7 +155,7 @@ export default function ProjectsPage() {
     const update = (clientX) => {
       const rect = bar.getBoundingClientRect();
       const value = Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * 100);
-      setEditing(p.id); setEditVal(value);
+      setDragTip({ id: p.id, value, x: clientX, y: rect.top });
       return value;
     };
     update(event.clientX);
@@ -166,7 +167,7 @@ export default function ProjectsPage() {
       const rect = bar.getBoundingClientRect();
       const value = Math.round(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * 100);
       await api.patch(`/projects/${p.id}`, { progress: value });
-      setEditing(null); load();
+      setDragTip(null); load();
     };
     bar.addEventListener("pointermove", move); bar.addEventListener("pointerup", end); bar.addEventListener("pointercancel", end);
   }
@@ -222,15 +223,16 @@ export default function ProjectsPage() {
                     {p.name} <StatusPill status={p.status} />
                   </div>
                   <div className="sub">{p.note}</div>
-                  <div className="progress project-progress-bar" style={{ marginTop: 8 }} role="slider" aria-label={`拖动设置${p.name}进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={editing === p.id ? editVal : p.progress} onPointerDown={(event) => dragProgress(p, event)}>
-                    <span style={{ width: `${editing === p.id ? editVal : p.progress}%` }}></span>
+                  <div className="progress project-progress-bar" style={{ marginTop: 8 }} role="slider" aria-label={`拖动设置${p.name}进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={dragTip?.id === p.id ? dragTip.value : p.progress} onPointerDown={(event) => dragProgress(p, event)}>
+                    <span style={{ width: `${dragTip?.id === p.id ? dragTip.value : p.progress}%` }}></span>
+                    {dragTip?.id === p.id && <span className="project-progress-tooltip" style={{ left: `${dragTip.value}%` }}>{dragTip.value}%</span>}
                   </div>
                   <div className="meta" style={{ marginTop: 4 }}>进度 {p.progress}%</div>
                 </div>
                 <div className="row project-actions" style={{ flexDirection: "column", gap: 6 }}>
                   {editing === p.id ? (
                     <>
-                      <span className="project-progress-value">{editVal}%</span>
+                      <span className="project-progress-value" aria-hidden="true" />
                       <button className="btn sm" onClick={() => setEditing(null)}>取消</button>
                     </>
                   ) : (

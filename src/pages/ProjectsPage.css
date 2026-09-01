@@ -95,8 +95,9 @@
   line-height: 13px;
 }
 
-.project-progress-bar { cursor: ew-resize; touch-action: none; }
-.project-progress-value { display: inline-flex; align-items: center; justify-content: center; width: 72px; min-height: 32px; box-sizing: border-box; text-align: center; color: var(--accent); font-size: 13px; }
+.project-progress-bar { position: relative; cursor: ew-resize; touch-action: none; overflow: visible; }
+.project-progress-value { display: inline-flex; width: 72px; min-height: 32px; box-sizing: border-box; }
+.project-progress-tooltip { position: absolute; top: -30px; transform: translateX(-50%); padding: 3px 7px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 12px; line-height: 1.2; pointer-events: none; white-space: nowrap; }
 
 .project-date-field {
   flex: 1;
