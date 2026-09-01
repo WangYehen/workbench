@@ -107,6 +107,11 @@ h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.035em; }
 .work-page-icon svg { width: 18px; height: 18px; }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
   min-height: 36px;
   padding: 7px 14px;
   border-color: var(--line-strong);

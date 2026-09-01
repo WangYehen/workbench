@@ -95,12 +95,11 @@
   line-height: 13px;
 }
 .project-actions > button.btn.sm,
-.project-actions > .project-delete { min-height: 26px; padding: 3px 5px; }
-.project-actions > button.btn.sm { min-height: 26px; padding: 3px 5px; }
+.project-actions > .project-delete { min-height: 32px; padding: 6px 8px; }
 .project-actions { gap: 4px !important; }
 
 .project-progress-bar { position: relative; cursor: ew-resize; touch-action: none; overflow: visible; }
-.project-progress-input { width: 54px; min-height: 26px; box-sizing: border-box; padding: 3px 5px; font-size: 12px; }
+.project-progress-input { width: 64px; min-height: 32px; box-sizing: border-box; padding: 6px 8px; font-size: 13px; }
 .project-progress-bar > .project-progress-tooltip { position: absolute; top: -30px; width: auto; height: auto; transform: translateX(-50%); padding: 3px 7px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 12px; line-height: 1.2; pointer-events: none; white-space: nowrap; }
 
 .project-date-field {
