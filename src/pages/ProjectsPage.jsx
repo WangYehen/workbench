@@ -149,6 +149,27 @@ export default function ProjectsPage() {
     await api.patch(`/projects/${editing}`, { progress: Number(editVal) });
     setEditing(null); load();
   }
+  function dragProgress(p, event) {
+    const bar = event.currentTarget;
+    const update = (clientX) => {
+      const rect = bar.getBoundingClientRect();
+      const value = Math.round(Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * 100);
+      setEditing(p.id); setEditVal(value);
+      return value;
+    };
+    update(event.clientX);
+    bar.setPointerCapture?.(event.pointerId);
+    const move = (e) => update(e.clientX);
+    const end = async (e) => {
+      bar.removeEventListener("pointermove", move); bar.removeEventListener("pointerup", end); bar.removeEventListener("pointercancel", end);
+      bar.releasePointerCapture?.(e.pointerId);
+      const rect = bar.getBoundingClientRect();
+      const value = Math.round(Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * 100);
+      await api.patch(`/projects/${p.id}`, { progress: value });
+      setEditing(null); load();
+    };
+    bar.addEventListener("pointermove", move); bar.addEventListener("pointerup", end); bar.addEventListener("pointercancel", end);
+  }
   function closeModal() { setModal(null); setEditing(null); }
 
   if (!projects) return <div className="spinner">加载中…</div>;
@@ -201,16 +222,15 @@ export default function ProjectsPage() {
                     {p.name} <StatusPill status={p.status} />
                   </div>
                   <div className="sub">{p.note}</div>
-                  <div className="progress" style={{ marginTop: 8 }}>
-                    <span style={{ width: `${p.progress}%` }}></span>
+                  <div className="progress project-progress-bar" style={{ marginTop: 8 }} role="slider" aria-label={`拖动设置${p.name}进度`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={editing === p.id ? editVal : p.progress} onPointerDown={(event) => dragProgress(p, event)}>
+                    <span style={{ width: `${editing === p.id ? editVal : p.progress}%` }}></span>
                   </div>
                   <div className="meta" style={{ marginTop: 4 }}>进度 {p.progress}%</div>
                 </div>
                 <div className="row project-actions" style={{ flexDirection: "column", gap: 6 }}>
                   {editing === p.id ? (
                     <>
-                      <label className="project-progress-editor"><input type="range" min="0" max="100" step="1" value={editVal} onChange={(e) => setEditVal(e.target.value)} aria-label={`设置${p.name}进度`} /><output>{editVal}%</output></label>
-                      <button className="btn primary sm" onClick={saveProgress}>保存</button>
+                      <span className="project-progress-value">{editVal}%</span>
                       <button className="btn sm" onClick={() => setEditing(null)}>取消</button>
                     </>
                   ) : (
