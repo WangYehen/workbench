@@ -95,6 +95,10 @@
   line-height: 13px;
 }
 
+.project-progress-editor { display: flex; align-items: center; gap: 7px; width: 110px; color: var(--ink-soft); font-size: 12px; }
+.project-progress-editor input[type="range"] { width: 78px; accent-color: var(--accent); cursor: pointer; }
+.project-progress-editor output { min-width: 30px; text-align: right; }
+
 .project-date-field {
   flex: 1;
   min-width: 0;

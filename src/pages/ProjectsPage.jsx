@@ -209,7 +209,7 @@ export default function ProjectsPage() {
                 <div className="row project-actions" style={{ flexDirection: "column", gap: 6 }}>
                   {editing === p.id ? (
                     <>
-                      <input type="number" min="0" max="100" value={editVal} onChange={(e) => setEditVal(e.target.value)} style={{ width: 80 }} />
+                      <label className="project-progress-editor"><input type="range" min="0" max="100" step="1" value={editVal} onChange={(e) => setEditVal(e.target.value)} aria-label={`设置${p.name}进度`} /><output>{editVal}%</output></label>
                       <button className="btn primary sm" onClick={saveProgress}>保存</button>
                       <button className="btn sm" onClick={() => setEditing(null)}>取消</button>
                     </>
