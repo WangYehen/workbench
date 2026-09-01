@@ -8,11 +8,13 @@ import { createDingtalkChatService } from "./dingtalk-chat.mjs";
 
 const SCHEMA = `CREATE TABLE sync_state(key TEXT PRIMARY KEY,value_json TEXT);
   CREATE TABLE dingtalk_chat_conversations(id TEXT PRIMARY KEY,type TEXT,title TEXT,peer_user_id TEXT,peer_name TEXT,enabled INTEGER,retention_mode TEXT,last_message_at TEXT,sync_cursor_json TEXT,created_at TEXT,updated_at TEXT,chat_mode TEXT,is_bot INTEGER DEFAULT 0,type_known INTEGER DEFAULT 0,last_sync_json TEXT);
-  CREATE TABLE dingtalk_chat_messages(id TEXT PRIMARY KEY,conversation_id TEXT,sender_id TEXT,sender_name TEXT,direction TEXT,sent_at TEXT,message_type TEXT,content TEXT,mentioned_me INTEGER,context_only INTEGER,context_root_id TEXT,quoted_message_id TEXT,raw_json TEXT,archive_path TEXT,processing_status TEXT,attachment_count INTEGER DEFAULT 0,created_at TEXT,updated_at TEXT);
+  CREATE TABLE dingtalk_chat_messages(id TEXT PRIMARY KEY,conversation_id TEXT,sender_id TEXT,sender_name TEXT,direction TEXT,sent_at TEXT,message_type TEXT,content TEXT,mentioned_me INTEGER,mention_scope TEXT DEFAULT 'none',context_only INTEGER,context_root_id TEXT,quoted_message_id TEXT,raw_json TEXT,archive_path TEXT,processing_status TEXT,attachment_count INTEGER DEFAULT 0,created_at TEXT,updated_at TEXT);
   CREATE TABLE dingtalk_message_analysis(message_id TEXT PRIMARY KEY,classification TEXT,summary TEXT,action_text TEXT,due_date TEXT,priority TEXT,confidence INTEGER,assignee_self INTEGER,ai_meta_json TEXT,todo_id TEXT,draft_title TEXT,draft_note TEXT,draft_priority TEXT,draft_due_date TEXT,draft_rationale TEXT,draft_generated_at TEXT,created_at TEXT,updated_at TEXT);
-  CREATE TABLE work_links(id TEXT PRIMARY KEY,source_type TEXT,source_id TEXT,target_type TEXT,target_id TEXT,confidence INTEGER,reason TEXT,status TEXT,created_at TEXT,updated_at TEXT);
+  CREATE TABLE work_links(id TEXT PRIMARY KEY,source_type TEXT,source_id TEXT,target_type TEXT,target_id TEXT,confidence INTEGER,reason TEXT,status TEXT,created_at TEXT,updated_at TEXT,UNIQUE(source_type,source_id,target_type,target_id));
   CREATE TABLE dingtalk_chat_attachments(id TEXT PRIMARY KEY,message_id TEXT,conversation_id TEXT,kind TEXT,name TEXT,mime_type TEXT,size_bytes INTEGER,ref_json TEXT,local_path TEXT,downloaded_at TEXT,download_error TEXT,created_at TEXT);
-  CREATE TABLE todos(id TEXT PRIMARY KEY,title TEXT,note TEXT,status TEXT,priority TEXT,due_date TEXT,created_at TEXT,completed_at TEXT,source_type TEXT,source_id TEXT,project_id TEXT,assignee_id TEXT);`;
+  CREATE TABLE todos(id TEXT PRIMARY KEY,title TEXT,note TEXT,status TEXT,priority TEXT,due_date TEXT,created_at TEXT,completed_at TEXT,source_type TEXT,source_id TEXT,project_id TEXT,assignee_id TEXT);
+  CREATE TABLE work_signals(id TEXT PRIMARY KEY,title TEXT,classification TEXT,state TEXT,priority TEXT,confidence INTEGER,conclusion TEXT,facts_json TEXT,steps_json TEXT,draft_title TEXT,draft_note TEXT,draft_priority TEXT,draft_due_date TEXT,draft_rationale TEXT,todo_id TEXT,ai_meta_json TEXT,created_at TEXT,updated_at TEXT);
+  CREATE TABLE work_signal_evidence(id TEXT PRIMARY KEY,signal_id TEXT,message_id TEXT,conversation_id TEXT,conversation_title TEXT,sender_name TEXT,sent_at TEXT,mention_scope TEXT,excerpt TEXT,is_root INTEGER,created_at TEXT,UNIQUE(signal_id,message_id));`;
 
 function memoryDb() { const db = new Database(":memory:"); db.exec(SCHEMA); return db; }
 
@@ -40,7 +42,7 @@ const GROUP_MESSAGES = [
 
 function makeRun(overrides = {}) {
   return async (args) => {
-    if (args.includes("--help")) return {};
+    if (args.includes("--help")) return overrides.help?.(args) ?? {};
     if (args[0] === "version") return { version: "1.0.60" };
     if (args[0] === "auth") return { connected: true, userName: "Charles", corpName: "睿翼" };
     if (args[0] === "profile") return { currentProfile: "corp:user", profiles: [] };
@@ -181,6 +183,40 @@ test("停用群：@我 不再入库，历史消息保留", async () => {
   db.close(); await fs.rm(folder, { recursive: true, force: true });
 });
 
+test("启用群的 @所有人 作为根消息入库，并保留独立提及范围", async () => {
+  const allMessage = { messageId: "g-all", sender: "项目经理", createTime: "2026-08-20 10:00:00", content: "@所有人 请今天确认排期影响", conversationId: "g1" };
+  const { db, folder, service } = await makeService({ messages: (args, target) => ({ messages: args.includes("g1") ? [...GROUP_MESSAGES, allMessage] : target, complete: true }) });
+  await service.sync();
+  const row = db.prepare("SELECT mentioned_me,mention_scope,context_only FROM dingtalk_chat_messages WHERE id='g-all'").get();
+  assert.deepEqual(row, { mentioned_me: 0, mention_scope: "all", context_only: 0 });
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
+test("测试场景写入持久化工作信号，确认待办按信号幂等", async () => {
+  const { db, folder, service } = await makeService();
+  service.injectTestScenario();
+  const signals = service.listSignals();
+  assert.deepEqual(signals.counts, { priority: 1, confirm: 2, know: 1 });
+  const first = service.confirmSignalDraft("demo_work_signal_schedule", {});
+  const second = service.confirmSignalDraft("demo_work_signal_schedule", {});
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM todos WHERE source_type='dingtalk_signal'").get().count, 1);
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
+test("清理测试场景只删除 demo 记录，不影响真实消息", async () => {
+  const { db, folder, service } = await makeService();
+  await service.sync();
+  service.injectTestScenario();
+  const result = service.clearTestScenario();
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM work_signals WHERE id LIKE 'demo_work_signal_%'").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM dingtalk_chat_messages WHERE id LIKE 'demo_signal_%'").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM dingtalk_chat_messages WHERE id='dm-message'").get().count, 1);
+  assert.equal(result.removed.todos, 0);
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
 test("消息状态：忽略与仅供知晓受支持，非法状态拒绝", async () => {
   const { db, folder, service } = await makeService();
   await service.sync();
@@ -200,6 +236,19 @@ test("status 不透出 DWS 原始认证对象", async () => {
   assert.equal(detail.account.user, "Charles");
   assert.equal(detail.account.org, "睿翼");
   assert.equal(detail.capabilities.coreReady, true);
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
+});
+
+test("能力探测临时失败时保留最近一次成功同步的能力", async () => {
+  let helpAvailable = true;
+  const { db, folder, service } = await makeService({
+    help: () => helpAvailable ? {} : { stdout: "", exitCode: 1 },
+  });
+  await service.sync();
+  helpAvailable = false;
+  const detail = await service.status({ force: true });
+  assert.equal(detail.capabilities.coreReady, true);
+  assert.equal(detail.capabilities.probeFallback, true);
   db.close(); await fs.rm(folder, { recursive: true, force: true });
 });
 

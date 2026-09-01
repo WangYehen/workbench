@@ -362,6 +362,8 @@ function migrate(d) {
 
   const chatMsgCols = d.prepare("PRAGMA table_info(dingtalk_chat_messages)").all().map((c) => c.name);
   if (!chatMsgCols.includes("attachment_count")) d.exec("ALTER TABLE dingtalk_chat_messages ADD COLUMN attachment_count INTEGER NOT NULL DEFAULT 0");
+  // 016：群消息根的提及范围。self/@我、all/@所有人、none 三态，兼容旧的 mentioned_me。
+  if (!chatMsgCols.includes("mention_scope")) d.exec("ALTER TABLE dingtalk_chat_messages ADD COLUMN mention_scope TEXT NOT NULL DEFAULT 'none'");
 
   // 015：钉钉消息 AI 行动箱待办草稿。分析时一并生成草稿并落库，避免反复调用 AI；
   // 用户可在右侧编辑后「确认创建待办」（按消息 ID 幂等）。
@@ -389,6 +391,44 @@ function migrate(d) {
       created_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_dt_chat_attachments_message ON dingtalk_chat_attachments(message_id);
+
+    -- 017：钉钉工作信号。消息是证据，信号才是行动中心的稳定实体。
+    CREATE TABLE IF NOT EXISTS work_signals (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      classification TEXT NOT NULL,
+      state TEXT NOT NULL DEFAULT 'open',
+      priority TEXT NOT NULL DEFAULT 'P2',
+      confidence INTEGER NOT NULL DEFAULT 0,
+      conclusion TEXT,
+      facts_json TEXT NOT NULL DEFAULT '[]',
+      steps_json TEXT NOT NULL DEFAULT '[]',
+      draft_title TEXT,
+      draft_note TEXT,
+      draft_priority TEXT,
+      draft_due_date TEXT,
+      draft_rationale TEXT,
+      todo_id TEXT,
+      ai_meta_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_work_signals_active ON work_signals(state, priority, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS work_signal_evidence (
+      id TEXT PRIMARY KEY,
+      signal_id TEXT NOT NULL REFERENCES work_signals(id) ON DELETE CASCADE,
+      message_id TEXT,
+      conversation_id TEXT,
+      conversation_title TEXT,
+      sender_name TEXT,
+      sent_at TEXT,
+      mention_scope TEXT NOT NULL DEFAULT 'none',
+      excerpt TEXT,
+      is_root INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      UNIQUE(signal_id, message_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_work_signal_evidence_signal ON work_signal_evidence(signal_id, sent_at);
   `);
 }
 

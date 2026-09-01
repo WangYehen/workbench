@@ -78,7 +78,7 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
     });
   }
 
-  async function runSource(source, { date = localDateString(now()), trigger = "manual" } = {}) {
+  async function runSource(source, { date = localDateString(now()), trigger = "manual", dingtalkChatDays, dingtalkChatBackfill = false } = {}) {
     if (!SYNC_POLICIES[source]) throw new Error(`不支持的数据源：${source}`);
     if (running.has(source)) return { source, status: "running", trigger };
     const ready = await readiness(source, { force: true });
@@ -100,9 +100,15 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
         recordCount = (await dingtalkService.syncReports(date)).length;
         if (warning) writeState(db, "sync_warning_dingtalk", { warning, at: now().toISOString() });
       } else if (source === "dingtalk_chat") {
-        const result = await dingtalkChatService.sync();
+        const result = await dingtalkChatService.sync({ days: dingtalkChatDays, forceBackfill: dingtalkChatBackfill });
         recordCount = result.count;
-        if (!result.firstSync && result.added?.length) aiScheduler?.dingtalkChatMessagesArtifact?.(result.added.map((item) => item.id), { trigger: "sync:dingtalk_chat" });
+        if (!result.firstSync) {
+          const ids = result.added?.map((item) => item.id) || [];
+          // 手动同步也会重试曾因“AI 来源不可用”而得到 0% 兜底的消息；自动同步不重复消耗模型额度。
+          const retryIds = trigger === "manual" ? dingtalkChatService.retryableAnalysisMessageIds?.() || [] : [];
+          const uniqueIds = [...new Set([...ids, ...retryIds])];
+          if (uniqueIds.length) aiScheduler?.dingtalkChatMessagesArtifact?.(uniqueIds, { trigger: "sync:dingtalk_chat", force: trigger === "manual" && retryIds.length > 0 });
+        }
       } else {
         recordCount = await dingtalkService.syncCalendarForRange(date, addDays(date, 30));
       }

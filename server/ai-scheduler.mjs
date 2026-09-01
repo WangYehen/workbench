@@ -29,6 +29,48 @@ function isDingtalkNoiseMessage(content) {
 
 function json(value, fallback) { try { return value ? JSON.parse(value) : fallback; } catch { return fallback; } }
 
+function signalCandidates(db) {
+  return db.prepare("SELECT id,title,classification,priority,conclusion,facts_json,updated_at FROM work_signals WHERE state IN ('open','waiting','ignored','todo_created') ORDER BY updated_at DESC LIMIT 20")
+    .all().map((item) => ({ id: item.id, title: item.title, classification: item.classification, priority: item.priority, conclusion: item.conclusion, facts: json(item.facts_json, []).slice(0, 3), updatedAt: item.updated_at }));
+}
+function associationCandidates(db) {
+  const sources = [["outlook", "emails", "id", "subject"], ["calendar", "calendars", "id", "title"], ["project", "projects", "id", "name"], ["todo", "todos", "id", "title"]];
+  return sources.flatMap(([type, table, id, title]) => db.prepare(`SELECT ${id} id,${title} title FROM ${table} WHERE ${title} IS NOT NULL AND ${title}!='' ORDER BY rowid DESC LIMIT 20`).all().map((item) => ({ type, id: String(item.id), title: item.title })));
+}
+function persistSignal(db, message, context, result, stamp) {
+  if (!result?.signal || !result.classification || result.confidence <= 0) return null;
+  const candidates = new Set(signalCandidates(db).map((item) => item.id));
+  const requested = result.signal.mergeSignalId;
+  const id = requested && candidates.has(requested) && result.signal.mergeConfidence >= 90 ? requested : crypto.randomUUID();
+  const existing = db.prepare("SELECT * FROM work_signals WHERE id=?").get(id);
+  const signal = result.signal;
+  const title = String(signal.title || result.actionText || result.summary || "需要确认的事项").slice(0, 120);
+  const facts = Array.isArray(signal.facts) ? signal.facts.slice(0, 6) : [];
+  const steps = Array.isArray(signal.steps) ? signal.steps.slice(0, 6) : [];
+  const state = existing ? "open" : "open";
+  db.prepare(`INSERT INTO work_signals(id,title,classification,state,priority,confidence,conclusion,facts_json,steps_json,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,todo_id,ai_meta_json,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,classification=excluded.classification,state=excluded.state,priority=excluded.priority,confidence=excluded.confidence,conclusion=excluded.conclusion,facts_json=excluded.facts_json,steps_json=excluded.steps_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,ai_meta_json=excluded.ai_meta_json,updated_at=excluded.updated_at`)
+    .run(id, title, result.classification, state, result.priority || "P2", result.confidence, signal.conclusion || result.summary || "", JSON.stringify(facts), JSON.stringify(steps), result.draftTitle || title, result.draftNote || "", result.draftPriority || result.priority || "P2", result.draftDueDate || result.dueDate || null, result.draftRationale || "", existing?.todo_id || null, JSON.stringify(result.aiMeta || null), existing?.created_at || stamp, stamp);
+  const allowedEvidence = new Set([message.id, ...context.map((item) => item.id)]);
+  const ids = (signal.evidenceMessageIds || []).filter((item) => allowedEvidence.has(item));
+  if (!ids.length) ids.push(message.id);
+  const addEvidence = db.prepare(`INSERT INTO work_signal_evidence(id,signal_id,message_id,conversation_id,conversation_title,sender_name,sent_at,mention_scope,excerpt,is_root,created_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(signal_id,message_id) DO UPDATE SET excerpt=excluded.excerpt,is_root=MAX(work_signal_evidence.is_root,excluded.is_root)`);
+  for (const messageId of ids) {
+    const source = messageId === message.id ? message : context.find((item) => item.id === messageId);
+    if (!source) continue;
+    addEvidence.run(crypto.randomUUID(), id, source.id, message.conversation_id, message.conversation_title, source.sender_name, source.sent_at, source.mention_scope || "none", String(source.content || "").slice(0, 500), source.id === message.id ? 1 : 0, stamp);
+  }
+  const candidatesById = new Map(associationCandidates(db).map((item) => [`${item.type}:${item.id}`, item]));
+  const addLink = db.prepare(`INSERT INTO work_links(id,source_type,source_id,target_type,target_id,confidence,reason,status,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_type,source_id,target_type,target_id) DO UPDATE SET confidence=excluded.confidence,reason=excluded.reason,status=CASE WHEN work_links.status='confirmed' THEN 'confirmed' ELSE excluded.status END,updated_at=excluded.updated_at`);
+  for (const association of signal.associations || []) {
+    if (!candidatesById.has(`${association.targetType}:${association.targetId}`)) continue;
+    addLink.run(crypto.randomUUID(), "dingtalk_signal", id, association.targetType, association.targetId, association.confidence, association.reason, "suggested", stamp, stamp);
+  }
+  return id;
+}
+
 function fallbackSuggestion(summary) {
   const parts = [];
   if (summary.riskProjects > 0) parts.push(`有 ${summary.riskProjects} 个风险项目，优先推进并确认下一步`);
@@ -115,7 +157,10 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     if (task.kind === "dingtalk.message.classify") {
       const message = db().prepare(`SELECT m.*,c.title AS conversation_title,c.type AS conversation_type FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?`).get(task.scope);
       if (!message) throw Object.assign(new Error("钉钉消息不存在"), { code: "message_not_found" });
-      const context = db().prepare("SELECT sender_name,content,sent_at FROM dingtalk_chat_messages WHERE conversation_id=? ORDER BY ABS(strftime('%s', sent_at)-strftime('%s', ?)) LIMIT 21").all(message.conversation_id, message.sent_at);
+      // 群聊只能使用当前 @我 根消息采集到的上下文，不能按“时间接近”把其他话题带进 AI。
+      const context = message.conversation_type === "group"
+        ? db().prepare("SELECT id,sender_name,content,sent_at,mention_scope FROM dingtalk_chat_messages WHERE context_root_id=? OR id=? ORDER BY sent_at").all(message.context_root_id || message.id, message.id)
+        : db().prepare("SELECT id,sender_name,content,sent_at,mention_scope FROM dingtalk_chat_messages WHERE conversation_id=? ORDER BY ABS(strftime('%s', sent_at)-strftime('%s', ?)) LIMIT 21").all(message.conversation_id, message.sent_at);
       if (isDingtalkNoiseMessage(message.content)) {
         const stamp = now().toISOString();
         db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
@@ -124,37 +169,15 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
         db().prepare("UPDATE dingtalk_chat_messages SET processing_status='ignored',updated_at=? WHERE id=?").run(stamp, message.id);
         return { payload: { classification: "noise", confidence: 99, todoId: null }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: { source: "noise-filter" } };
       }
-      const result = await aiService.analyzeDingtalkMessage({ ...message, context });
+      const result = await aiService.analyzeDingtalkMessage({ ...message, context, signalCandidates: signalCandidates(db()), associationCandidates: associationCandidates(db()) });
       const stamp = now().toISOString();
       db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,due_date=excluded.due_date,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,draft_generated_at=excluded.draft_generated_at,updated_at=excluded.updated_at`)
         .run(message.id, result.classification, result.summary, result.actionText, result.dueDate, result.priority, result.confidence, result.assigneeSelf ? 1 : 0, JSON.stringify(result.aiMeta || null), null,
           result.draftTitle || result.actionText || null, result.draftNote || null, result.draftPriority || result.priority || "P2", result.draftDueDate || null, result.draftRationale || null, stamp, stamp, stamp);
-      let todoId = null;
-      if (result.classification === "action" && result.assigneeSelf && result.confidence >= 90) {
-        const existing = db().prepare("SELECT id FROM todos WHERE source_type='dingtalk_message' AND source_id=?").get(message.id);
-        if (!existing) {
-          todoId = `t${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
-          db().prepare("INSERT INTO todos(id,title,note,status,priority,due_date,created_at,completed_at,source_type,source_id,project_id,assignee_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
-            .run(todoId, result.actionText || result.summary, `来自钉钉：${message.sender_name || "成员"} · ${message.content || ""}`.slice(0, 2000), "inbox", result.priority || "P2", result.dueDate || null, stamp, null, "dingtalk_message", message.id, null, null);
-        } else todoId = existing.id;
-        db().prepare("UPDATE dingtalk_message_analysis SET todo_id=?,updated_at=? WHERE message_id=?").run(todoId, stamp, message.id);
-        db().prepare("UPDATE dingtalk_chat_messages SET processing_status='task_created',updated_at=? WHERE id=?").run(stamp, message.id);
-      } else {
-        db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(result.classification === "action" ? "needs_confirmation" : result.classification === "informational" ? "informational" : "needs_confirmation", stamp, message.id);
-      }
-      const content = String(message.content || "");
-      const targets = [
-        ["outlook", "emails", "id", "subject"], ["calendar", "calendars", "id", "title"], ["project", "projects", "id", "name"],
-      ];
-      for (const [targetType, table, idField, textField] of targets) {
-        const candidates = db().prepare(`SELECT ${idField} id, ${textField} title FROM ${table} WHERE ${textField} IS NOT NULL AND length(${textField})>=4 LIMIT 100`).all()
-          .filter((item) => content.includes(item.title) || item.title.includes(content.slice(0, 40)));
-        if (candidates.length === 1) db().prepare(`INSERT INTO work_links(id,source_type,source_id,target_type,target_id,confidence,reason,status,created_at,updated_at)
-          VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_type,source_id,target_type,target_id) DO NOTHING`)
-          .run(crypto.randomUUID(), "dingtalk_message", message.id, targetType, String(candidates[0].id), 90, "消息内容与标题唯一匹配", "auto", stamp, stamp);
-      }
-      return { payload: { classification: result.classification, confidence: result.confidence, todoId }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
+      const signalId = persistSignal(db(), message, context, result, stamp);
+      db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(result.classification === "action" ? "needs_confirmation" : result.classification === "informational" ? "informational" : "needs_confirmation", stamp, message.id);
+      return { payload: { classification: result.classification, confidence: result.confidence, signalId }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
     }
     if (task.kind === "dashboard.suggestion") {
       const context = dashboardSummary(db(), task.scope);
@@ -210,12 +233,14 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     if (reports.length) enqueue({ kind: "team.analysis", scope: date, inputHash, trigger });
     return read("team.analysis", date);
   }
-  function dingtalkChatMessagesArtifact(ids, { trigger = "sync" } = {}) {
+  function dingtalkChatMessagesArtifact(ids, { trigger = "sync", force = false } = {}) {
     for (const id of ids || []) {
-      const message = db().prepare(`SELECT m.id,m.content,m.sent_at,m.direction,m.mentioned_me,m.context_only,c.type FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?`).get(id);
-      if (!message || message.direction !== "inbound" || message.context_only || (message.type === "group" && !message.mentioned_me)) continue;
+      const message = db().prepare(`SELECT m.id,m.content,m.sent_at,m.direction,m.mentioned_me,m.mention_scope,m.context_only,c.type FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?`).get(id);
+      if (!message || message.direction !== "inbound" || message.context_only || (message.type === "group" && !message.mentioned_me && message.mention_scope !== "all")) continue;
       const inputHash = crypto.createHash("sha256").update(JSON.stringify([message.id, message.content, message.sent_at])).digest("hex");
-      enqueue({ kind: "dingtalk.message.classify", scope: message.id, inputHash, trigger });
+      // 清理历史时消息分析可能被删除，而旧 AI artifact 仍在；此时必须重新入队。
+      const analysis = db().prepare("SELECT message_id FROM dingtalk_message_analysis WHERE message_id=?").get(message.id);
+      enqueue({ kind: "dingtalk.message.classify", scope: message.id, inputHash, trigger, force: force || !analysis });
     }
   }
   function stats() {

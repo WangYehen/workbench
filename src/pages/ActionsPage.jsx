@@ -33,7 +33,7 @@ export default function ActionsPage() {
     : "—";
   return <div className="workspace-page">
     <header className="workspace-head"><div><h1>行动中心</h1><p>从发现问题到分类、处理、转待办和跟踪的统一入口</p></div>{tab === "attention" && <DateNav date={date} onChange={setDate}/>} {tab === "email" && <div className="actions-mail-sync"><span><i />最近成功 {lastSuccess}</span><SyncButton className="btn primary" type="button" syncing={emailSyncing} disabled={!syncEmailRef.current} onClick={() => syncEmailRef.current?.()}>立即同步</SyncButton></div>}{tab === "dingtalk" && <div className="actions-mail-sync"><span><i />最近成功 {dingtalkLastSuccess}</span><SyncButton className="btn primary" type="button" syncing={dingtalkSyncing} disabled={!syncDingtalkRef.current} onClick={() => syncDingtalkRef.current?.()}>立即同步</SyncButton></div>}</header>
-    <nav className="workspace-tabs" aria-label="行动中心视图">{[["attention","注意事项"],["email","邮件"],["dingtalk","钉钉消息"],["tasks","待办"]].map(([key,label])=><button key={key} className={tab===key?"is-active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav>
+    <nav className="workspace-tabs" aria-label="行动中心视图">{[["attention","注意事项"],["email","邮件"],["dingtalk","钉钉信号"],["tasks","待办"]].map(([key,label])=><button key={key} className={tab===key?"is-active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav>
     {error && <div className="error">{error}</div>}
     {tab === "email" && <Emails2Page embedded onStatusChange={setOutlookStatus} onSyncReady={setEmailSync} onSyncingChange={setEmailSyncing} />}
     {tab === "dingtalk" && <DingtalkMessagesPage embedded onStatusChange={setDingtalkStatus} onSyncReady={setDingtalkSync} onSyncingChange={setDingtalkSyncing} />}

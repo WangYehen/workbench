@@ -124,6 +124,11 @@ const DINGTALK_MESSAGE_SCHEMA = {
     priority: { type: "string", enum: ["P0", "P1", "P2"] }, confidence: { type: "integer", minimum: 0, maximum: 100 }, assigneeSelf: { type: "boolean" },
     draftTitle: { type: "string" }, draftNote: { type: "string" }, draftDueDate: { type: ["string", "null"] },
     draftPriority: { type: "string", enum: ["P0", "P1", "P2"] }, draftRationale: { type: "string" },
+    signal: { type: "object", additionalProperties: false, properties: {
+      title: { type: "string" }, conclusion: { type: "string" }, facts: { type: "array", items: { type: "string" } }, steps: { type: "array", items: { type: "string" } },
+      mergeSignalId: { type: ["string", "null"] }, mergeConfidence: { type: "integer", minimum: 0, maximum: 100 }, evidenceMessageIds: { type: "array", items: { type: "string" } },
+      associations: { type: "array", items: { type: "object", additionalProperties: false, properties: { targetType: { type: "string", enum: ["outlook", "calendar", "project", "todo"] }, targetId: { type: "string" }, confidence: { type: "integer", minimum: 0, maximum: 100 }, reason: { type: "string" } }, required: ["targetType", "targetId", "confidence", "reason"] } },
+    }, required: ["title", "conclusion", "facts", "steps", "mergeSignalId", "mergeConfidence", "evidenceMessageIds", "associations"] },
   },
   required: ["classification", "summary", "actionText", "dueDate", "priority", "confidence", "assigneeSelf"],
 };
@@ -164,6 +169,7 @@ const dingtalkMessage = z.object({
   priority: z.enum(["P0", "P1", "P2"]), confidence: z.number().int().min(0).max(100), assigneeSelf: z.boolean(),
   draftTitle: z.string(), draftNote: z.string(), draftDueDate: z.string().nullable(),
   draftPriority: z.enum(["P0", "P1", "P2"]), draftRationale: z.string(),
+  signal: z.object({ title: z.string(), conclusion: z.string(), facts: z.array(z.string()), steps: z.array(z.string()), mergeSignalId: z.string().nullable(), mergeConfidence: z.number().int().min(0).max(100), evidenceMessageIds: z.array(z.string()), associations: z.array(z.object({ targetType: z.enum(["outlook", "calendar", "project", "todo"]), targetId: z.string(), confidence: z.number().int().min(0).max(100), reason: z.string() })) }).optional(),
 });
 
 function compactReportSummary(report) {
@@ -293,7 +299,7 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
         modeLabel: runtimeConfig.ai.routingMode === "smart" ? "智能免费优先" : "兼容现有配置",
         routes: { general, sensitive },
         providers,
-        privacy: "邮件分类、回复草稿和钉钉消息分析不会发送给 OpenCode 免费模型。",
+        privacy: "邮件分类与回复草稿不会发送给 OpenCode 免费模型；钉钉工作信号按普通内容策略处理。",
         codex: { model: runtimeConfig.ai.codex.model || "账号默认模型", reasoningEffort: runtimeConfig.ai.codex.reasoningEffort || "medium" },
       };
       statusCache = { at: Date.now(), value };
@@ -320,9 +326,10 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
     async analyzeDingtalkMessage(message) {
       const context = (message.context || []).map((item) => `${item.sender_name || "成员"}：${item.content || ""}`).join("\n").slice(-6000);
       return execute({
-        kind: "dingtalk.message.classify", sensitivity: "sensitive",
-        system: "你是个人工作台的任务分流器。只判断是否需要当前用户行动。不得把普通同步、寒暄或他人任务转为待办；信息不完整时选择 uncertain。对判为行动项（action）的消息，额外生成一条可直接采用的待办草稿：标题要精炼、说明要给出可执行的要点、依据要说明为何需要处理及上下文来源；仅供知晓（informational）时草稿字段可填为空串或默认值。",
-        user: JSON.stringify({ sender: message.sender_name, content: message.content, sentAt: message.sent_at, conversation: message.conversation_title, context }),
+        // 用户已选择复用系统“普通内容”策略：OpenCode 优先，失败后由 Codex CLI 兜底。
+        kind: "dingtalk.message.classify", sensitivity: "general",
+        system: "你是个人工作台的工作信号研判器。只判断是否需要当前用户行动；普通同步、寒暄、机器人广播和他人任务不得生成行动。对有效工作消息输出 signal：标题、通俗结论、核心事实、可执行步骤、当前证据消息 ID、可选关联对象和可合并的已有信号 ID。只能选输入给出的候选 ID，不可杜撰。mergeSignalId 仅在同一议题且 mergeConfidence>=90 时填写。",
+        user: JSON.stringify({ sender: message.sender_name, content: message.content, sentAt: message.sent_at, conversation: message.conversation_title, mentionScope: message.mention_scope, context, signalCandidates: message.signalCandidates || [], associationCandidates: message.associationCandidates || [] }),
         schema: DINGTALK_MESSAGE_SCHEMA, validator: dingtalkMessage,
         fallback: () => ({
           classification: "uncertain", summary: message.content?.slice(0, 120) || "钉钉消息待确认", actionText: "请人工确认是否需要处理", dueDate: null, priority: "P2", confidence: 0, assigneeSelf: false,

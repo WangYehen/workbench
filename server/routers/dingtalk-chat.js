@@ -20,6 +20,14 @@ export default function dingtalkChatRouter(service) {
   });
   router.get("/settings", (req, res) => res.json({ settings: service.settings() }));
   router.patch("/settings", (req, res) => respond(res, () => ({ settings: service.updateSettings(req.body || {}) })));
+  router.get("/signals", (req, res) => respond(res, () => service.listSignals({ state: req.query.state ?? "open", limit: req.query.limit, offset: req.query.offset })));
+  router.get("/signals/:id", (req, res) => {
+    const item = service.signal(req.params.id);
+    if (!item) return res.status(404).json({ error: "未找到工作信号" });
+    return res.json({ item });
+  });
+  router.patch("/signals/:id", (req, res) => respond(res, () => ({ item: service.setSignalState(req.params.id, req.body?.state || "open") })));
+  router.post("/signals/:id/draft/confirm", (req, res) => respond(res, () => service.confirmSignalDraft(req.params.id, req.body || {})));
   router.get("/conversations", (req, res) => {
     const result = service.listConversations({ q: req.query.q, scope: req.query.scope, limit: req.query.limit, offset: req.query.offset });
     res.json(result);

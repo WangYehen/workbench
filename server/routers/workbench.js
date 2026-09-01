@@ -40,7 +40,8 @@ export default function workbenchRouter(syncCoordinator) {
       : ["outlook", "dingtalk", "calendar", "dingtalk_chat"];
     const allowed = new Set(["outlook", "dingtalk", "calendar", "dingtalk_chat"]);
     const sources = [...new Set(requested)].filter((source) => allowed.has(source));
-    const results = await syncCoordinator.run(sources, { date, trigger: "manual" });
+    const dingtalkChatDays = Number(req.body?.dingtalkChatDays);
+    const results = await syncCoordinator.run(sources, { date, trigger: "manual", ...(Number.isFinite(dingtalkChatDays) && dingtalkChatDays > 0 ? { dingtalkChatDays, dingtalkChatBackfill: true } : {}) });
     res.status(results.some((item) => item.status === "success" || item.status === "running") ? 200 : 502).json({ date, results });
   });
 

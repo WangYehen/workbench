@@ -203,6 +203,7 @@ export default function SystemPage() {
       {sys.aiRouting ? <>
         <div className="settings-ai-routes">
           <div><span>普通内容</span><strong>{routeText(sys.aiRouting.routes?.general)}</strong></div>
+          <div><span>钉钉信号</span><strong>{routeText(sys.aiRouting.routes?.general)}</strong></div>
           <div><span>邮件内容</span><strong>{routeText(sys.aiRouting.routes?.sensitive)}</strong></div>
         </div>
         {sys.aiRouting.codex ? <div className="meta settings-ai-codex-config">Codex CLI 实际调用：<strong>{sys.aiRouting.codex.model}</strong> · 推理强度 <strong>{sys.aiRouting.codex.reasoningEffort}</strong></div> : null}

@@ -127,6 +127,12 @@ function messageContent(raw) {
   const content = valueAt(raw, ["content", "text", "msgContent", "messageContent", "body.content"], "");
   return typeof content === "string" ? content : JSON.stringify(content || "");
 }
+function mentionScope(raw, mentionedMe = false) {
+  const text = messageContent(raw);
+  const all = raw?.mentionedAll || raw?.atAll || raw?.atAllMembers || raw?.mentionAll
+    || /@所有人|＠所有人/.test(text);
+  return all ? "all" : (mentionedMe || raw?.mentionedMe || raw?.atMe ? "self" : "none");
+}
 function normalizeMessage(raw, conversationId, fallbackType, { mentionedMe = false, contextOnly = false, contextRootId = null } = {}) {
   const id = String(valueAt(raw, ["messageId", "openMessageId", "id", "msgId"], ""));
   const sent = valueAt(raw, ["createTime", "time", "sentAt", "createAt", "timestamp"], Date.now());
@@ -142,6 +148,7 @@ function normalizeMessage(raw, conversationId, fallbackType, { mentionedMe = fal
     message_type: String(valueAt(raw, ["msgType", "messageType", "type"], "text")),
     content: messageContent(raw),
     mentioned_me: mentionedMe || raw?.mentionedMe || raw?.atMe ? 1 : 0,
+    mention_scope: mentionScope(raw, mentionedMe),
     context_only: contextOnly ? 1 : 0,
     context_root_id: contextRootId,
     quoted_message_id: valueAt(raw, ["quotedMessage.messageId", "quotedMessage.openMessageId", "quotedMessageId"], null),
@@ -198,7 +205,9 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     return { payload, ledger: readLedger(payload, exitCode) };
   }
 
-  async function probe(args, { timeoutMs = 8000 } = {}) {
+  // Windows 下冷启动 DWS 偶尔会超过 8 秒。能力探测不应因一次启动变慢而把
+  // 已经成功使用过的同步能力误报为“缺失”。
+  async function probe(args, { timeoutMs = 15_000 } = {}) {
     try {
       const { exitCode } = await executeRaw([...args, "--help"], { timeoutMs });
       return exitCode === 0;
@@ -219,7 +228,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       probe(["chat", "message", "list"]),
       probe(["chat", "message", "list-mentions"]),
     ]);
-    const value = {
+    let value = {
       conversationList: checks[0],
       atMe: checks[1],
       chatMessages: checks[2],
@@ -231,10 +240,35 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       conversationsAvailable: checks[0] || checks[3] || checks[4],
       mentionsAvailable: checks[1] || checks[8],
       messagesAvailable: checks[2] || checks[7],
+      // 没有专用 @所有人 命令时用群消息增量扫描识别，因此依赖消息读取能力。
+      atAll: checks[2] || checks[7],
       probedAt: nowIso(),
     };
     // 核心读取能力：任一路径拿得到会话、@我、消息。
     value.coreReady = value.conversationsAvailable && value.mentionsAvailable && value.messagesAvailable;
+    // 只要 DWS 已成功同步过，就不要用一次全失败的 --help 探测覆盖这份已验证
+    // 的能力记录。下一次真实同步仍会执行命令并如实报告错误。
+    const cachedGood = cached?.value?.coreReady ? cached.value : null;
+    const persistedGood = lastSync()?.capabilities?.coreReady ? lastSync().capabilities : null;
+    const fallback = cachedGood || persistedGood;
+    if (!value.coreReady && fallback) {
+      value = {
+        ...value,
+        conversationList: fallback.conversationList ?? value.conversationList,
+        atMe: fallback.atMe ?? value.atMe,
+        chatMessages: fallback.chatMessages ?? value.chatMessages,
+        chatListAll: fallback.chatListAll ?? value.chatListAll,
+        conversationListLegacy: fallback.conversationListLegacy ?? value.conversationListLegacy,
+        resourceDownload: fallback.resourceDownload ?? value.resourceDownload,
+        resourceUrl: fallback.resourceUrl ?? value.resourceUrl,
+        conversationsAvailable: fallback.conversationsAvailable ?? value.conversationsAvailable,
+        mentionsAvailable: fallback.mentionsAvailable ?? value.mentionsAvailable,
+        messagesAvailable: fallback.messagesAvailable ?? value.messagesAvailable,
+        atAll: fallback.atAll ?? value.atAll,
+        coreReady: true,
+        probeFallback: true,
+      };
+    }
     capabilityCache.set("caps", { at: Date.now(), value });
     return value;
   }
@@ -287,7 +321,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     const value = await readStatus({ force });
     return {
       ...statusSnapshot(), ...value, checking: false, stale: false,
-      capabilities: probeCapabilities ? await capabilities() : null,
+      capabilities: probeCapabilities ? await capabilities({ force }) : null,
     };
   }
 
@@ -466,7 +500,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
         id: row.id, conversation_id: row.conversation_id, conversation_title: row.conversation_title,
         sender_id: row.sender_id, sender_name: row.sender_name, direction: row.direction,
         sent_at: row.sent_at, message_type: row.message_type, content: row.content,
-        mentioned_me: row.mentioned_me, context_only: row.context_only, context_root_id: row.context_root_id,
+        mentioned_me: row.mentioned_me, mention_scope: row.mention_scope, context_only: row.context_only, context_root_id: row.context_root_id,
         quoted_message_id: row.quoted_message_id, processing_status: row.processing_status,
       })).join("\n");
       const temp = `${item.file}.${process.pid}.tmp`;
@@ -493,11 +527,12 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       const found = db().prepare(`SELECT id FROM dingtalk_chat_messages WHERE id IN (${part.map(() => "?").join(",")})`).all(...part);
       for (const row of found) existing.add(row.id);
     }
-    const insert = db().prepare(`INSERT INTO dingtalk_chat_messages(id,conversation_id,sender_id,sender_name,direction,sent_at,message_type,content,mentioned_me,context_only,context_root_id,quoted_message_id,raw_json,archive_path,processing_status,attachment_count,created_at,updated_at)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+    const insert = db().prepare(`INSERT INTO dingtalk_chat_messages(id,conversation_id,sender_id,sender_name,direction,sent_at,message_type,content,mentioned_me,mention_scope,context_only,context_root_id,quoted_message_id,raw_json,archive_path,processing_status,attachment_count,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     const reconcile = db().prepare(`UPDATE dingtalk_chat_messages SET
       mentioned_me=MAX(mentioned_me, ?),
-      context_only=CASE WHEN mentioned_me=1 THEN context_only ELSE MAX(context_only, ?) END,
+      mention_scope=CASE WHEN ?='all' THEN 'all' WHEN mention_scope='none' THEN ? ELSE mention_scope END,
+      context_only=CASE WHEN mentioned_me=1 OR mention_scope!='none' OR ?!='none' THEN context_only ELSE MAX(context_only, ?) END,
       context_root_id=COALESCE(context_root_id, ?),
       sender_id=COALESCE(NULLIF(sender_id,''), ?),
       sender_name=COALESCE(NULLIF(sender_name,''), ?),
@@ -510,10 +545,10 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     const tx = db().transaction((items) => {
       for (const row of items) {
         if (existing.has(row.id)) {
-          reconcile.run(row.mentioned_me, row.context_only, row.context_root_id, row.sender_id, row.sender_name, row.content, row.attachments?.length || 0, row.raw_json, stamp, row.id);
+          reconcile.run(row.mentioned_me, row.mention_scope, row.mention_scope, row.mention_scope, row.context_only, row.context_root_id, row.sender_id, row.sender_name, row.content, row.attachments?.length || 0, row.raw_json, stamp, row.id);
           continue;
         }
-        insert.run(row.id, row.conversation_id, row.sender_id, row.sender_name, row.direction, row.sent_at, row.message_type, row.content, row.mentioned_me, row.context_only, row.context_root_id, row.quoted_message_id, row.raw_json, null, "new", row.attachments?.length || 0, stamp, stamp);
+        insert.run(row.id, row.conversation_id, row.sender_id, row.sender_name, row.direction, row.sent_at, row.message_type, row.content, row.mentioned_me, row.mention_scope, row.context_only, row.context_root_id, row.quoted_message_id, row.raw_json, null, "new", row.attachments?.length || 0, stamp, stamp);
         added.push(row);
       }
       for (const row of items) {
@@ -538,7 +573,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     db().prepare("UPDATE dingtalk_chat_conversations SET last_sync_json=?, updated_at=? WHERE id=?").run(JSON.stringify(result), nowIso(), id);
   }
 
-  async function sync({ days = 30 } = {}) {
+  async function sync({ days = 30, forceBackfill = false } = {}) {
     const current = await status();
     if (!current.installed) throw Object.assign(new Error("未检测到 DWS，请先在设置页按指引安装。"), { code: "DWS_NOT_INSTALLED", retryable: false });
     if (!current.connected) throw Object.assign(new Error("DWS 尚未登录，请先连接个人钉钉账号。"), { code: "DWS_NOT_AUTHENTICATED", retryable: false });
@@ -550,7 +585,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     const cfg = settings();
     const first = !cfg.initialSyncComplete;
     const started = now();
-    const backfillDays = first ? days : 1;
+    const backfillDays = forceBackfill ? Math.max(1, Number(days) || 1) : first ? days : 1;
     const start = new Date(started.getTime() - backfillDays * 86400000);
     const problems = [];
     const added = [];
@@ -602,6 +637,31 @@ export function createDingtalkChatService({ database = getDb, executable = confi
         setConversationSyncResult(entry.conversationId, { at: nowIso(), rootId: root.id, context: context.length, partial: Boolean(ledger?.partial) });
       } catch (error) {
         problems.push({ scope: `mention-context:${conversation.title || entry.conversationId}`, error: error.message, code: error.code || null });
+      }
+    }
+
+    // @所有人不一定出现在 +at-me 返回中。对启用群的增量窗口补扫一次，只把明确的 @所有人
+    // 消息提升为根；其他群消息仍仅保留为这些根的上下文。
+    for (const conversation of stored.filter((item) => item.type === "group" && item.enabled)) {
+      try {
+        const since = first ? start : new Date(Math.max(start.getTime(), Date.parse(conversation.last_message_at || "") - 15 * 60000 || 0));
+        const { items, ledger } = await fetchMessages(conversation.id, since, started);
+        if (ledger?.partial) problems.push({ scope: `all-mention:${conversation.title || conversation.id}`, ...ledger });
+        const normalized = items.map((item) => normalizeMessage(item, conversation.id, "group"));
+        const allRoots = normalized.filter((item) => item.mention_scope === "all");
+        for (const root of allRoots) {
+          root.context_only = 0;
+          const inserted = await insertMessages([root]);
+          db().prepare("UPDATE dingtalk_chat_messages SET context_only=0,context_root_id=NULL,mention_scope='all',updated_at=? WHERE id=?").run(nowIso(), root.id);
+          mentionIds.add(root.id);
+          added.push(...inserted);
+          const index = normalized.findIndex((item) => item.id === root.id);
+          const context = index >= 0 ? normalized.slice(Math.max(0, index - 10), index + 11)
+            .filter((item) => item.id !== root.id).map((item) => ({ ...item, context_only: 1, context_root_id: root.id })) : [];
+          added.push(...await insertMessages(context));
+        }
+      } catch (error) {
+        problems.push({ scope: `all-mention:${conversation.title || conversation.id}`, error: error.message, code: error.code || null });
       }
     }
 
@@ -661,6 +721,100 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     return db().prepare("SELECT * FROM dingtalk_chat_conversations WHERE id=?").get(id);
   }
 
+  // 仅用于用户在配置 AI 后主动重试：找出曾因 AI 来源不可用而落成 0% 的消息。
+  function retryableAnalysisMessageIds(limit = 100) {
+    return db().prepare(`SELECT m.id FROM dingtalk_chat_messages m
+      LEFT JOIN dingtalk_message_analysis a ON a.message_id=m.id
+      JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
+      WHERE m.direction='inbound' AND m.context_only=0 AND COALESCE(c.is_bot,0)=0
+        AND m.processing_status NOT IN ('ignored','task_created','processed','waiting')
+        AND (a.message_id IS NULL OR a.confidence=0)
+      ORDER BY m.sent_at DESC LIMIT ?`).all(Math.min(300, Math.max(1, Number(limit) || 100))).map((item) => item.id);
+  }
+
+  // 只清理本功能主动注入的固定 ID；真实钉钉归档、真实信号与用户待办绝不受影响。
+  function clearTestScenario() {
+    const remove = (sql, ...params) => db().prepare(sql).run(...params).changes;
+    const removed = {
+      links: remove("DELETE FROM work_links WHERE (source_type='dingtalk_message' AND source_id LIKE 'demo_signal_%') OR (source_type='dingtalk_signal' AND source_id LIKE 'demo_work_signal_%')"),
+      evidence: remove("DELETE FROM work_signal_evidence WHERE signal_id LIKE 'demo_work_signal_%'"),
+      signals: remove("DELETE FROM work_signals WHERE id LIKE 'demo_work_signal_%'"),
+      analyses: remove("DELETE FROM dingtalk_message_analysis WHERE message_id LIKE 'demo_signal_%'"),
+      attachments: remove("DELETE FROM dingtalk_chat_attachments WHERE message_id LIKE 'demo_signal_%' OR conversation_id LIKE 'demo_signal_%'"),
+      messages: remove("DELETE FROM dingtalk_chat_messages WHERE id LIKE 'demo_signal_%'"),
+      conversations: remove("DELETE FROM dingtalk_chat_conversations WHERE id LIKE 'demo_signal_%'"),
+      todos: remove("DELETE FROM todos WHERE source_type='dingtalk_signal' AND source_id LIKE 'demo_work_signal_%'"),
+    };
+    return { removed, note: "已清理本地测试场景，不影响真实钉钉数据" };
+  }
+
+  // 本机验收用的独立样例：不调用 DWS，不清理真实数据，重复点击只刷新同一批 demo_signal_ 记录。
+  function injectTestScenario() {
+    const stamp = nowIso();
+    clearTestScenario();
+    // 仅替换本功能生成的 demo_signal_ 记录，真实钉钉归档绝不在这里被删除。
+    const projectGroupId = "demo_signal_project_group";
+    const productGroupId = "demo_signal_product_group";
+    const approvalGroupId = "demo_signal_approval_group";
+    const noticeGroupId = "demo_signal_notice_group";
+    const rootId = "demo_signal_project_root";
+    const rootIds = [rootId, "demo_signal_product_root", "demo_signal_approval_root", "demo_signal_notice_root"];
+    const noiseId = "demo_signal_noise";
+    const upsertConversation = db().prepare(`INSERT INTO dingtalk_chat_conversations(id,type,title,peer_user_id,peer_name,enabled,retention_mode,last_message_at,sync_cursor_json,created_at,updated_at,chat_mode,is_bot,type_known,last_sync_json)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,enabled=1,last_message_at=excluded.last_message_at,updated_at=excluded.updated_at`);
+    upsertConversation.run(projectGroupId, "group", "项目管理群", null, null, 1, "inherit", stamp, null, stamp, stamp, "group", 0, 1, null);
+    upsertConversation.run(productGroupId, "group", "产品讨论群", null, null, 1, "inherit", stamp, null, stamp, stamp, "group", 0, 1, null);
+    upsertConversation.run(approvalGroupId, "group", "审批协同群", null, null, 1, "inherit", stamp, null, stamp, stamp, "group", 0, 1, null);
+    upsertConversation.run(noticeGroupId, "group", "版本发布群", null, null, 1, "inherit", stamp, null, stamp, stamp, "group", 0, 1, null);
+    const upsertMessage = db().prepare(`INSERT INTO dingtalk_chat_messages(id,conversation_id,sender_id,sender_name,direction,sent_at,message_type,content,mentioned_me,context_only,context_root_id,quoted_message_id,raw_json,archive_path,processing_status,attachment_count,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET content=excluded.content,processing_status=excluded.processing_status,updated_at=excluded.updated_at`);
+    const at = (minutesAgo) => new Date(Date.now() - minutesAgo * 60_000).toISOString();
+    upsertMessage.run("demo_signal_project_context_1", projectGroupId, "demo-pm", "项目经理", "inbound", at(46), "text", "第三方服务上线延迟到 9-08，联调预计推迟 3 天，M2 需要顺延一周，辛苦确认影响。", 0, 1, rootId, null, JSON.stringify({ demo: true }), null, "informational", 0, stamp, stamp);
+    upsertMessage.run("demo_signal_project_context_2", projectGroupId, "demo-fe", "前端负责人", "inbound", at(41), "text", "如果顺延一周，前端资源 9-05 后可释放，需要看是否有其他项目优先级更高。", 0, 1, rootId, null, JSON.stringify({ demo: true }), null, "informational", 0, stamp, stamp);
+    upsertMessage.run("demo_signal_project_context_3", projectGroupId, "demo-self", "我", "outbound", at(37), "text", "了解，稍后评估对交付与资源的影响后回复。", 0, 1, rootId, null, JSON.stringify({ demo: true }), null, "informational", 0, stamp, stamp);
+    upsertMessage.run(rootId, projectGroupId, "demo-pm", "项目经理", "inbound", at(28), "text", "@你 请确认第三方服务延期后的资源调整与交付影响。", 1, 0, null, null, JSON.stringify({ demo: true }), null, "needs_confirmation", 0, stamp, stamp);
+    upsertMessage.run(rootIds[1], productGroupId, "demo-product", "产品负责人", "inbound", at(21), "text", "@你 请确认经营报表数据口径与影响范围，今天同步给业务方。", 1, 0, null, null, JSON.stringify({ demo: true }), null, "needs_confirmation", 0, stamp, stamp);
+    upsertMessage.run(rootIds[2], approvalGroupId, "demo-finance", "采购负责人", "inbound", at(16), "text", "@你 本周是否提交采购预算追加审批？请确认金额和审批路径。", 1, 0, null, null, JSON.stringify({ demo: true }), null, "needs_confirmation", 0, stamp, stamp);
+    upsertMessage.run(rootIds[3], noticeGroupId, "demo-release", "发布负责人", "inbound", at(11), "text", "@所有人 版本 2.3 将于明晚发布，上线计划已更新。", 0, 0, null, null, JSON.stringify({ demo: true }), null, "informational", 0, stamp, stamp);
+    upsertMessage.run(noiseId, productGroupId, "demo-product", "产品负责人", "inbound", at(4), "text", "收到", 0, 0, null, null, JSON.stringify({ demo: true }), null, "ignored", 0, stamp, stamp);
+    db().prepare("UPDATE dingtalk_chat_messages SET mention_scope='self' WHERE id IN (?,?,?)").run(rootId, rootIds[1], rootIds[2]);
+    db().prepare("UPDATE dingtalk_chat_messages SET mention_scope='all' WHERE id=?").run(rootIds[3]);
+    const upsertAnalysis = db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_rationale=excluded.draft_rationale,updated_at=excluded.updated_at`);
+    const demoMeta = (facts, steps) => JSON.stringify({ provider: "demo", providerLabel: "本地测试场景", generatedAt: stamp, demo: true, facts, steps });
+    upsertAnalysis.run(rootId, "action", "此事需要你今天确认", "排期调整：确认资源与交付影响", null, "P1", 94, 1, demoMeta([
+      "第三方服务上线延迟，联调预计推迟 3 天。",
+      "M2 里程碑可能顺延一周，涉及客户交付承诺。",
+      "群内明确 @你 确认资源与交付影响。",
+    ], ["确认项目排期是否调整，并明确新的关键节点。", "核对前端资源释放时间及其余项目的优先级冲突。", "同步项目经理与相关干系人，形成对外沟通口径。"]), null, "排期调整：确认资源与交付影响", "第三方服务延期可能影响 M2 交付，群内正在等待你确认资源安排与对外承诺。", "P1", null, "群内 @我，且上下文同时出现延期、资源冲突与客户交付风险。", stamp, stamp, stamp);
+    upsertAnalysis.run(rootIds[1], "action", "需要你确认数据口径与影响范围", "需求澄清：数据口径与范围", null, "P2", 88, 1, demoMeta(["经营报表的数据口径尚未统一。", "产品负责人要求今天同步给业务方。"], ["确认采用的新口径和受影响指标。", "明确业务方同步范围与负责人。", "采纳后创建一条需求澄清待办。"]), null, "需求澄清：数据口径与范围", "数据口径存在分歧，需要由你确认边界后再对业务方同步。", "P2", null, "群内 @我 并要求当日确认。", stamp, stamp, stamp);
+    upsertAnalysis.run(rootIds[2], "action", "采购预算需要你确认审批安排", "审批协同：采购预算追加", null, "P2", 91, 1, demoMeta(["采购预算出现追加需求。", "待确认金额与审批路径。"], ["核对预算追加金额和资金来源。", "确认审批人及截止时间。", "决定是否本周提交审批。"]), null, "审批协同：采购预算追加", "预算追加需尽快确认审批路径，避免影响采购排期。", "P2", null, "群内 @我 且有明确决策请求。", stamp, stamp, stamp);
+    upsertAnalysis.run(rootIds[3], "informational", "版本发布计划已更新", "发布通知：版本 2.3 上线计划", null, "P2", 92, 0, demoMeta(["版本 2.3 上线时间已确定。", "当前没有要求你执行额外操作。"], ["查看上线计划是否影响当前项目。"]), null, "发布通知：版本 2.3 上线计划", "这是一条发布同步，建议知晓即可；若涉及你的项目，再展开查看。", "P2", null, "属于发布通知，没有明确行动要求。", stamp, stamp, stamp);
+    db().prepare(`INSERT INTO work_links(id,source_type,source_id,target_type,target_id,confidence,reason,status,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_type,source_id,target_type,target_id) DO UPDATE SET confidence=excluded.confidence,status=excluded.status,updated_at=excluded.updated_at`)
+      .run("demo_signal_project_link", "dingtalk_message", rootId, "project", "星云平台升级项目", 94, "本地测试场景关联", "confirmed", stamp, stamp);
+    const upsertLink = db().prepare(`INSERT INTO work_links(id,source_type,source_id,target_type,target_id,confidence,reason,status,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_type,source_id,target_type,target_id) DO UPDATE SET confidence=excluded.confidence,status=excluded.status,updated_at=excluded.updated_at`);
+    upsertLink.run("demo_signal_mail_link", "dingtalk_message", rootId, "outlook", "M2 调整沟通与影响说明", 91, "本地测试场景关联", "confirmed", stamp, stamp);
+    upsertLink.run("demo_signal_calendar_link", "dingtalk_message", rootId, "calendar", "M2 评审会（可能调整）", 89, "本地测试场景关联", "confirmed", stamp, stamp);
+    const upsertSignal = db().prepare(`INSERT INTO work_signals(id,title,classification,state,priority,confidence,conclusion,facts_json,steps_json,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,todo_id,ai_meta_json,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,classification=excluded.classification,state=excluded.state,priority=excluded.priority,confidence=excluded.confidence,conclusion=excluded.conclusion,facts_json=excluded.facts_json,steps_json=excluded.steps_json,updated_at=excluded.updated_at`);
+    const signalRows = [
+      ["demo_work_signal_schedule", "排期调整：确认资源与交付影响", "action", "open", "P1", 94, "此事需要你今天确认", ["第三方服务上线延迟，联调预计推迟 3 天。", "M2 里程碑可能顺延一周，涉及客户交付承诺。"], ["确认项目排期是否调整，并明确新的关键节点。", "核对前端资源释放时间及其余项目的优先级冲突。", "同步项目经理与相关干系人。"], rootId],
+      ["demo_work_signal_metric", "需求澄清：数据口径与范围", "action", "open", "P2", 88, "需要你确认数据口径与影响范围", ["经营报表的数据口径尚未统一。"], ["确认采用的新口径和受影响指标。", "明确业务方同步范围与负责人。"], rootIds[1]],
+      ["demo_work_signal_budget", "审批协同：采购预算追加", "action", "open", "P2", 91, "采购预算需要你确认审批安排", ["采购预算出现追加需求。"], ["核对预算追加金额和资金来源。", "确认审批人及截止时间。"], rootIds[2]],
+      ["demo_work_signal_release", "发布通知：版本 2.3 上线计划", "informational", "open", "P2", 92, "版本发布计划已更新", ["当前没有要求你执行额外操作。"], ["查看上线计划是否影响当前项目。"], rootIds[3]],
+    ];
+    const addEvidence = db().prepare("INSERT INTO work_signal_evidence(id,signal_id,message_id,conversation_id,conversation_title,sender_name,sent_at,mention_scope,excerpt,is_root,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(signal_id,message_id) DO NOTHING");
+    for (const [signalId, title, classification, state, priority, confidence, conclusion, facts, steps, messageId] of signalRows) {
+      upsertSignal.run(signalId, title, classification, state, priority, confidence, conclusion, JSON.stringify(facts), JSON.stringify(steps), title, conclusion, priority, null, "本地测试场景", null, JSON.stringify({ provider: "demo" }), stamp, stamp);
+      const row = db().prepare("SELECT m.*,c.title conversation_title FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id WHERE m.id=?").get(messageId);
+      addEvidence.run(crypto.randomUUID(), signalId, messageId, row.conversation_id, row.conversation_title, row.sender_name, row.sent_at, row.mention_scope || "self", row.content, 1, stamp);
+    }
+    db().prepare("UPDATE work_links SET source_type='dingtalk_signal',source_id='demo_work_signal_schedule' WHERE id IN ('demo_signal_project_link','demo_signal_mail_link','demo_signal_calendar_link')").run();
+    return { inserted: 8, messageIds: [...rootIds, noiseId], note: "已注入本地测试场景，不影响真实钉钉消息" };
+  }
+
   // 行动箱消息列表。上下文消息（context_only=1）永不进入行动列表；
   // 「全部」表示符合行动箱展示规则的消息（待处理/AI待确认/已建待办/已关联），不含仅供知晓与已过滤。
   function listMessages({ conversationId, status = null, limit = 100, offset = 0, includeBots = true, q = null } = {}) {
@@ -716,6 +870,59 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     };
   }
 
+  function signalSection(row) {
+    if (row.classification === "informational") return "know";
+    return ["P0", "P1"].includes(row.priority) ? "priority" : "confirm";
+  }
+  function listSignals({ state = "open", limit = 100, offset = 0 } = {}) {
+    const filters = []; const values = [];
+    if (state) { filters.push("s.state=?"); values.push(state); }
+    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+    const items = db().prepare(`SELECT s.*, e.conversation_title,e.mention_scope,e.sent_at AS latest_evidence_at
+      FROM work_signals s LEFT JOIN work_signal_evidence e ON e.id=(SELECT e2.id FROM work_signal_evidence e2 WHERE e2.signal_id=s.id ORDER BY e2.sent_at DESC LIMIT 1)
+      ${where} ORDER BY CASE s.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END, s.updated_at DESC LIMIT ? OFFSET ?`)
+      .all(...values, Math.min(200, Math.max(1, Number(limit) || 100)), Math.max(0, Number(offset) || 0)).map((item) => ({ ...item, section: signalSection(item), facts: parseJson(item.facts_json) || [], steps: parseJson(item.steps_json) || [] }));
+    const countRows = db().prepare("SELECT classification,priority,COUNT(*) count FROM work_signals WHERE state='open' GROUP BY classification,priority").all();
+    const counts = { priority: 0, confirm: 0, know: 0 };
+    for (const row of countRows) counts[signalSection(row)] += row.count;
+    return { items, counts };
+  }
+  function signal(id) {
+    const item = db().prepare("SELECT * FROM work_signals WHERE id=?").get(id);
+    if (!item) return null;
+    const evidence = db().prepare(`SELECT e.*,m.content AS raw_content,m.id IS NOT NULL AS message_available
+      FROM work_signal_evidence e LEFT JOIN dingtalk_chat_messages m ON m.id=e.message_id WHERE e.signal_id=? ORDER BY e.sent_at`).all(id);
+    const links = db().prepare("SELECT * FROM work_links WHERE source_type='dingtalk_signal' AND source_id=? AND status!='rejected' ORDER BY confidence DESC").all(id);
+    const todo = item.todo_id ? db().prepare("SELECT * FROM todos WHERE id=?").get(item.todo_id) : null;
+    return { ...item, facts: parseJson(item.facts_json) || [], steps: parseJson(item.steps_json) || [], evidence, links, todo };
+  }
+  function setSignalState(id, state) {
+    if (!["open", "waiting", "ignored", "todo_created"].includes(state)) throw Object.assign(new Error(`不支持的信号状态：${state}`), { code: "INVALID_STATUS" });
+    db().prepare("UPDATE work_signals SET state=?,updated_at=? WHERE id=?").run(state, nowIso(), id);
+    const item = signal(id);
+    if (!item) throw Object.assign(new Error("未找到工作信号"), { code: "NOT_FOUND" });
+    return item;
+  }
+  function confirmSignalDraft(id, patch = {}) {
+    const item = signal(id);
+    if (!item) throw Object.assign(new Error("未找到工作信号"), { code: "NOT_FOUND" });
+    const title = String(patch.title || item.draft_title || item.title).trim();
+    if (!title) throw Object.assign(new Error("待办草稿缺少标题"), { code: "DRAFT_INCOMPLETE" });
+    const stamp = nowIso();
+    let todo = item.todo_id ? db().prepare("SELECT * FROM todos WHERE id=?").get(item.todo_id) : null;
+    if (!todo) {
+      const todoId = `t${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`;
+      const note = String(patch.note ?? item.draft_note ?? "").trim();
+      db().prepare("INSERT INTO todos(id,title,note,status,priority,due_date,created_at,completed_at,source_type,source_id,project_id,assignee_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+        .run(todoId, title, note, "inbox", patch.priority || item.draft_priority || item.priority, patch.dueDate || item.draft_due_date || null, stamp, null, "dingtalk_signal", id, null, null);
+      db().prepare("UPDATE work_signals SET todo_id=?,state='todo_created',updated_at=? WHERE id=?").run(todoId, stamp, id);
+      todo = db().prepare("SELECT * FROM todos WHERE id=?").get(todoId);
+      return { item: signal(id), todo, created: true };
+    }
+    db().prepare("UPDATE work_signals SET state='todo_created',updated_at=? WHERE id=?").run(stamp, id);
+    return { item: signal(id), todo, created: false };
+  }
+
   function message(id) {
     const item = db().prepare(`SELECT m.*, c.title AS conversation_title, c.type AS conversation_type, c.is_bot AS conversation_is_bot,
       a.classification,a.summary,a.action_text,a.due_date,a.priority,a.confidence,a.assignee_self,a.todo_id, a.ai_meta_json,
@@ -738,7 +945,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
   }
 
   function setMessageStatus(id, processingStatus) {
-    const allowed = ["new", "needs_confirmation", "task_created", "informational", "processed", "ignored"];
+    const allowed = ["new", "needs_confirmation", "task_created", "informational", "waiting", "processed", "ignored"];
     if (!allowed.includes(processingStatus)) throw Object.assign(new Error(`不支持的消息状态：${processingStatus}`), { code: "INVALID_STATUS" });
     db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?, updated_at=? WHERE id=?").run(processingStatus, nowIso(), id);
     return message(id);
@@ -885,7 +1092,8 @@ export function createDingtalkChatService({ database = getDb, executable = confi
   return {
     status, statusSnapshot, invalidateStatus, startLogin, loginStatus, settings, updateSettings, sync, cleanup, capabilities,
     listConversations, setConversation, listMessages, countByStatus, message, setMessageStatus,
-    createTodo, setLink, downloadAttachment, lastSync, generateTodoDraft, confirmTodoDraft,
+    listSignals, signal, setSignalState, confirmSignalDraft,
+    createTodo, setLink, downloadAttachment, lastSync, generateTodoDraft, confirmTodoDraft, retryableAnalysisMessageIds, injectTestScenario, clearTestScenario,
   };
 }
 

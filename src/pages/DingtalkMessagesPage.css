@@ -133,3 +133,39 @@
 .m2-draft-form__actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .m2-draft__done { font-size: 13px; color: var(--m2-green); font-weight: 600; }
 .m2-draft-created-note { margin: 6px 0 0; font-size: 12px; color: var(--m2-soft); }
+
+/* 工作信号：原始消息退到证据层，主界面围绕一个可决策事项展开。 */
+.signal-page { margin-top: 28px; }
+.signal-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }.signal-head__actions{display:flex;align-items:center;gap:12px}.signal-head__actions .btn{display:inline-flex;align-items:center;gap:5px;border-radius:8px}
+.signal-head h1 { margin: 0; font-size: 22px; letter-spacing: -.4px; }
+.signal-head p { margin: 5px 0 0; color: var(--m2-soft); font-size: 13px; }
+.signal-head__sync { font-size: 12px; color: var(--m2-soft); display: flex; align-items: center; gap: 7px; }
+.signal-head__sync i { width: 8px; height: 8px; border-radius: 50%; background: var(--m2-green); }
+.signal-layout { display: grid; grid-template-columns: minmax(245px, .78fr) minmax(470px, 1.5fr) minmax(330px, .95fr); gap: 12px; align-items: stretch; }
+.signal-nav, .signal-brief, .signal-evidence { min-height: 720px; background: #fff; border: 1px solid #e8ebf0; border-radius: 11px; }
+.signal-nav { padding: 28px 15px; }
+.signal-nav__section { margin: 0 0 28px; }
+.signal-nav__section h2 { margin: 0 8px 13px; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 650; letter-spacing: -.15px; }
+.signal-nav__section h2 span { color: var(--m2-soft); font-weight: 400; }
+.signal-dot { flex: none; color: var(--m2-blue); }
+.signal-dot--priority { color: var(--m2-red); }.signal-dot--confirm { color: var(--m2-orange); }.signal-dot--know { color: var(--m2-green); }
+.signal-nav__item { position: relative; width: 100%; min-height: 87px; border: 1px solid transparent; border-radius: 10px; text-align: left; background: transparent; padding: 15px 14px; cursor: pointer; color: var(--m2-ink); }
+.signal-nav__item:hover { background: #fafbfd; }.signal-nav__item.is-selected { border-color: #9ec8ff; background: #f7fbff; box-shadow: inset 3px 0 #1677ff; }
+.signal-nav__item strong, .signal-nav__item span, .signal-nav__item time { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.signal-nav__item strong { font-size: 14px; font-weight: 650; letter-spacing: -.15px; }.signal-nav__item span { margin-top: 10px; font-size: 12px; color: #838c9b; }.signal-nav__item time { margin-top: 7px; font-size: 12px; color: #9ba2af; }
+.signal-brief { padding: 34px 30px 24px; display: flex; flex-direction: column; }.signal-brief h2 { margin: 14px 0 24px; font-size: 29px; font-weight: 750; letter-spacing: -.9px; line-height: 1.25; }
+.signal-source { display: flex; align-items: center; gap: 10px; color: #7d8797; font-size: 13px; }.signal-source b { color: #2177eb; background: #edf5ff; border-radius: 4px; padding: 2px 6px; }.signal-source time { margin-left: auto; }
+.signal-reading { padding: 22px 24px 23px; border-radius: 13px; background: #f4f8ff; border: 1px solid #e2edff; }.signal-reading h3, .signal-steps h3, .signal-evidence h3 { margin: 0 0 15px; font-size: 16px; font-weight: 700; }.signal-reading h3 { display: flex; gap: 9px; align-items: center; color: #2d3748; }.signal-reading h3 svg { color: #1677ff; }.signal-reading h3 small { font-size: 14px; color: #697588; font-weight: 500; }.signal-reading strong { display: block; color: #1769da; font-size: 18px; font-weight: 700; line-height: 1.5; }.signal-reading p { color: #547197; margin: 12px 0 0; font-size: 14px; line-height: 1.75; }
+.signal-steps { margin-top: 31px; padding-top: 28px; border-top: 1px solid #edf0f4; }.signal-steps h3 { display:flex; align-items:center; gap:9px; color:#1769da; font-size:17px; }.signal-steps h3 svg{color:#1677ff}.signal-steps ul, .signal-facts { padding: 0; margin: 0; list-style: none; }.signal-steps li, .signal-facts li { position: relative; padding: 7px 0 7px 25px; color: #505866; line-height: 1.6; font-size: 14px; }.signal-steps li::before { content: "✓"; position: absolute; left: 1px; color: #1677ff; font-weight: 700; }
+.signal-actions { display: flex; gap: 12px; margin: auto -30px -24px; padding: 20px 30px 0; border-top: 1px solid #edf0f4; }.signal-actions .btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 10px; font-size: 14px; }.signal-actions .btn.primary { min-width: 150px; }
+.signal-evidence { min-width: 0; overflow: hidden; padding: 30px 25px 18px; }.signal-evidence > h2 { margin: 0 0 25px; font-size: 18px; font-weight: 750; letter-spacing:-.3px; }.signal-evidence section { min-width: 0; padding: 21px 0; border-top: 1px solid #e9edf2; }.signal-evidence section:first-of-type { border-top: 0; padding-top: 0; }.signal-muted { margin: 0; color: var(--m2-soft); font-size: 13px; line-height: 1.7; }
+.signal-evidence h3{font-size:15px}.signal-facts li{padding-left:19px}.signal-facts li::before{content:"•";position:absolute;left:1px;color:#8d98a9}.signal-link { display: flex; align-items: center; gap: 10px; padding: 10px 11px; margin-top: 8px; border: 1px solid #edf0f4; border-radius: 9px; background: #fff; color: #4f5765; font-size: 13px; }.signal-link span{flex:1}.signal-link svg:first-child { color: #1677ff; }.signal-link svg:last-child{color:#8791a1;transform:rotate(-90deg)}
+.signal-timeline { display: grid; gap: 11px; min-width: 0; }.signal-timeline p, .signal-raw-list p { min-width: 0; overflow-wrap: anywhere; word-break: break-word; margin: 0; padding: 8px 0 8px 17px; border-left: 2px solid #b9d8ff; color: #555e6d; font-size: 13px; line-height: 1.62; }.signal-timeline time { display: block; color: #8e99aa; font-size: 11px; }.signal-timeline b, .signal-raw-list b { display: block; color: #303846; margin: 3px 0; font-weight:650; }
+.signal-raw { display: flex; align-items: center; gap: 6px; border: 0; padding: 15px 0 8px; background: none; color: #526171; cursor: pointer; font-size: 13px; }.signal-raw-list { max-height: 180px; overflow: auto; border-top: 1px solid #e9edf2; padding-top: 8px; }.signal-empty { padding: 35px 14px; text-align: center; color: var(--m2-soft); font-size: 13px; }
+@media (max-width: 1180px) { .signal-layout { grid-template-columns: minmax(190px, .7fr) minmax(0, 1.3fr); }.signal-evidence { grid-column: 1 / -1; min-height: 0; }.signal-actions { margin-top: 30px; } }
+@media (max-width: 760px) { .signal-page { margin-top: 18px; }.signal-head { align-items: flex-start; gap: 10px; flex-direction: column; }.signal-layout { grid-template-columns: 1fr; }.signal-nav, .signal-brief, .signal-evidence { min-height: 0; }.signal-brief { padding: 22px; }.signal-brief h2 { font-size: 22px; }.signal-evidence { grid-column: auto; }.signal-actions { flex-direction: column; }.signal-actions .btn { width: 100%; } }
+
+.signal-reading p { white-space: pre-line; }
+.signal-link--outlook svg:first-child { color: #5b8def; }
+.signal-link--calendar svg:first-child { color: #ed9d27; }
+.signal-link--project svg:first-child { color: #34a56f; }
