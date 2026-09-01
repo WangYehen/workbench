@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { IconBrain, IconRefresh, IconServer, IconSettings } from "@tabler/icons-react";
+import { IconBrain, IconMessageCircle, IconRefresh, IconServer, IconSettings, IconTemplate } from "@tabler/icons-react";
 import { DeleteButton } from "../components/DeleteButton";
 import { PageHeader } from "../components/PageHeader";
 import { api, dingtalkChatApi, teamApi, todayStr, workbenchApi } from "../api.js";
@@ -223,7 +223,7 @@ export default function SystemPage() {
     </section>
 
     <section className="panel" style={{ marginTop: 14 }}>
-      <div className="panel__head"><div><div className="panel__title">钉钉个人消息（DWS）</div><div className="meta" style={{ marginTop: 4 }}>私聊完整上下文与群聊 @我 消息，本地保存并可生成待办</div></div><button className="btn sm" onClick={() => dingtalkChatApi.status({ refresh: true }).then(setDws)}><IconRefresh size={14}/>刷新检测</button></div>
+      <div className="panel__head"><div><div className="panel__title"><span className="work-page-icon"><IconMessageCircle size={22} stroke={1.75} /></span>钉钉个人消息（DWS）</div><div className="meta" style={{ marginTop: 4 }}>私聊完整上下文与群聊 @我 消息，本地保存并可生成待办</div></div><button className="btn sm" onClick={() => dingtalkChatApi.status({ refresh: true }).then(setDws)}><IconRefresh size={14}/>刷新检测</button></div>
       {dws?.checking ? <div className="meta">正在后台检测 DWS 状态…</div> : dws?.installed ? <><div className="row spread"><span>运行时：{dws.version || "已安装"}</span><span className={`pill ${dws.connected ? "green" : "gray"}`}>{dws.connected ? "已连接" : "待登录"}</span></div>{!dws.connected && <button className="btn primary sm" style={{ marginTop: 10 }} onClick={connectDws}>连接个人钉钉</button>}{dws.loginAttempt && <div className="meta" style={{ marginTop: 8 }}>登录任务已启动，请按终端/浏览器提示完成授权。</div>}{dws.capabilities && !dws.capabilities.coreReady && <div className="meta" style={{ marginTop: 8, color: "#8a6116" }}>当前 DWS 缺少部分核心能力，同步可能不完整，请升级 DWS。</div>}<div className="row" style={{ marginTop: 12 }}><span className="meta">消息保留：</span><button className={`btn sm ${!dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(false)}>180天</button><button className={`btn sm ${dws.settings?.permanent ? "primary" : ""}`} onClick={() => setPermanent(true)}>永久</button></div>
       <div className="row" style={{ marginTop: 12, gap: 8 }}><input value={chatSearch} onChange={(e) => { setChatSearch(e.target.value); setChatPage(1); }} placeholder="搜索会话名称" style={{ maxWidth: 260 }} /></div>
       <div className="meta" style={{ marginTop: 8 }}>群聊默认启用；关闭后不再采集新的 @我 消息。单个会话可覆盖为永久保留。</div>
@@ -248,7 +248,7 @@ export default function SystemPage() {
 
     <div className="grid grid-2" style={{ marginTop: 14 }}>
       <div className="panel">
-        <div className="panel__head"><div><div className="panel__title">自动同步</div><div className="meta" style={{ marginTop: 4 }}>服务启动后自动运行，无需停留在页面</div></div><button className="btn sm" onClick={loadSync}><IconRefresh size={14} />刷新状态</button></div>
+        <div className="panel__head"><div><div className="panel__title"><span className="work-page-icon"><IconRefresh size={22} stroke={1.75} /></span>自动同步</div><div className="meta" style={{ marginTop: 4 }}>服务启动后自动运行，无需停留在页面</div></div><button className="btn sm" onClick={loadSync}><IconRefresh size={14} />刷新状态</button></div>
         {sync.map((item) => <section key={item.source} style={{ padding: "13px 0", borderBottom: "1px solid var(--line)" }}>
           <div className="row spread"><div><strong>{item.label}</strong><div className="meta">每 {item.intervalMinutes} 分钟 · {item.scope}</div></div><span className={`pill ${item.status === "success" ? "green" : item.status === "error" ? "red" : "gray"}`}>{item.blocked ? "需更新白名单" : statusText[item.status] || item.status}</span></div>
           <div className="meta" style={{ marginTop: 7 }}>
@@ -264,7 +264,7 @@ export default function SystemPage() {
       </div>
 
       <div className="panel">
-        <div className="panel__head"><div className="panel__title">钉钉日志模板</div></div>
+        <div className="panel__head"><div className="panel__title"><span className="work-page-icon"><IconTemplate size={22} stroke={1.75} /></span>钉钉日志模板</div></div>
         <div className="row"><input value={templateName} onChange={(event) => setTemplateName(event.target.value)} placeholder="模板名称" /><button className="btn primary sm" onClick={addTemplate}>添加</button></div>
         {templateError && <div className="settings-template-error" role="alert">{templateError}</div>}
         {templates.map((template) => <div className="row spread settings-template-row" key={template.id}>

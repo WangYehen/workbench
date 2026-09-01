@@ -96,7 +96,7 @@
 /* ---- 通用卡片 ---- */
 .oc-card { background: var(--oc-surface); border: 1px solid var(--oc-line); border-radius: 18px; padding: 20px; }
 .oc-card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
-.oc-card__title { font-size: 16px; font-weight: 600; color: var(--oc-ink); }
+.oc-card__title { display: inline-flex; align-items: center; gap: 7px; font-size: 16px; font-weight: 600; color: var(--oc-ink); }
 .oc-card__count { padding: 3px 10px; border-radius: 999px; background: #eaf2fc; color: var(--oc-accent); font-size: 12px; font-weight: 500; }
 .oc-card__link { background: none; border: none; color: var(--oc-accent); font-size: 13px; cursor: pointer; padding: 0; font-family: inherit; }
 .oc-card__link:hover { text-decoration: underline; }
