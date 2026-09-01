@@ -96,7 +96,7 @@
 }
 
 .project-progress-bar { cursor: ew-resize; touch-action: none; }
-.project-progress-value { min-width: 72px; text-align: center; color: var(--accent); font-size: 13px; }
+.project-progress-value { display: inline-flex; align-items: center; justify-content: center; width: 72px; min-height: 32px; box-sizing: border-box; text-align: center; color: var(--accent); font-size: 13px; }
 
 .project-date-field {
   flex: 1;
