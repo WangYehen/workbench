@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAiService } from "./ai.mjs";
+import { createAiService, normalizeDingtalkMessageOutput } from "./ai.mjs";
 import { apiProviderOrder, parseOpenCodeFreeModels } from "./ai-runtime.mjs";
 
 function runtimeConfig(overrides = {}) {
@@ -84,7 +84,21 @@ test("模型来源依次失败后使用本地规则", async () => {
   const result = await service.dailySuggestion({ openTodos: 2 });
   assert.equal(result.aiMeta.provider, "local");
   assert.deepEqual(result.aiMeta.attemptedProviders, ["opencode", "codex", "deepseek", "local"]);
+  assert.deepEqual(result.aiMeta.providerFailures.map((item) => item.code), ["quota", "quota", "quota"]);
   assert.match(result.suggestion, /待办/);
+});
+
+test("钉钉信号规范化免费模型的常见中文输出", () => {
+  const result = normalizeDingtalkMessageOutput({
+    classification: "行动请求", summary: "请确认上线安排", actionText: "确认安排", dueDate: null,
+    priority: "中高", confidence: 0.85, assigneeSelf: true, signal: "需要协调的上线事项",
+  });
+  assert.equal(result.classification, "action");
+  assert.equal(result.priority, "P1");
+  assert.equal(result.confidence, 85);
+  assert.equal(result.draftPriority, "P1");
+  assert.equal(result.signal.title, "需要协调的上线事项");
+  assert.deepEqual(result.signal.evidenceMessageIds, []);
 });
 
 test("API 兜底顺序兼容 AI_PROVIDER 并过滤未配置来源", () => {

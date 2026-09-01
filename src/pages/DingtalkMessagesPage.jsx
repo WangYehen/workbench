@@ -31,15 +31,22 @@ export default function DingtalkMessagesPage({ onStatusChange, onSyncReady, onSy
   const [error, setError] = useState(""); const [showRaw, setShowRaw] = useState(false);
   const selectSignal = useCallback(async (signal) => {
     setSelectedSignal(signal); setShowRaw(false); setError("");
-    try { setDetail((await dingtalkChatApi.signal(signal.id)).item); } catch (e) { setError(e.message); }
+    try {
+      if (signal.source === "message") {
+        const message = (await dingtalkChatApi.message(signal.id)).item;
+        setDetail({ ...message, isMessage: true, title: message.summary || message.content?.slice(0, 60) || "待确认消息", conclusion: message.summary || "该消息尚未获得可靠的 AI 判断。", facts: [], steps: [], evidence: [{ message_id: message.id, conversation_title: message.conversation_title, sender_name: message.sender_name, sent_at: message.sent_at, excerpt: message.content, raw_content: message.content, message_available: true, is_root: true }] });
+      } else setDetail((await dingtalkChatApi.signal(signal.id)).item);
+    } catch (e) { setError(e.message); }
   }, []);
   const load = useCallback(async () => {
     try {
-      const [result, info] = await Promise.all([
+      const [result, messages, info] = await Promise.all([
         dingtalkChatApi.signals({ limit: "200" }),
+        dingtalkChatApi.messages({ status: "needs_confirmation", limit: "200" }),
         dingtalkChatApi.status().catch(() => null),
       ]);
-      setSignals((result.items || []).filter((item) => Number(item.confidence) > 0));
+      const pending = (messages.items || []).filter((item) => Number(item.confidence) === 0).map((item) => ({ ...item, source: "message", section: "confirm", title: item.summary || item.content?.slice(0, 60) || "待确认消息", latest_evidence_at: item.sent_at }));
+      setSignals([...(result.items || []).filter((item) => Number(item.confidence) > 0), ...pending]);
       setStatus(info); onStatusChange?.(info);
     } catch (e) { setError(e.message); }
   }, [onStatusChange]);
@@ -48,7 +55,7 @@ export default function DingtalkMessagesPage({ onStatusChange, onSyncReady, onSy
   const sync = useCallback(async () => { setSyncing(true); onSyncingChange?.(true); setError(""); try { await workbenchApi.syncRun(todayStr(), ["dingtalk_chat"]); await load(); } catch (e) { setError(e.message); } finally { setSyncing(false); onSyncingChange?.(false); } }, [load, onSyncingChange]);
   useEffect(() => { onSyncReady?.(sync); return () => onSyncReady?.(null); }, [onSyncReady, sync]);
   const update = async (key, work) => { if (!detail) return; setBusy(key); setError(""); try { await work(); await load(); } catch (e) { setError(e.message); } finally { setBusy(""); } };
-  const adopt = () => update("adopt", () => dingtalkChatApi.confirmSignalDraft(detail.id, { title: detail.draft_title || detail.title, note: detail.draft_note || "", priority: detail.draft_priority || detail.priority || "P2", dueDate: detail.draft_due_date || null }));
+  const adopt = () => update("adopt", () => detail?.isMessage ? dingtalkChatApi.createTodo(detail.id) : dingtalkChatApi.confirmSignalDraft(detail.id, { title: detail.draft_title || detail.title, note: detail.draft_note || "", priority: detail.draft_priority || detail.priority || "P2", dueDate: detail.draft_due_date || null }));
   const evidence = detail?.evidence || []; const rootEvidence = evidence.find((item) => item.is_root) || evidence.at(-1);
   const suggestedSteps = Array.isArray(detail?.steps) && detail.steps.length ? detail.steps : [
     "确认事项是否需要由你推进，以及相关负责人。",
@@ -62,9 +69,9 @@ export default function DingtalkMessagesPage({ onStatusChange, onSyncReady, onSy
     <div className="signal-layout"><SignalNav groups={signals} selected={selectedSignal} onSelect={selectSignal} />
       <main className="signal-brief">{detail ? <>
         <div className="signal-source"><span>{rootEvidence?.conversation_title || "钉钉会话"}</span>{rootEvidence?.mention_scope === "all" ? <b>@所有人</b> : rootEvidence?.mention_scope === "self" ? <b>@我</b> : null}<time>{relativeTime(rootEvidence?.sent_at || detail.updated_at)}</time></div><h2>{detail.title}</h2>
-        <section className="signal-reading"><h3><IconMessageCircle2 size={21} />AI 读懂 <small>（用大白话）</small></h3><strong>{detail.conclusion || "正在分析这条工作信号"}</strong><p>{detail.draft_note || (detail.classification === "action" ? "这件事需要你作出判断或推动下一步。" : "这是一条重要同步，当前无需你直接处理。")}</p></section>
+        <section className="signal-reading"><h3><IconMessageCircle2 size={21} />AI 读懂 </h3><strong>{detail.conclusion || "正在分析这条工作信号"}</strong><p>{detail.draft_note || (detail.classification === "action" ? "这件事需要你作出判断或推动下一步。" : "这是一条重要同步，当前无需你直接处理。")}</p></section>
         <section className="signal-steps"><h3><IconBulb size={20} />建议你如何处理</h3><ul>{suggestedSteps.map((step) => <li key={step}>{step}</li>)}</ul></section>
-        <div className="signal-actions"><button className="btn primary" disabled={busy === "adopt"} onClick={adopt}><IconCheck size={16} />{busy === "adopt" ? "正在创建…" : "采纳待办建议"}</button><button className="btn" disabled={busy === "waiting"} onClick={() => update("waiting", () => dingtalkChatApi.updateSignal(detail.id, "waiting"))}><IconClock size={16} />标记等待他人</button><button className="btn" disabled={busy === "ignore"} onClick={() => update("ignore", () => dingtalkChatApi.updateSignal(detail.id, "ignored"))}><IconX size={16} />不需要处理</button></div>
+        <div className="signal-actions"><button className="btn primary" disabled={busy === "adopt"} onClick={adopt}><IconCheck size={16} />{busy === "adopt" ? "正在创建…" : detail?.isMessage ? "转为待办" : "采纳待办建议"}</button>{!detail?.isMessage && <button className="btn" disabled={busy === "waiting"} onClick={() => update("waiting", () => dingtalkChatApi.updateSignal(detail.id, "waiting"))}><IconClock size={16} />标记等待他人</button>}<button className="btn" disabled={busy === "ignore"} onClick={() => update("ignore", () => detail?.isMessage ? dingtalkChatApi.updateMessage(detail.id, "ignored") : dingtalkChatApi.updateSignal(detail.id, "ignored"))}><IconX size={16} />不需要处理</button></div>
       </> : <div className="signal-empty">选择一条工作信号查看 AI 判断。</div>}</main>
       <aside className="signal-evidence">{detail && <><h2>AI 如何得出这个结论</h2><section><h3>核心事实</h3><ul className="signal-facts">{(detail.facts?.length ? detail.facts : ["尚未获得有效 AI 分析结果"]).map((fact) => <li key={fact}>{fact}</li>)}</ul></section>
         <section><h3>相关对象（项目、邮件、日程）</h3>{detail.links?.length ? detail.links.map((link) => { const TargetIcon = link.target_type === "project" ? IconFolder : link.target_type === "calendar" ? IconCalendarEvent : link.target_type === "outlook" ? IconMail : IconLink; return <div className={`signal-link signal-link--${link.target_type}`} key={link.id}><TargetIcon size={17} /><span>{TARGET_TEXT[link.target_type] || link.target_type}：{link.target_id}</span><IconChevronDown size={15} /></div>; }) : <p className="signal-muted">暂未识别到明确的邮件、项目或日程关联。</p>}</section>

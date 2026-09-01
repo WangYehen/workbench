@@ -13,6 +13,7 @@ import {
   buildDraftReplySystemPrompt,
   reliableClassifierPromptSystem,
   reliableClassifierPromptUser,
+  dingtalkSignalSystemPrompt,
 } from "./prompts/index.mjs";
 
 const OUTLOOK_CLASSIFICATION_SCHEMA = {
@@ -130,7 +131,7 @@ const DINGTALK_MESSAGE_SCHEMA = {
       associations: { type: "array", items: { type: "object", additionalProperties: false, properties: { targetType: { type: "string", enum: ["outlook", "calendar", "project", "todo"] }, targetId: { type: "string" }, confidence: { type: "integer", minimum: 0, maximum: 100 }, reason: { type: "string" } }, required: ["targetType", "targetId", "confidence", "reason"] } },
     }, required: ["title", "conclusion", "facts", "steps", "mergeSignalId", "mergeConfidence", "evidenceMessageIds", "associations"] },
   },
-  required: ["classification", "summary", "actionText", "dueDate", "priority", "confidence", "assigneeSelf"],
+  required: ["classification", "summary", "actionText", "dueDate", "priority", "confidence", "assigneeSelf", "draftTitle", "draftNote", "draftDueDate", "draftPriority", "draftRationale"],
 };
 
 const outlookClassification = z.object({
@@ -202,6 +203,30 @@ function providerLabel(id) {
   return { opencode: "OpenCode 免费模型", codex: "Codex CLI", deepseek: "DeepSeek API", openai: "OpenAI API", claude: "Claude API", ollama: "Ollama", local: "本地规则" }[id] || id;
 }
 
+export function normalizeDingtalkMessageOutput(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const data = { ...value };
+  const classification = { "行动请求": "action", "需处理": "action", "行动": "action", "信息": "informational", "知晓": "informational", "不确定": "uncertain" };
+  const priority = { "紧急": "P0", "高": "P1", "中高": "P1", "中": "P2", "低": "P2" };
+  data.classification = classification[data.classification] || data.classification;
+  data.priority = priority[data.priority] || data.priority;
+  data.draftPriority = priority[data.draftPriority] || data.draftPriority;
+  if (typeof data.confidence === "number" && data.confidence >= 0 && data.confidence <= 1) data.confidence = Math.round(data.confidence * 100);
+  data.draftTitle ??= data.actionText || data.summary || "待确认事项";
+  data.draftNote ??= data.summary || data.actionText || "";
+  data.draftDueDate ??= data.dueDate ?? null;
+  data.draftPriority ??= data.priority || "P2";
+  data.draftRationale ??= "根据钉钉消息生成，建议人工确认。";
+  if (typeof data.signal === "string") {
+    data.signal = { title: data.signal, conclusion: data.summary || data.signal, facts: [], steps: [], mergeSignalId: null, mergeConfidence: 0, evidenceMessageIds: [], associations: [] };
+  }
+  return data;
+}
+
+function providerFailure(provider, error) {
+  return { provider, code: error?.code || "invalid_output", detail: String(error?.message || "AI 返回不符合要求的结果").replace(/\s+/g, " ").slice(0, 240) };
+}
+
 export function createAiService({ runtimeConfig = config, adapters = createDefaultAiAdapters(runtimeConfig), now = () => new Date() } = {}) {
   let statusCache = null;
   let statusInFlight = null;
@@ -221,9 +246,10 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
       const startedAt = Date.now();
       try {
         const result = await adapters[provider].generate({ kind, sensitivity, system, user, schema, temperature });
-        const providerData = kind === "dashboard.suggestion" && result.data && typeof result.data === "object"
+        let providerData = kind === "dashboard.suggestion" && result.data && typeof result.data === "object"
           ? { suggestion: result.data.suggestion || result.data.__text || Object.values(result.data).find((value) => typeof value === "string") }
           : result.data;
+        if (kind === "dingtalk.message.classify") providerData = normalizeDingtalkMessageOutput(providerData);
         const data = validator.parse(providerData);
         return {
           ...data,
@@ -232,13 +258,14 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
             providerLabel: providerLabel(provider),
             model: result.model || "",
             attemptedProviders: [...attempts.map((item) => item.provider), provider],
+            providerFailures: attempts,
             fallbackUsed: attempts.length > 0,
             durationMs: Date.now() - startedAt,
             generatedAt: now().toISOString(),
           },
         };
       } catch (error) {
-        attempts.push({ provider, code: error?.code || "invalid_output" });
+        attempts.push(providerFailure(provider, error));
       }
     }
     const data = validator.parse(fallback());
@@ -249,6 +276,7 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
         providerLabel: providerLabel("local"),
         model: "deterministic",
         attemptedProviders: [...attempts.map((item) => item.provider), "local"],
+        providerFailures: attempts,
         fallbackUsed: true,
         durationMs: 0,
         generatedAt: now().toISOString(),
@@ -328,7 +356,7 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
       return execute({
         // 用户已选择复用系统“普通内容”策略：OpenCode 优先，失败后由 Codex CLI 兜底。
         kind: "dingtalk.message.classify", sensitivity: "general",
-        system: "你是个人工作台的工作信号研判器。只判断是否需要当前用户行动；普通同步、寒暄、机器人广播和他人任务不得生成行动。对有效工作消息输出 signal：标题、通俗结论、核心事实、可执行步骤、当前证据消息 ID、可选关联对象和可合并的已有信号 ID。只能选输入给出的候选 ID，不可杜撰。mergeSignalId 仅在同一议题且 mergeConfidence>=90 时填写。",
+        system: dingtalkSignalSystemPrompt,
         user: JSON.stringify({ sender: message.sender_name, content: message.content, sentAt: message.sent_at, conversation: message.conversation_title, mentionScope: message.mention_scope, context, signalCandidates: message.signalCandidates || [], associationCandidates: message.associationCandidates || [] }),
         schema: DINGTALK_MESSAGE_SCHEMA, validator: dingtalkMessage,
         fallback: () => ({

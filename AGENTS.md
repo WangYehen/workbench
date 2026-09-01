@@ -50,3 +50,4 @@ electron/        Electron 主进程（main.mjs + preload.mjs）
 - 钉钉域名绕过代理直连（白名单要求，代理模式下可能导致 errcode 88/60020）
 - 启动时自动探测代理可用性，不可用则回退直连
 - 构建产物输出到 dist/client（electron-builder 打包时包含）
+- UI页面风格保持统一，组件能复用就复用

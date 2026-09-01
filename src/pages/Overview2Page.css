@@ -180,6 +180,7 @@
 
 /* ---- 响应式 ---- */
 @media (max-width: 1080px) {
+  .oc { padding: 20px 14px 36px; }
   .oc-kpis { grid-template-columns: repeat(2, 1fr); }
   .oc-grid { grid-template-columns: 1fr; }
 }

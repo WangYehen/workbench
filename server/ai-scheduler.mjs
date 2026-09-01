@@ -37,14 +37,22 @@ function associationCandidates(db) {
   const sources = [["outlook", "emails", "id", "subject"], ["calendar", "calendars", "id", "title"], ["project", "projects", "id", "name"], ["todo", "todos", "id", "title"]];
   return sources.flatMap(([type, table, id, title]) => db.prepare(`SELECT ${id} id,${title} title FROM ${table} WHERE ${title} IS NOT NULL AND ${title}!='' ORDER BY rowid DESC LIMIT 20`).all().map((item) => ({ type, id: String(item.id), title: item.title })));
 }
+function signalTitleKey(value) {
+  return String(value || "").toLocaleLowerCase().replace(/[\s，。！？、,.!?:：；;（）()【】\[\]"'“”‘’]/g, "");
+}
 function persistSignal(db, message, context, result, stamp) {
   if (!result?.signal || !result.classification || result.confidence <= 0) return null;
   const candidates = new Set(signalCandidates(db).map((item) => item.id));
   const requested = result.signal.mergeSignalId;
-  const id = requested && candidates.has(requested) && result.signal.mergeConfidence >= 90 ? requested : crypto.randomUUID();
+  const title = String(result.signal.title || result.actionText || result.summary || "需要确认的事项").slice(0, 120);
+  const recent = db.prepare(`SELECT s.id,s.title FROM work_signals s
+    JOIN work_signal_evidence e ON e.signal_id=s.id
+    WHERE e.conversation_id=? AND s.state IN ('open','waiting') AND s.updated_at>=?
+    ORDER BY s.updated_at DESC`).all(message.conversation_id, new Date(Date.parse(stamp) - 24 * 60 * 60 * 1000).toISOString());
+  const duplicate = recent.find((item) => signalTitleKey(item.title) === signalTitleKey(title));
+  const id = requested && candidates.has(requested) && result.signal.mergeConfidence >= 90 ? requested : duplicate?.id || crypto.randomUUID();
   const existing = db.prepare("SELECT * FROM work_signals WHERE id=?").get(id);
   const signal = result.signal;
-  const title = String(signal.title || result.actionText || result.summary || "需要确认的事项").slice(0, 120);
   const facts = Array.isArray(signal.facts) ? signal.facts.slice(0, 6) : [];
   const steps = Array.isArray(signal.steps) ? signal.steps.slice(0, 6) : [];
   const state = existing ? "open" : "open";
@@ -123,7 +131,9 @@ function toArtifact(row) {
 
 /** Single-process persistent queue. Handlers derive input from local domain records at execution time. */
 export function createAiScheduler({ database = getDb, aiService = ai, now = () => new Date() } = {}) {
-  let running = false;
+  // Each task kind has its own worker lane. A slow DingTalk analysis must not
+  // block dashboard suggestions (or other independent AI workloads).
+  const runningKinds = new Set();
   let closed = false;
 
   function db() { return database(); }
@@ -150,7 +160,7 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     db().prepare("INSERT INTO ai_tasks(id,kind,scope,input_hash,status,priority,trigger,attempts,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
       .run(task.id, kind, scope, inputHash, "queued", task.priority, trigger, 0, task.createdAt);
     writeArtifact({ kind, scope, inputHash, status: current?.payload ? "stale" : "queued", payload: current?.payload, sourceRefs: current?.sourceRefs, aiMeta: current?.aiMeta, generatedAt: current?.generatedAt, lastError: null });
-    void pump();
+    void pumpAll();
     return { task, artifact: read(kind, scope) };
   }
   async function execute(task) {
@@ -197,11 +207,11 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     }
     throw Object.assign(new Error(`未注册的 AI 任务：${task.kind}`), { code: "unsupported_task" });
   }
-  async function pump() {
-    if (running || closed) return;
-    const task = db().prepare("SELECT * FROM ai_tasks WHERE status='queued' ORDER BY priority DESC, created_at ASC LIMIT 1").get();
+  async function pumpKind(kind) {
+    if (closed || runningKinds.has(kind)) return;
+    const task = db().prepare("SELECT * FROM ai_tasks WHERE status='queued' AND kind=? ORDER BY priority DESC, created_at ASC LIMIT 1").get(kind);
     if (!task) return;
-    running = true;
+    runningKinds.add(kind);
     const startedAt = now().toISOString();
     db().prepare("UPDATE ai_tasks SET status='running', attempts=attempts+1, started_at=? WHERE id=?").run(startedAt, task.id);
     const current = read(task.kind, task.scope);
@@ -214,7 +224,12 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
       const retained = read(task.kind, task.scope);
       writeArtifact({ kind: task.kind, scope: task.scope, inputHash: task.input_hash, status: retained?.payload ? "stale" : "failed", payload: retained?.payload, sourceRefs: retained?.sourceRefs, aiMeta: retained?.aiMeta, generatedAt: retained?.generatedAt, lastAttemptAt: startedAt, lastError: error?.code || error?.message || "generation_failed" });
       db().prepare("UPDATE ai_tasks SET status='failed', finished_at=?, last_error=? WHERE id=?").run(now().toISOString(), error?.code || error?.message || "generation_failed", task.id);
-    } finally { running = false; queueMicrotask(() => void pump()); }
+    } finally { runningKinds.delete(kind); queueMicrotask(() => void pumpAll()); }
+  }
+  function pumpAll() {
+    if (closed) return;
+    const kinds = db().prepare("SELECT DISTINCT kind FROM ai_tasks WHERE status='queued'").all().map((row) => row.kind);
+    for (const kind of kinds) void pumpKind(kind);
   }
   function dashboardArtifact(date, { force = false, trigger = "view" } = {}) {
     const context = dashboardSummary(db(), date);
@@ -255,7 +270,7 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
   function start() {
     // Running tasks were interrupted by a prior process; retry them after restart.
     db().prepare("UPDATE ai_tasks SET status='queued', started_at=NULL WHERE status='running'").run();
-    void pump();
+    void pumpAll();
   }
   return { start, close() { closed = true; }, read, enqueue, dashboardArtifact, teamAnalysisArtifact, dingtalkChatMessagesArtifact, stats, priority: PRIORITY, aiService };
 }

@@ -44,3 +44,6 @@ export {
   draftReplySystemPrompt,
   buildDraftReplySystemPrompt,
 } from "./draft-reply.mjs";
+
+export { dingtalkSignalSystemPrompt } from "./dingtalk-signal.mjs";
+export { buildOpenCodeSystemPrompt, buildCodexPrompt } from "./ai-runtime-guard.mjs";

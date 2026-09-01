@@ -193,11 +193,15 @@ router.post("/weekly/generate", async (req, res) => {
   const { weekStart, weekEnd } = req.body;
   const dailies = db.prepare("SELECT * FROM daily_reports WHERE report_date>=? AND report_date<=? ORDER BY report_date").all(weekStart, weekEnd);
   let content = { weekStart, weekEnd, note: `基于 ${dailies.length} 份日报汇总` };
-  if (ai.available() && dailies.length) {
+  // 统一交给 AI 适配层决定路由与本地兜底；不要在路由层提前跳过，
+  // 否则 OpenCode/Codex 智能路由下会误显示“未配置 AI”。
+  if (dailies.length) {
     try {
       const r = await ai.weeklySummary(dailies.map((d) => ({ report_date: d.report_date, content_json: safeJson(d.content_json, {}) })));
       content = { ...content, ...r };
-    } catch { /* 忽略 */ }
+    } catch (error) {
+      content = { ...content, aiMeta: { provider: "local", fallbackUsed: true, error: error?.code || "generation_failed" }, narrative: `已基于 ${dailies.length} 份日报生成本地汇总。` };
+    }
   }
   db.prepare(
     "INSERT INTO weekly_reports(id, week_start, week_end, content_json, generated_at) VALUES(?,?,?,?,?) ON CONFLICT(week_start) DO UPDATE SET content_json=excluded.content_json, generated_at=excluded.generated_at, week_end=excluded.week_end",
