@@ -1,0 +1,14 @@
+{
+  "error": {
+    "category": "api",
+    "code": 1,
+    "execution_started": true,
+    "hint": "请根据 failures 和 nextCursor 重试",
+    "message": "会话列表分页未完成：成功读取 1 页，存在 1 个失败项",
+    "operation": "im/list_all_conversations",
+    "origin": "mcp_gateway",
+    "reason": "chat_list_incomplete",
+    "retryable": true,
+    "stage": "pagination"
+  }
+}

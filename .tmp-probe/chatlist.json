@@ -1,0 +1,627 @@
+{
+  "chats": [
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Charles",
+      "openConversationId": "cidvJ7Kq8Bo+DQvmqNiwPIlkrZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "DeepSeek",
+      "openConversationId": "cidHhNfi1bQVQTKC3zDB4HnFBIXlJyUd5NOK9AKRUz8Ntw="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP 服务器 预警群",
+      "openConversationId": "cidDlt6XXQp1+RdKTqIH8crVA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "新ERP测试通知群",
+      "openConversationId": "cidGL+p5IygxCLuI2sJgU64fg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP IMS 预警群",
+      "openConversationId": "cidh7UxzyKd2hdmN3COfbaL3w=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "钉钉开发者社区（互助群）",
+      "openConversationId": "cid6TeWYhu4rfzv0x7Lowx35g=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "新ERP线上SQL审核通知群",
+      "openConversationId": "cidA8N/0STHe3siwWMPJrKA1g=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "SRM+MDM+PDS项目沟通群",
+      "openConversationId": "cidC+3TTRl3AJ8WhHrau0dK6A=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP TMS 预警群",
+      "openConversationId": "cidfUWlT5PJP8sGdOCDgZ9D4Q=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RRC定时任务预警群",
+      "openConversationId": "cidKp+SW0M3pCziq8AkwGoz+g=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP 主数据 预警群",
+      "openConversationId": "cidM4gLoHMlYtq8CPFAmBLAJw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "工作通知:深圳市睿翼商务科技有限责任公司",
+      "openConversationId": "cid6ffpzcqi0offkf92yI8kUg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "Starrocks 预警群",
+      "openConversationId": "cidXPBAuYv2/DOmRcn0iADNdg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP PMS 预警群",
+      "openConversationId": "cid4zcJ1nhJyY+5S0NCw+AdnQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Ethan",
+      "openConversationId": "cid0tU/VIQqIRHnaR8VQhhMYCbPLvlydjC299ayvG92t6o="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "TMS/SRM/MDM友好",
+      "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "旧ERP收口沟通群",
+      "openConversationId": "cidbKo0KFK5ZPrZEQFxl18uKQ=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "IMS对接",
+      "openConversationId": "cidRiZeQUMrz/8xd5ORZ28gTg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "AI攻坚小组",
+      "openConversationId": "cidvpFb5AL02rKdlL2Iswr4vw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "安晓樱",
+      "openConversationId": "cids0ujpbmZdzjTti3ZyBQCovXAEGJqza1yjuco8f0DYMQ="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RRC测试通知群",
+      "openConversationId": "cidXINJNVP8VdCkM8P/z3wdNA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP FMS 预警群",
+      "openConversationId": "cidF0P2e0wjK63yJxKv4LlWng=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP OMS 预警群",
+      "openConversationId": "cidKc84yGwP5qI0qc6Jgl96gw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "部门日报群",
+      "openConversationId": "cidZA25Tj7+NJJsY1E+ttFTLw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Max",
+      "openConversationId": "cid4wFZtqe/IGv0JMkKaGkyHxCYVTUrZgtot810+4bJXdk="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Marsh",
+      "openConversationId": "cidGOYicRSAWHIOefXZp/wISrZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RENPHO中国区",
+      "openConversationId": "cidK/3A3B1Z/JNU7d8a37jiLg=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Hollis（霍志祥）",
+      "openConversationId": "cid+upRbm5hmhZbpASE/+6dfDLwQbsDnC6zgMI6vfhqkVc="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "NEW-ERP产品事业群",
+      "openConversationId": "cidsVCbqekWmQP8PiPbgvDH8Q=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "离职人员账号关闭通知",
+      "openConversationId": "cidvUMTofp8Qog6izUa4B/jsA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "SKU数据刷新",
+      "openConversationId": "cidPWBy8uJHvIu1t1MWTVMhcA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "研发小组负责人",
+      "openConversationId": "cid5o3o2VL3MYLZEzMsLxTvQQ=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "运营预警群",
+      "openConversationId": "cidc/Ojmk0To5Y1iAIFNcAc7A=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Leslie",
+      "openConversationId": "cid0TtOfxnXUwykAKayRgFpKbZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RRC需求内部群",
+      "openConversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Rambo",
+      "openConversationId": "cidLJ6DXBASqSfY4APBxOXLLLZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "钉钉消息通知测试",
+      "openConversationId": "cidUQCg5Ckyk+UxJLjTIREroA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "PMS&QMS项目沟通群",
+      "openConversationId": "cidC8y22ctxjJZWZxs4+qxHdQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Mia",
+      "openConversationId": "cid4kdk4Mty58oB73iOT43qv4PcMJ72CaNfdUXESZ1hndY="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "TMS项目沟通群",
+      "openConversationId": "cideBUYoS23rgMjna9cfcquZg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RENPHO Global",
+      "openConversationId": "cidal6cHkS9EpH4eYmBlpH12A=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP数据监控全流程项目群-BMS",
+      "openConversationId": "cidW1FStYoDwovniJ221pTn2Q=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Clare",
+      "openConversationId": "cid2cufbouFiiejijptldHbEbZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Bill Hua",
+      "openConversationId": "cidyfo66Qu1XlvWTA9H3oDIGgfRD1s7jcxXJkmA3qp6bdM="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "WMS项目沟通群",
+      "openConversationId": "cidPdck5TkZ7I3+eczF9VOj+g=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "陈惜健",
+      "openConversationId": "cidMrxb5GAMqX8oIIOK6ca8K7ZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Sundy",
+      "openConversationId": "cid8lRqWY7i2+IiqvrKPtufwdk0uHDBEjmBBT8umJaPnug="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Smoon 刘明萍",
+      "openConversationId": "cidp7wKPlvMzUpd9ppdbuT+fLz1qgruR4w44xgqz84vQBs="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "魏胜兴",
+      "openConversationId": "cidyLY9cmsiIuYIZoq1viIeVmVnyBXy+jbuvZBKnLTqqLc="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "8.26跨部门团建交流群",
+      "openConversationId": "cidfL3Jx2cleQXy5mfY3ZdUIg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP SYS 预警群",
+      "openConversationId": "cid49e6wPnzgY8dTIhlzeA6YQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "轶",
+      "openConversationId": "cid5YRwN0cCtWdB3WvKux6LvYNaieySVr8QjSwDiugfNSk="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "Renpho行政活动信息交流群",
+      "openConversationId": "cidzWbC9t5qexwLgwfHIw8Gvw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "王腾",
+      "openConversationId": "cidOPmv4BP4aqLLNFR34EBXIbZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Zack-曾子豪",
+      "openConversationId": "cidH9EBpD56v20LMYS0mkYLEbZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "周爽",
+      "openConversationId": "cidGww7aVNwjBTTl5czUFSY9bZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "新ERP-系统管理研发沟通群",
+      "openConversationId": "cidYeeYkZVTng6WGuV88zYZlg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "UAT服务迁移",
+      "openConversationId": "cidsetY0AOW8gszT9u0xnLzKw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Merry",
+      "openConversationId": "cidNpRgDhb/yMNBcTeK5x2xDLePQcFfClDJ1InM/Twnvxs="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "DMS数据报表项目",
+      "openConversationId": "cidgw6viAgUhDoNy0uukipEag=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "陈欣泉",
+      "openConversationId": "cidgf9MUXDhuX+Ub87zltdkcxFHOFvEQacIQQ9SQ/P+nqo="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Crayon",
+      "openConversationId": "cidqWukCgxBy8oM2y9OfG5Gy8U3Ar4b6uH4319AXca4uMw="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "光照",
+      "openConversationId": "cidebClAbVsWZ2ZVQg/w21k27ZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Run",
+      "openConversationId": "cidwK3h5NBfGMnKo+hNo1NTIBCYVTUrZgtot810+4bJXdk="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "[会议群]达人管理研发需求评审",
+      "openConversationId": "cidfV2NWGzKBcHVYpYNUm40WA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "供应链-数据库需求沟通",
+      "openConversationId": "cidmt0wLGoNXd7PL4l35tHoqw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "BMS业务监控系统",
+      "openConversationId": "cidhXuor5bB5/OWAPwbMI83Wg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "DC产品事业群",
+      "openConversationId": "cidAnA/z+LupfowqE9cJcWzLw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "巡店",
+      "openConversationId": "cidEL4bjdnrJNwG1CBVcalzbQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Jack",
+      "openConversationId": "cidT+TMbBTP/fqXN6kmGDgbhBCYVTUrZgtot810+4bJXdk="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Dora",
+      "openConversationId": "cidgmic5ouvPt2prI5j9CoGmLZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "AI智能客服-TEST",
+      "openConversationId": "cidve6GQrrUZgNBWFrzkDz5xQ=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "计划&PI-数据组",
+      "openConversationId": "cidydLpFiqxzhMqJ1PLFmsFGw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Aaron",
+      "openConversationId": "cidFsAW6dATIBFnnWq0EhtisMcQrGUtB+7ZGKM8+ET6zj0="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "云主机应用交流",
+      "openConversationId": "cidHrFcetii/ExenogJVHOJZw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "PI-外审合规资料收集整理",
+      "openConversationId": "cidRC3gtrNx5y/4WMiSN6YWyw=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "PrimeDay數據看板溝通",
+      "openConversationId": "cid/w1Bnm5VN/Eyz4t9ENxnVA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "Springbootadmin组件测试",
+      "openConversationId": "cidaCsQI0ZwH7XmkkEiJeaQPg=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "ERP线上预警群",
+      "openConversationId": "cidEmnJC3Lbv1CXiiyR7umaYg=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Melo",
+      "openConversationId": "cid5W5vXbZq/w8UlRAfe9PoArZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "cm²",
+      "openConversationId": "cidKZlKUh7zQ/WtqpkVjYhp7g=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Talia",
+      "openConversationId": "cidau0K/uuaBBVb0WzkK+wQv2yTCPev/dKOUUnAcx1HaS8="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Colin",
+      "openConversationId": "cidy3Tz8a48hOXFe/+fij+8gRCYVTUrZgtot810+4bJXdk="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "PowerBI数据库支撑沟通群",
+      "openConversationId": "ciddRKXPipv6IawKZtjpr/9Tw=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Fox",
+      "openConversationId": "cidItd714tmrlA0WBPx4+BIBLZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Tyler",
+      "openConversationId": "cidXEy1+JwJ+jwT5PFZr9xECLZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "RRC通知预警群",
+      "openConversationId": "cid+zJwHI1ChFKT1SlhVlWIjQ=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "资料沟通",
+      "openConversationId": "cidccymUlGyw3wcceBgbFRBwg=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Sinsy",
+      "openConversationId": "cidi4HtQF3ccvDh1w2ivxaYmrNHEfU4cmt7UlW6xFvnqjM="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "会员日值班打卡",
+      "openConversationId": "cid9MD4SzA+kOxirfIiBtfFyQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "王强强",
+      "openConversationId": "cidSB60RURbBvSYdwmaxlHhiXjm4kHBIDsch206OSP7j3w="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "OA预警群",
+      "openConversationId": "cidVkOB+KbCWSE1aIwHI8nFzA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "AI Desk业务群",
+      "openConversationId": "cidyyAHnHgZ65CVCxfTnCgvtA=="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "小版本迭代沟通群",
+      "openConversationId": "cid9sZ+jUf2hHt9TcaeX0w6MA=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Mia(杨嘉欣)",
+      "openConversationId": "cidRTKIOGsHrTfD30N6WjQI4bZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "刘欢",
+      "openConversationId": "cidOWlVdVJWHghOWWkg2uYrfzJZaA5NGzZzuvZCk4yM5As="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "多平台价格监控",
+      "openConversationId": "cidu+rMicwCLw+ulSK78T7fNQ=="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "YURI",
+      "openConversationId": "cid02I7XJIwDDceZg1j/tV+ZbZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "p2p",
+      "conversationType": "direct",
+      "name": "Eva Luo",
+      "openConversationId": "cid9RaeOtxL6Bt0HmPXP6C9V7ZZGwoFTap39k+KtpWviy4="
+    },
+    {
+      "chatMode": "group",
+      "conversationType": "group",
+      "name": "PD和TR单据补推在购和在途流水单据处理",
+      "openConversationId": "cidSpBJ6ushDbWOPENAMfr72Q=="
+    }
+  ],
+  "complete": false,
+  "count": 100,
+  "effectivePageSize": 100,
+  "failedCount": 1,
+  "failures": [
+    {
+      "error": "会话列表在最大窗口仍返回满页且没有可用 nextCursor，无法证明结果完整",
+      "page": 1,
+      "stage": "pagination"
+    }
+  ],
+  "hasMore": false,
+  "nextCursor": 0,
+  "pagesFetched": 1,
+  "paginationKnown": false,
+  "partial": true,
+  "requestedPageSize": 100,
+  "requestedTypes": [
+    "group",
+    "p2p"
+  ],
+  "stopReason": "pagination_error",
+  "truncatedByPageLimit": false
+}

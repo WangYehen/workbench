@@ -685,16 +685,37 @@ export function createOutlookService({
       activeSync = runSync().finally(() => { activeSync = null; });
       return activeSync;
     },
-    async list(kind = "todos") {
+    async list(kind = "todos", { q = "", limit = 10, offset = 0 } = {}) {
       const state = await readState();
-      const items = state.messages.filter((message) => {
+      const keyword = String(q || "").trim().toLowerCase();
+      const filtered = state.messages.filter((message) => {
         if (kind === "all") return true;
         if (kind === "archive") return ["processed", "ignored", "converted"].includes(message.status);
         if (kind === "informational") return message.queue === "informational" && message.status === "open";
         if (kind === "uncertain") return message.queue === "uncertain" && message.status === "open";
         return message.queue === "action" && message.status === "open";
-      }).map(publicMessage);
-      return { items, ...publicStatus(state, config) };
+      }).filter((message) => !keyword || [message.sender, message.subject, message.summary, message.actionText]
+        .some((value) => String(value || "").toLowerCase().includes(keyword)))
+        .sort((a, b) => {
+          const dueRank = (message) => {
+            if (!message.dueAt) return 3;
+            const due = String(message.dueAt).slice(0, 10);
+            const today = new Date().toISOString().slice(0, 10);
+            return due < today ? 0 : due === today ? 1 : 2;
+          };
+          return dueRank(a) - dueRank(b)
+            || ({ P0: 0, P1: 1, P2: 2 }[a.priority] ?? 3) - ({ P0: 0, P1: 1, P2: 2 }[b.priority] ?? 3);
+        });
+      const pageSize = 10;
+      const pageOffset = Number.isFinite(Number(offset)) ? Math.max(0, Number(offset)) : 0;
+      const items = filtered.slice(pageOffset, pageOffset + pageSize).map(publicMessage);
+      const today = new Date().toISOString().slice(0, 10);
+      const summary = {
+        p0: filtered.filter((message) => message.priority === "P0").length,
+        today: filtered.filter((message) => String(message.dueAt || "").slice(0, 10) === today).length,
+        overdue: filtered.filter((message) => message.dueAt && String(message.dueAt).slice(0, 10) < today).length,
+      };
+      return { items, total: filtered.length, summary, ...publicStatus(state, config) };
     },
     async setMessageStatus(id, status) {
       if (!["processed", "ignored", "converted", "open"].includes(status)) fail("OUTLOOK_INVALID_STATUS", "不支持的邮件处理状态。");

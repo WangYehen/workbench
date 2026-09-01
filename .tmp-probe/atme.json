@@ -1,0 +1,2994 @@
+{
+  "complete": false,
+  "contractVersion": "im.message-list.v1",
+  "count": 50,
+  "failedCount": 0,
+  "failures": [],
+  "hasMore": true,
+  "items": [
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgWT2euNfXbHi3K7grAqU3mQ==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) 看下调整会不会影响其他的数据，没有的话就调整下",
+      "time": "2026-08-31 11:54:36"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgz4GHw+ub50G3m7QrCaKrUQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgz4GHw+ub50G3m7QrCaKrUQ==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "预计下周二会评审IMS的共享库存需求@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max)[图片消息](mediaId=@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA)",
+      "time": "2026-08-28 11:46:08"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgelEDdWW0boxInXwGl9ddtw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "@Cici Chen (陈惜健)(陈惜健) @Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽)  \nTMS-V8-PlanB版本发布内容：\n1.TO单新增TCO功能；\n2.TR/TS-B2B条款是在“入库签收完成后销售出库”的推送IMS数据逻辑变更；\n3.TR单/TS单/WR单的美办仓签收后TMS逻辑优化；\n4.TS单kingspark出库单，接口传参调整；\n4.修复TO单回退后运费计算异常；\n5.修复TO标记离港后推送IMS时实际离港时间字段为空；\n6.优化TS标记发货（需要换标）同步生成IMS转让单；\n7.MDM浮动汇率数据源从自动爬取变更为接口获取；",
+      "time": "2026-08-27 17:43:40"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4yeKF13tMW1c065UHJrgaw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Max Jiao（焦涛）(Max) @Clear Zhou (周爽)(周爽) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-27 17:37:43"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgq+fT8rBXpFD+8G4Rds4ELw==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-27/6a8fe070e4b0e677695f8438?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260827T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260827%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=df0e123faa18830f26632fef09afea5aabd2a880ac0a556566bbf7c881fa7004)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-27 15:00:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgbih+gchdWvLTlYEY+nraZA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Clare",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clare（朱卓文）(Clare) TCO的业务验收了，针对短装改了数量后，希望能同步更新重量和体积\n---这个点，麻烦一起调整一下，其他的没有啥问题了",
+      "time": "2026-08-27 14:42:51"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgFVCMuSpw4mZp5TqIce/ECw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-27 10:51:48",
+        "messageId": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) colsed，但是数量=0[图片消息](mediaId=@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ)[图片消息](mediaId=@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA)"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 接口数据是对的",
+      "time": "2026-08-27 11:01:17"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgusR4H5A3sh/19KVslGbXFQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 5,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Zack-曾子豪",
+              "Clare",
+              "Max",
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) @Max Jiao（焦涛）(Max) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) B部分的，我UAT验收一下，再给业务方验收，预计周四在发版",
+      "time": "2026-08-25 16:54:53"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgfC67LNgJS5WqR3vX6vwuFQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 15:13:51",
+        "messageId": "msgjuTX5TB/yYluXD5YQjrP/A==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 已经改了，，"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 那没事我点完了",
+      "time": "2026-08-25 15:14:04"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgz2akNHZHieItUlJf4upnvg==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-25/6a8d3d70e4b0e677695f7b89?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260825T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260825%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=dfce134b7e9f91b9d1480246722161d42ec0d5ab06cdc0fd5e300779f0a402ae)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-25 15:00:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgZ1v51Oq7xjbiWM+sEtUD+w==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 14:22:35",
+        "messageId": "msgzHQNBmEwg4HhTsLhXaeFgg==",
+        "sender": "陈惜健",
+        "text": "@529302752 TR2604080002，FBA15LMW9YPF这个单实际无差异，需要改到部分签收，自动补签收上架110，清空差异单号\n"
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2604280017，这个单也改到部分签收，我手动补签收掉\n这个单签收上架有问题",
+      "time": "2026-08-25 14:27:18"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgzHQNBmEwg4HhTsLhXaeFgg==",
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2604080002，FBA15LMW9YPF这个单实际无差异，需要改到部分签收，自动补签收上架110，清空差异单号",
+      "time": "2026-08-25 14:22:35"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgIjNL2/SViU45EteLZ5B4aw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 11:53:21",
+        "messageId": "msg9ngagSmAj/hsiju4u2p3Lw==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "[图片消息](mediaId=@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ)@Cici Chen (陈惜健)(陈惜健) 这里新增的PO单号，对应传到哪个字段？没有在原型看到[图片消息](mediaId=@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA)"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgIjNL2/SViU45EteLZ5B4aw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TS的字段名就是参考单号[图片消息](mediaId=@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA)",
+      "time": "2026-08-25 12:00:17"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgucRaK9ob58gF5dzCh9UPxw==",
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgucRaK9ob58gF5dzCh9UPxw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TS2604090002，这个推IMS上架失败了，IMS还少了250的待上架，需要推送IMS上架[图片消息](mediaId=@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA)",
+      "time": "2026-08-25 10:43:40"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgIi0cp1+w4i5Is/XVVgM9VQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-24 11:14:56",
+        "messageId": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) 麻烦改一下这几个运单号对应的TR单的这几个内容：  \nTO2601230013\t\"FSHY2602028035\"\t派送时间 26/03/19  \nTO2604070015\tAL0-RBBYX2Z3Y4AH6\t派送时间26/06/11  \nTO2604080028\tAL0-WD5W3VXB2APEA\t派送时间26/05/19  \nTO2603160004\t\"AL0-QB74CE6R67ACW\"\t实际到港时间26/05/02  \nTO2512040001\tS251201499\t派送时间26/01/08  \nTO2512040001\tS251201500\t派送时间26/01/08  \nTO2606090001\tAL0-VCQ7W4FYHHXN2\t      实际离港时间：2026-7-22  \nTO2606180001\t1075604900\t需要更改货代为Kuehne AND Nagel Limited Shenzhen Branch Office  \nTO2607070009\tAL0-RKJXYW6MJNSXW\t   派送时间：2026/08/05[图片消息](mediaId=@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA)"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 帮处理一下",
+      "time": "2026-08-24 11:15:18"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgJtWN47wKL4sjJIaUNqQncw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Zack-曾子豪",
+              "Clare"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "@Clare（朱卓文）(Clare) @Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) TMS-V8-PanlB可以上UAT",
+      "time": "2026-08-21 13:58:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgku/yqViXEJFDA1hk7GvrrQ==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-20/6a86a5f0e4b0e677bc7fc56d?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260820T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260820%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=63a24ed21374da9fce4ecf18394faa9e5ea7dd1ab670b00e49e6964be2e3bd7c)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-20 15:00:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg/VxHeJoAaAOsUUw74MQKBQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2605250001，需要更改为部分签收，清空差异单，实际无差异，手动补签收\n--菜鸟那边签收异常单，手动处理",
+      "time": "2026-08-20 10:05:02"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgQtBUOagX+bt3HYYhiEmg4w==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max) 看下sheet的bug内容，补充一下问题产生的原因吧，到时候归纳一下看看要怎么避免",
+      "time": "2026-08-20 09:56:11"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4apeUO0BMtkEg8TLXEZm+Q==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-18/6a8402f0e4b0e677cab1803e?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260818T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260818%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=e823d150e724d2a239252bcb43238bac7c723636493cd113bb7119d473c6dc07)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-18 15:00:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgh2jsylkt9M3fLSjsBE6uUA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 16:45:55",
+        "messageId": "msgtYNDjks+i9F33xWE/lY/Ew==",
+        "sender": "Max",
+        "text": "https://alidocs.dingtalk.com/spreadsheetv2/Wm7QJJkJI4APLa08/edit?docKey=vBPlN5Xwmap0kOdG&dentryKey=Wm7QJJkJI4APLa08&type=s @351886750 @460391884 @529302752 @160932459 "
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Zack-曾子豪",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) 冒烟过的把状态更新一下",
+      "time": "2026-08-18 09:58:22"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgRQW8FNug911PXwJtMAUDJg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Charles",
+              "Zack-曾子豪"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) 关注一下类型是bug的是否非bug。\n@Cici Chen (陈惜健)(陈惜健) 关注下变更需求是否非变更需求",
+      "time": "2026-08-17 14:45:43"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgiemlbS0MXeINvHdxja6e0A==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:29:08",
+        "messageId": "msgLZCrdraQE7EyvzmPmEorUQ==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 之前是不是有提供过这个sql呀"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 之前的校验数量",
+      "time": "2026-08-14 14:29:30"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg0KIKQv/79r16qlrdnhLmfQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:21:47",
+        "messageId": "msgcfbVyVK0+yq2UQZ0Sqfd/A==",
+        "sender": "Clare",
+        "text": "@460201468 "
+      },
+      "sender": "陈惜健",
+      "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) 查一下TR表的TR单号+do单号，与差异单表的业务单号+DO单号不一样的，清理一下TR单的DO单号，看下还有哪些单\n\n--以差异单列表的TR对应的DO单号为准",
+      "time": "2026-08-14 14:27:33"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgh6d9npB2Zm+rBGRcoukaUA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:27:33",
+        "messageId": "msg0KIKQv/79r16qlrdnhLmfQ==",
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) 查一下TR表的TR单号+do单号，与差异单表的业务单号+DO单号不一样的，清理一下TR单的DO单号，看下还有哪些单\n\n--以差异单列表的TR对应的DO单号为准\n\n"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 跑一下那个sql吧，我有点事情要处理",
+      "time": "2026-08-14 14:28:34"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgA5ZSFnwcBakdSlqeuvK1tA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:00:50",
+        "messageId": "msg7f5El65Co1qXaU0lH/lV+A==",
+        "sender": "陈惜健",
+        "text": "TR25091200054，ST2510030001\n---这个单差异单我刚已经操作关闭了，TR的job失败"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 看下",
+      "time": "2026-08-14 14:12:34"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgN1tIN7BGH6lOpaA3FCW/KA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 10:38:03",
+        "messageId": "msgjNgITnVHTtMUJ6oRL05WxQ==",
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) 现在肯定要改状态修正，至于签收后没更新到状态你们看吧"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgN1tIN7BGH6lOpaA3FCW/KA==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 看下会不会是[图片消息](mediaId=@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA)这个第一条tr没有签收时间的问题，我先调整数据",
+      "time": "2026-08-14 10:43:39"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4xGiilpVczH+Wp0RCLSsQQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg4xGiilpVczH+Wp0RCLSsQQ==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "[图片消息](mediaId=@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA)@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) 没问题吧",
+      "time": "2026-08-13 16:38:15"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgufv+Gr/uBDqVF3GuIWfgKA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max)",
+      "time": "2026-08-13 09:42:31"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgtYNDjks+i9F33xWE/lY/Ew==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Clare",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "https://alidocs.dingtalk.com/spreadsheetv2/Wm7QJJkJI4APLa08/edit?docKey=vBPlN5Xwmap0kOdG&dentryKey=Wm7QJJkJI4APLa08&type=s @Clare（朱卓文）(Clare) @Clear Zhou (周爽)(周爽) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-12 16:45:55"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgLn40EKGg4Iq99UGWzv4bVg==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-12/6a7c19f0e4b0e677bc7fb19d?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260812T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260812%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=acc9e9a6c123eb5daee8ef094be6528b4768704c714dd0110c8e1dfc4fd9bab4)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-12 15:00:01"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg9gMuzCeFMaRW01kIPDJ3hg==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 14:12:56",
+        "messageId": "msg1/zXkq85kaEu350auPdlJw==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健)[图片消息](mediaId=@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ)[图片消息](mediaId=@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA)还在上架中"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) [裂开]这2个单菜鸟有问题，状态不更新了，补单上架了，并且无差异数量的；那这样没办法自动更新了，需要你手动处理了\n--状态改到已完成、上架数量=发货数量，差异数量=0，推IMS上架这个\nTR2606250003，推ims上架12\nTR2606250001，推ims上架5\n\n---你操作完，我在手动调库存",
+      "time": "2026-08-12 14:57:41"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgXq3b/vHuEe6JYjaedxiojw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 10:03:50",
+        "messageId": "msgsD75j0IVi5GtxjBQrBa2DA==",
+        "sender": "陈惜健",
+        "text": "@529302752 TR2606250003\nTR2606250001\n---需要改到部分签收，这个是多签的，签收上架=发货数量的，这个应该能重新自动上架负数，推IMS上架负数、删除差异单\n这2个是菜鸟入库的，之前自动和手动都签收了，所以多签了\n"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgXq3b/vHuEe6JYjaedxiojw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "[图片消息](mediaId=@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA)@Charles（王玉恒）(Charles) 不会job自动上架更新了吗？",
+      "time": "2026-08-12 14:06:35"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgsD75j0IVi5GtxjBQrBa2DA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2606250003\nTR2606250001\n---需要改到部分签收，这个是多签的，签收上架=发货数量的，这个应该能重新自动上架负数，推IMS上架负数、删除差异单\n这2个是菜鸟入库的，之前自动和手动都签收了，所以多签了",
+      "time": "2026-08-12 10:03:50"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg3FsaFYPVvYVN2v5j2awR7g==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-11 13:52:43",
+        "messageId": "msg4fROAPALiu/kYfZJ867smg==",
+        "sender": "陈惜健",
+        "text": "@Charles（王玉恒）(Charles) 都行，抽空加上去吧\n"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Cici Chen (陈惜健)(陈惜健) @Max Jiao（焦涛）(Max) 这个周四发上去吧",
+      "time": "2026-08-11 17:09:57"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg+McI1IxdnQrJ5bGVBjA3xA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg+McI1IxdnQrJ5bGVBjA3xA==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 1、这批是之前的inbound和IMS待上架不一致的：TR单需要修正上架数量=发货数量和差异数量为0，TR出运状态到已完成，删除差异单单号、补推IMS上架数量修正（按单号对应的补推数量）  \nTR25081400003-2  \nTR25090500113  \nTR25082600023  \nTR25091200014  \nTR25090500006  \nTR25082000008  \nTR25091000043  \nTR25091000003  \nTR25082900003  \nTR25091900035[图片消息](mediaId=@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA)2、这个单差异单数量和TR的不一致：需要删除差异单号、在手动推IMS建新DO  \nTR25101400087",
+      "time": "2026-08-11 14:58:06"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg6A7CAGiiKx7KFiH2TrHvQg==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-11 14:27:23"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4fROAPALiu/kYfZJ867smg==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-11 12:27:28",
+        "messageId": "msglCqFvMR64Pk/SYtKEG7k1g==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 这个需要代码里加个过滤条件，把is_delete的数据过滤掉。你看什么时间发到生产去"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 都行，抽空加上去吧",
+      "time": "2026-08-11 13:52:43"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4qTov7/3rD04unZukRBYew==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg4qTov7/3rD04unZukRBYew==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) RO移除单PSKU、发货仓空值预警  \n---这个job我看每天跑都是失败的[图片消息](mediaId=@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA)",
+      "time": "2026-08-11 11:08:10"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msggxgfZ2CqW0dNcscFkLAXuw==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-10 17:13:23"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgPUC6vC1E+n4DMofosy52SQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-10 16:29:20",
+        "messageId": "msglM9ERDVuNyvzLmCtX0i+5w==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 已处理"
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 签完了，需要再手动推送IMS建新DO",
+      "time": "2026-08-10 16:42:54"
+    },
+    {
+      "conversation": {
+        "name": "TMS/SRM/MDM友好",
+        "openConversationId": "cidci2/lm6ZELVzEJ3sMhux7w=="
+      },
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgXG3PVxi7wZf9uxkpBa+bkQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR25091900035老TR签收数量错误，需要改到部分签收，删除差异单号，我手动补签收，在推送IMS上架",
+      "time": "2026-08-10 16:27:43"
+    },
+    {
+      "conversation": {
+        "name": "旧ERP收口沟通群",
+        "openConversationId": "cidbKo0KFK5ZPrZEQFxl18uKQ=="
+      },
+      "conversationId": "cidbKo0KFK5ZPrZEQFxl18uKQ==",
+      "messageId": "msg2BeSNzxk06ZOtHMFEAE+WQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "Rambo",
+              "Clare"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg2BeSNzxk06ZOtHMFEAE+WQ==",
+              "open-conversation-id": "cidbKo0KFK5ZPrZEQFxl18uKQ==",
+              "resource-id": "@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Merry",
+      "text": "@Clare（朱卓文）(Clare) @Rambo Yang（杨锐波）(Rambo) @Charles（王玉恒）(Charles) DC里的定时任务是否关闭的你们看下这个表，有部分在等业务确认，有部分在等埋点数据。你们看看是不是还有哪些任务需要先确认要开启或者关闭的。有的话艾特一下我。  \n[旧ERP定时任务.xls](https://alidocs.dingtalk.com/i/nodes/R1zknDm0WR3PlRGzCzQv9qbpVBQEx5rG?corpId=ding8f2aae111f22c53135c2f4657eb6378f&utm_medium=im_card&iframeQuery=utm_medium%3Dim_card%26utm_source%3Dim&utm_scene=person_space&utm_source=im)[图片消息](mediaId=@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA)",
+      "time": "2026-08-28 17:09:24"
+    },
+    {
+      "conversation": {
+        "name": "RRC需求内部群",
+        "openConversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ=="
+      },
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msg8JC9INdOhu7vxZ6U+2RMIw==",
+      "quotedMessage": {
+        "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+        "createTime": "2026-08-27 19:01:13",
+        "messageId": "msg0h80MQ+JwaxIEeMdI4BoNw==",
+        "sender": "Leslie",
+        "text": "RRC-xxl-job 和后台都发一下 @273173463 "
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Marsh",
+      "text": "@Charles（王玉恒）(Charles)",
+      "time": "2026-08-27 19:01:58"
+    },
+    {
+      "conversation": {
+        "name": "RRC需求内部群",
+        "openConversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ=="
+      },
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msg/GrNnzOl/BdjJ8jHjqEChg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Hollis（霍志祥）",
+      "text": "@Charles（王玉恒）(Charles) 给 marsh开一下 前后端 rrc 的管理员权限",
+      "time": "2026-08-27 18:43:46"
+    },
+    {
+      "conversation": {
+        "name": "RRC需求内部群",
+        "openConversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ=="
+      },
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msgwnCAYcJjcJspA1LCv+1yLw==",
+      "sender": "周爽",
+      "text": "@Charles（王玉恒）(Charles)",
+      "time": "2026-08-27 18:43:44"
+    },
+    {
+      "conversation": {
+        "name": "UAT服务迁移",
+        "openConversationId": "cidsetY0AOW8gszT9u0xnLzKw=="
+      },
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgMFh/unubGK/VtYCkQL/I/g==",
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgMFh/unubGK/VtYCkQL/I/g==",
+              "open-conversation-id": "cidsetY0AOW8gszT9u0xnLzKw==",
+              "resource-id": "@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Rambo",
+      "text": "[图片消息](mediaId=@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA)@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)  TEST 环境，ES无法正常查询，显示有失败的分片",
+      "time": "2026-08-21 11:29:14"
+    },
+    {
+      "conversation": {
+        "name": "UAT服务迁移",
+        "openConversationId": "cidsetY0AOW8gszT9u0xnLzKw=="
+      },
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgvmEosYJhWYAC7A6dl9sMOw==",
+      "sender": "Rambo",
+      "text": "@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)  OMS，新增以下表，PROD 的 SR 增加下表定义\n\nCREATE TABLE `oms_crawling_amz_info` (\n `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',\n `reporting_time` DATETIME NOT NULL COMMENT '上报时间',\n `asin` VARCHAR(64) NOT NULL COMMENT 'ASIN',\n `site` VARCHAR(32) NULL DEFAULT NULL COMMENT '站点',\n `currency` VARCHAR(16) NULL DEFAULT NULL COMMENT '币种',\n `title` VARCHAR(1024) NULL DEFAULT NULL COMMENT '标题',\n `price` decimal(12,2) DEFAULT NULL COMMENT '售价',\n `list_price` decimal(12,2) DEFAULT NULL COMMENT '划线价',\n `rating` decimal(3,1) DEFAULT NULL COMMENT '星级评分',\n `reviews` int DEFAULT NULL COMMENT '评论数',\n `seller` VARCHAR(512) NULL DEFAULT NULL COMMENT '卖家',\n `stock` VARCHAR(64) NULL DEFAULT NULL COMMENT '库存',\n `deal_badge` VARCHAR(128) NULL DEFAULT NULL COMMENT '活动标',\n `ac_badge` VARCHAR(1024) NULL DEFAULT NULL COMMENT 'AC标',\n `coupon` VARCHAR(128) NULL DEFAULT NULL COMMENT '优惠券',\n `parent_asin` VARCHAR(64) NULL DEFAULT NULL COMMENT '父体ASIN',\n `bsr_main_rank` VARCHAR(32) NULL DEFAULT NULL COMMENT 'BSR主类目排名',\n `bsr_main_category` VARCHAR(256) NULL DEFAULT NULL COMMENT 'BSR主类目名称',\n `bsr_sub_rank` VARCHAR(32) NULL DEFAULT NULL COMMENT 'BSR子类目排名',\n `bsr_sub_category` VARCHAR(256) NULL DEFAULT NULL COMMENT 'BSR子类目名称',\n `product_info` TEXT NULL DEFAULT NULL COMMENT '商品信息（JSON）',\n `url` VARCHAR(1024) NULL DEFAULT NULL COMMENT 'URL',\n `status` VARCHAR(32) NULL DEFAULT NULL COMMENT '状态',\n `error` VARCHAR(1024) NULL DEFAULT NULL COMMENT '错误信息',\n `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',\n `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',\n `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除，0否、1是',\n PRIMARY KEY (`id`),\n KEY `idx_asin` (`asin`),\n KEY `idx_reporting_time` (`reporting_time`)\n) ENGINE=InnoDB  COMMENT='爬取亚马逊信息表';",
+      "time": "2026-08-21 09:51:23"
+    },
+    {
+      "conversation": {
+        "name": "UAT服务迁移",
+        "openConversationId": "cidsetY0AOW8gszT9u0xnLzKw=="
+      },
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgs0IA6BRhW59syUx5Pv0rBw==",
+      "sender": "Rambo",
+      "text": "@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)   DMS，PROD 的 SR 添加下新表定义\n\nhttp://192.168.9.22/new-erp/DMS/-/blob/feature-20260818-%E9%94%80%E9%87%8F%E6%8A%A5%E8%A1%A8%E5%88%A9%E6%B6%A6%E9%9C%80%E6%B1%82/dms-start/erp-dms/src/main/resources/scripts/20260818-%E9%94%80%E9%87%8F%E6%8A%A5%E8%A1%A8%E5%88%A9%E6%B6%A6%E9%9C%80%E6%B1%82/ddl.sql",
+      "time": "2026-08-20 17:55:16"
+    },
+    {
+      "conversation": {
+        "name": "研发小组负责人",
+        "openConversationId": "cid5o3o2VL3MYLZEzMsLxTvQQ=="
+      },
+      "conversationId": "cid5o3o2VL3MYLZEzMsLxTvQQ==",
+      "messageId": "msg76lOjl35nHhmxgrxbTA2Yg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Rambo",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Hollis（霍志祥）",
+      "text": "@Clare（朱卓文）(Clare) @Run Li (李致远)(Run) @Charles（王玉恒）(Charles) @Rambo Yang（杨锐波）(Rambo)",
+      "time": "2026-08-12 12:08:55"
+    }
+  ],
+  "messages": [
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgWT2euNfXbHi3K7grAqU3mQ==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) 看下调整会不会影响其他的数据，没有的话就调整下",
+      "time": "2026-08-31 11:54:36"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgz4GHw+ub50G3m7QrCaKrUQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgz4GHw+ub50G3m7QrCaKrUQ==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "预计下周二会评审IMS的共享库存需求@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max)[图片消息](mediaId=@lQLPJxeBELkQ7ZPNAmjNBiCw8dPCvcmwqeQKYzylnj8NAA)",
+      "time": "2026-08-28 11:46:08"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgelEDdWW0boxInXwGl9ddtw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "@Cici Chen (陈惜健)(陈惜健) @Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽)  \nTMS-V8-PlanB版本发布内容：\n1.TO单新增TCO功能；\n2.TR/TS-B2B条款是在“入库签收完成后销售出库”的推送IMS数据逻辑变更；\n3.TR单/TS单/WR单的美办仓签收后TMS逻辑优化；\n4.TS单kingspark出库单，接口传参调整；\n4.修复TO单回退后运费计算异常；\n5.修复TO标记离港后推送IMS时实际离港时间字段为空；\n6.优化TS标记发货（需要换标）同步生成IMS转让单；\n7.MDM浮动汇率数据源从自动爬取变更为接口获取；",
+      "time": "2026-08-27 17:43:40"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4yeKF13tMW1c065UHJrgaw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Max Jiao（焦涛）(Max) @Clear Zhou (周爽)(周爽) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-27 17:37:43"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgq+fT8rBXpFD+8G4Rds4ELw==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-27/6a8fe070e4b0e677695f8438?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260827T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260827%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=df0e123faa18830f26632fef09afea5aabd2a880ac0a556566bbf7c881fa7004)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-27 15:00:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgbih+gchdWvLTlYEY+nraZA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Clare",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clare（朱卓文）(Clare) TCO的业务验收了，针对短装改了数量后，希望能同步更新重量和体积\n---这个点，麻烦一起调整一下，其他的没有啥问题了",
+      "time": "2026-08-27 14:42:51"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgFVCMuSpw4mZp5TqIce/ECw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-27 10:51:48",
+        "messageId": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) colsed，但是数量=0[图片消息](mediaId=@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ)[图片消息](mediaId=@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA)"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwstHmW6g9vNAcPNAhSwJ9isKNFJacsKYeaf8bvVAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg6DjYfWveJpGnA1Mrt8np6Q==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxNP3JJDo9vNAlnNAuywnp-zou2ThoYKYeaf8bvVAQ",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 接口数据是对的",
+      "time": "2026-08-27 11:01:17"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgusR4H5A3sh/19KVslGbXFQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 5,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Zack-曾子豪",
+              "Clare",
+              "Max",
+              "Charles",
+              "周爽"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) @Max Jiao（焦涛）(Max) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) B部分的，我UAT验收一下，再给业务方验收，预计周四在发版",
+      "time": "2026-08-25 16:54:53"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgfC67LNgJS5WqR3vX6vwuFQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 15:13:51",
+        "messageId": "msgjuTX5TB/yYluXD5YQjrP/A==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 已经改了，，"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 那没事我点完了",
+      "time": "2026-08-25 15:14:04"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgz2akNHZHieItUlJf4upnvg==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-25/6a8d3d70e4b0e677695f7b89?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260825T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260825%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=dfce134b7e9f91b9d1480246722161d42ec0d5ab06cdc0fd5e300779f0a402ae)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-25 15:00:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgZ1v51Oq7xjbiWM+sEtUD+w==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 14:22:35",
+        "messageId": "msgzHQNBmEwg4HhTsLhXaeFgg==",
+        "sender": "陈惜健",
+        "text": "@529302752 TR2604080002，FBA15LMW9YPF这个单实际无差异，需要改到部分签收，自动补签收上架110，清空差异单号\n"
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2604280017，这个单也改到部分签收，我手动补签收掉\n这个单签收上架有问题",
+      "time": "2026-08-25 14:27:18"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgzHQNBmEwg4HhTsLhXaeFgg==",
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2604080002，FBA15LMW9YPF这个单实际无差异，需要改到部分签收，自动补签收上架110，清空差异单号",
+      "time": "2026-08-25 14:22:35"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgIjNL2/SViU45EteLZ5B4aw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-25 11:53:21",
+        "messageId": "msg9ngagSmAj/hsiju4u2p3Lw==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "[图片消息](mediaId=@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ)@Cici Chen (陈惜健)(陈惜健) 这里新增的PO单号，对应传到哪个字段？没有在原型看到[图片消息](mediaId=@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA)"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgIjNL2/SViU45EteLZ5B4aw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxekiPBx37PNAlDNBUiwMGjbYvJPOAQKX2GG4uh-AQ",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg9ngagSmAj/hsiju4u2p3Lw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGtbU-qDL7PNA7XNBpCwaXtzarfkvNkKX2GG4uh-AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TS的字段名就是参考单号[图片消息](mediaId=@lQLPJwOOQKVxRjPNARfNBDqwqPmGS2KIvfUKX2Mef4RWAA)",
+      "time": "2026-08-25 12:00:17"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgucRaK9ob58gF5dzCh9UPxw==",
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgucRaK9ob58gF5dzCh9UPxw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TS2604090002，这个推IMS上架失败了，IMS还少了250的待上架，需要推送IMS上架[图片消息](mediaId=@lQLPJwm2Z_36iMPNAgTNBoewT49K1XLRqcEKX1GUw1z4AA)",
+      "time": "2026-08-25 10:43:40"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgIi0cp1+w4i5Is/XVVgM9VQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-24 11:14:56",
+        "messageId": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) 麻烦改一下这几个运单号对应的TR单的这几个内容：  \nTO2601230013\t\"FSHY2602028035\"\t派送时间 26/03/19  \nTO2604070015\tAL0-RBBYX2Z3Y4AH6\t派送时间26/06/11  \nTO2604080028\tAL0-WD5W3VXB2APEA\t派送时间26/05/19  \nTO2603160004\t\"AL0-QB74CE6R67ACW\"\t实际到港时间26/05/02  \nTO2512040001\tS251201499\t派送时间26/01/08  \nTO2512040001\tS251201500\t派送时间26/01/08  \nTO2606090001\tAL0-VCQ7W4FYHHXN2\t      实际离港时间：2026-7-22  \nTO2606180001\t1075604900\t需要更改货代为Kuehne AND Nagel Limited Shenzhen Branch Office  \nTO2607070009\tAL0-RKJXYW6MJNSXW\t   派送时间：2026/08/05[图片消息](mediaId=@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA)"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgwhYAOMFt+fnVUSxrg+dUdg==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxYBQix0znvNAe7NBJKwu_tdCKWmaHQKXg8lwAw_AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 帮处理一下",
+      "time": "2026-08-24 11:15:18"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgJtWN47wKL4sjJIaUNqQncw==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Zack-曾子豪",
+              "Clare"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "@Clare（朱卓文）(Clare) @Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) TMS-V8-PanlB可以上UAT",
+      "time": "2026-08-21 13:58:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgku/yqViXEJFDA1hk7GvrrQ==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-20/6a86a5f0e4b0e677bc7fc56d?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260820T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260820%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=63a24ed21374da9fce4ecf18394faa9e5ea7dd1ab670b00e49e6964be2e3bd7c)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-20 15:00:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg/VxHeJoAaAOsUUw74MQKBQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2605250001，需要更改为部分签收，清空差异单，实际无差异，手动补签收\n--菜鸟那边签收异常单，手动处理",
+      "time": "2026-08-20 10:05:02"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgQtBUOagX+bt3HYYhiEmg4w==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max) 看下sheet的bug内容，补充一下问题产生的原因吧，到时候归纳一下看看要怎么避免",
+      "time": "2026-08-20 09:56:11"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4apeUO0BMtkEg8TLXEZm+Q==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-18/6a8402f0e4b0e677cab1803e?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260818T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260818%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=e823d150e724d2a239252bcb43238bac7c723636493cd113bb7119d473c6dc07)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-18 15:00:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgh2jsylkt9M3fLSjsBE6uUA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 16:45:55",
+        "messageId": "msgtYNDjks+i9F33xWE/lY/Ew==",
+        "sender": "Max",
+        "text": "https://alidocs.dingtalk.com/spreadsheetv2/Wm7QJJkJI4APLa08/edit?docKey=vBPlN5Xwmap0kOdG&dentryKey=Wm7QJJkJI4APLa08&type=s @351886750 @460391884 @529302752 @160932459 "
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Zack-曾子豪",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) 冒烟过的把状态更新一下",
+      "time": "2026-08-18 09:58:22"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgRQW8FNug911PXwJtMAUDJg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Charles",
+              "Zack-曾子豪"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪) @Clear Zhou (周爽)(周爽) 关注一下类型是bug的是否非bug。\n@Cici Chen (陈惜健)(陈惜健) 关注下变更需求是否非变更需求",
+      "time": "2026-08-17 14:45:43"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgiemlbS0MXeINvHdxja6e0A==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:29:08",
+        "messageId": "msgLZCrdraQE7EyvzmPmEorUQ==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 之前是不是有提供过这个sql呀"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 之前的校验数量",
+      "time": "2026-08-14 14:29:30"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg0KIKQv/79r16qlrdnhLmfQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:21:47",
+        "messageId": "msgcfbVyVK0+yq2UQZ0Sqfd/A==",
+        "sender": "Clare",
+        "text": "@460201468 "
+      },
+      "sender": "陈惜健",
+      "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) 查一下TR表的TR单号+do单号，与差异单表的业务单号+DO单号不一样的，清理一下TR单的DO单号，看下还有哪些单\n\n--以差异单列表的TR对应的DO单号为准",
+      "time": "2026-08-14 14:27:33"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgh6d9npB2Zm+rBGRcoukaUA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:27:33",
+        "messageId": "msg0KIKQv/79r16qlrdnhLmfQ==",
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) @Charles（王玉恒）(Charles) 查一下TR表的TR单号+do单号，与差异单表的业务单号+DO单号不一样的，清理一下TR单的DO单号，看下还有哪些单\n\n--以差异单列表的TR对应的DO单号为准\n\n"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 跑一下那个sql吧，我有点事情要处理",
+      "time": "2026-08-14 14:28:34"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgA5ZSFnwcBakdSlqeuvK1tA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 14:00:50",
+        "messageId": "msg7f5El65Co1qXaU0lH/lV+A==",
+        "sender": "陈惜健",
+        "text": "TR25091200054，ST2510030001\n---这个单差异单我刚已经操作关闭了，TR的job失败"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 看下",
+      "time": "2026-08-14 14:12:34"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgN1tIN7BGH6lOpaA3FCW/KA==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-14 10:38:03",
+        "messageId": "msgjNgITnVHTtMUJ6oRL05WxQ==",
+        "sender": "陈惜健",
+        "text": "@Clare（朱卓文）(Clare) 现在肯定要改状态修正，至于签收后没更新到状态你们看吧"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgN1tIN7BGH6lOpaA3FCW/KA==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) 看下会不会是[图片消息](mediaId=@lQLPJyB-FkMhdC_NAVbNBU-wAevf8AA4HgIKUSgWi4k5AA)这个第一条tr没有签收时间的问题，我先调整数据",
+      "time": "2026-08-14 10:43:39"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4xGiilpVczH+Wp0RCLSsQQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg4xGiilpVczH+Wp0RCLSsQQ==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Clare",
+      "text": "[图片消息](mediaId=@lQLPKdfck0MbhS_NATrNAyywbeOv1ihTtXsKUC-pGhBbAA)@Max Jiao（焦涛）(Max) @Charles（王玉恒）(Charles) 没问题吧",
+      "time": "2026-08-13 16:38:15"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgufv+Gr/uBDqVF3GuIWfgKA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Zack（曾子豪）(Zack-曾子豪) @Charles（王玉恒）(Charles) @Clear Zhou (周爽)(周爽) @Max Jiao（焦涛）(Max)",
+      "time": "2026-08-13 09:42:31"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgtYNDjks+i9F33xWE/lY/Ew==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "周爽",
+              "Clare",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Max",
+      "text": "https://alidocs.dingtalk.com/spreadsheetv2/Wm7QJJkJI4APLa08/edit?docKey=vBPlN5Xwmap0kOdG&dentryKey=Wm7QJJkJI4APLa08&type=s @Clare（朱卓文）(Clare) @Clear Zhou (周爽)(周爽) @Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-12 16:45:55"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgLn40EKGg4Iq99UGWzv4bVg==",
+      "sender": "不嘻嘻",
+      "text": "类型：推IMS流水报错\n\n通知文件：[推IMS流水报错](https://renpho-new-erp-parent-hk.s3.ap-east-1.amazonaws.com/ERP-PROD/BMS/inspection/2026-08-12/6a7c19f0e4b0e677bc7fb19d?response-content-disposition=&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260812T070000Z&X-Amz-SignedHeaders=host&X-Amz-Expires=259200&X-Amz-Credential=AKIAQBN4ACQ3Q4BEQE4W%2F20260812%2Fap-east-1%2Fs3%2Faws4_request&X-Amz-Signature=acc9e9a6c123eb5daee8ef094be6528b4768704c714dd0110c8e1dfc4fd9bab4)\n\n@Clare（朱卓文）  @Zack（曾子豪）  @Charles（王玉恒）  @Cici Chen (陈惜健)",
+      "time": "2026-08-12 15:00:01"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg9gMuzCeFMaRW01kIPDJ3hg==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 14:12:56",
+        "messageId": "msg1/zXkq85kaEu350auPdlJw==",
+        "resourceRefs": [
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+            "type": "mediaId"
+          },
+          {
+            "download": {
+              "arguments": {
+                "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+                "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+                "resource-id": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+                "type": "mediaId"
+              },
+              "missing": [],
+              "ready": true,
+              "shortcut": "+messages-resource-download"
+            },
+            "resourceId": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+            "type": "mediaId"
+          }
+        ],
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健)[图片消息](mediaId=@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ)[图片消息](mediaId=@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA)还在上架中"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwMIjoIqYyfNAT_NA3CwZf_TJSl0RkgKTsTMQ8-zAA",
+          "type": "mediaId"
+        },
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg1/zXkq85kaEu350auPdlJw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKH7RilCnoyfNAovNAniw__jdTjzqNBQKTsTMQ8-zAQ",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) [裂开]这2个单菜鸟有问题，状态不更新了，补单上架了，并且无差异数量的；那这样没办法自动更新了，需要你手动处理了\n--状态改到已完成、上架数量=发货数量，差异数量=0，推IMS上架这个\nTR2606250003，推ims上架12\nTR2606250001，推ims上架5\n\n---你操作完，我在手动调库存",
+      "time": "2026-08-12 14:57:41"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgXq3b/vHuEe6JYjaedxiojw==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-12 10:03:50",
+        "messageId": "msgsD75j0IVi5GtxjBQrBa2DA==",
+        "sender": "陈惜健",
+        "text": "@529302752 TR2606250003\nTR2606250001\n---需要改到部分签收，这个是多签的，签收上架=发货数量的，这个应该能重新自动上架负数，推IMS上架负数、删除差异单\n这2个是菜鸟入库的，之前自动和手动都签收了，所以多签了\n"
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgXq3b/vHuEe6JYjaedxiojw==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "[图片消息](mediaId=@lQLPKGaWyVTUlwfNAZDNBpKwE6FjtCiaGgsKTsNa5JlFAA)@Charles（王玉恒）(Charles) 不会job自动上架更新了吗？",
+      "time": "2026-08-12 14:06:35"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgsD75j0IVi5GtxjBQrBa2DA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR2606250003\nTR2606250001\n---需要改到部分签收，这个是多签的，签收上架=发货数量的，这个应该能重新自动上架负数，推IMS上架负数、删除差异单\n这2个是菜鸟入库的，之前自动和手动都签收了，所以多签了",
+      "time": "2026-08-12 10:03:50"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg3FsaFYPVvYVN2v5j2awR7g==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-11 13:52:43",
+        "messageId": "msg4fROAPALiu/kYfZJ867smg==",
+        "sender": "陈惜健",
+        "text": "@Charles（王玉恒）(Charles) 都行，抽空加上去吧\n"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Max",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Cici Chen (陈惜健)(陈惜健) @Max Jiao（焦涛）(Max) 这个周四发上去吧",
+      "time": "2026-08-11 17:09:57"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg+McI1IxdnQrJ5bGVBjA3xA==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg+McI1IxdnQrJ5bGVBjA3xA==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 1、这批是之前的inbound和IMS待上架不一致的：TR单需要修正上架数量=发货数量和差异数量为0，TR出运状态到已完成，删除差异单单号、补推IMS上架数量修正（按单号对应的补推数量）  \nTR25081400003-2  \nTR25090500113  \nTR25082600023  \nTR25091200014  \nTR25090500006  \nTR25082000008  \nTR25091000043  \nTR25091000003  \nTR25082900003  \nTR25091900035[图片消息](mediaId=@lQLPJwnJgZaYoR_NAc3NB0ew_K9f7Kh0aIsKTYWPD394AA)2、这个单差异单数量和TR的不一致：需要删除差异单号、在手动推IMS建新DO  \nTR25101400087",
+      "time": "2026-08-11 14:58:06"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg6A7CAGiiKx7KFiH2TrHvQg==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-11 14:27:23"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4fROAPALiu/kYfZJ867smg==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-11 12:27:28",
+        "messageId": "msglCqFvMR64Pk/SYtKEG7k1g==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 这个需要代码里加个过滤条件，把is_delete的数据过滤掉。你看什么时间发到生产去"
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 都行，抽空加上去吧",
+      "time": "2026-08-11 13:52:43"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msg4qTov7/3rD04unZukRBYew==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg4qTov7/3rD04unZukRBYew==",
+              "open-conversation-id": "cidci2/lm6ZELVzEJ3sMhux7w==",
+              "resource-id": "@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) RO移除单PSKU、发货仓空值预警  \n---这个job我看每天跑都是失败的[图片消息](mediaId=@lQLPJxvo1qHO6f_NAkfNBqCwCf2ZXEa1srkKTVCGLH75AA)",
+      "time": "2026-08-11 11:08:10"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msggxgfZ2CqW0dNcscFkLAXuw==",
+      "sender": "Clare",
+      "text": "@Charles（王玉恒）(Charles) @Zack（曾子豪）(Zack-曾子豪)",
+      "time": "2026-08-10 17:13:23"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgPUC6vC1E+n4DMofosy52SQ==",
+      "quotedMessage": {
+        "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+        "createTime": "2026-08-10 16:29:20",
+        "messageId": "msglM9ERDVuNyvzLmCtX0i+5w==",
+        "sender": "Charles",
+        "text": "@Cici Chen (陈惜健)(陈惜健) 已处理"
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) 签完了，需要再手动推送IMS建新DO",
+      "time": "2026-08-10 16:42:54"
+    },
+    {
+      "conversation": "TMS/SRM/MDM友好",
+      "conversationId": "cidci2/lm6ZELVzEJ3sMhux7w==",
+      "messageId": "msgXG3PVxi7wZf9uxkpBa+bkQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "陈惜健",
+      "text": "@Charles（王玉恒）(Charles) TR25091900035老TR签收数量错误，需要改到部分签收，删除差异单号，我手动补签收，在推送IMS上架",
+      "time": "2026-08-10 16:27:43"
+    },
+    {
+      "conversation": "旧ERP收口沟通群",
+      "conversationId": "cidbKo0KFK5ZPrZEQFxl18uKQ==",
+      "messageId": "msg2BeSNzxk06ZOtHMFEAE+WQ==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 3,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles",
+              "Rambo",
+              "Clare"
+            ]
+          }
+        ]
+      },
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msg2BeSNzxk06ZOtHMFEAE+WQ==",
+              "open-conversation-id": "cidbKo0KFK5ZPrZEQFxl18uKQ==",
+              "resource-id": "@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Merry",
+      "text": "@Clare（朱卓文）(Clare) @Rambo Yang（杨锐波）(Rambo) @Charles（王玉恒）(Charles) DC里的定时任务是否关闭的你们看下这个表，有部分在等业务确认，有部分在等埋点数据。你们看看是不是还有哪些任务需要先确认要开启或者关闭的。有的话艾特一下我。  \n[旧ERP定时任务.xls](https://alidocs.dingtalk.com/i/nodes/R1zknDm0WR3PlRGzCzQv9qbpVBQEx5rG?corpId=ding8f2aae111f22c53135c2f4657eb6378f&utm_medium=im_card&iframeQuery=utm_medium%3Dim_card%26utm_source%3Dim&utm_scene=person_space&utm_source=im)[图片消息](mediaId=@lQLPKGTiOpFLh3vNArDNBeywXxIVPlfZb70KY4ahtjekAA)",
+      "time": "2026-08-28 17:09:24"
+    },
+    {
+      "conversation": "RRC需求内部群",
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msg8JC9INdOhu7vxZ6U+2RMIw==",
+      "quotedMessage": {
+        "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+        "createTime": "2026-08-27 19:01:13",
+        "messageId": "msg0h80MQ+JwaxIEeMdI4BoNw==",
+        "sender": "Leslie",
+        "text": "RRC-xxl-job 和后台都发一下 @273173463 "
+      },
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Marsh",
+      "text": "@Charles（王玉恒）(Charles)",
+      "time": "2026-08-27 19:01:58"
+    },
+    {
+      "conversation": "RRC需求内部群",
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msg/GrNnzOl/BdjJ8jHjqEChg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 1,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Hollis（霍志祥）",
+      "text": "@Charles（王玉恒）(Charles) 给 marsh开一下 前后端 rrc 的管理员权限",
+      "time": "2026-08-27 18:43:46"
+    },
+    {
+      "conversation": "RRC需求内部群",
+      "conversationId": "cidr2JYtjS6SbLFQ/ZrU8uoaQ==",
+      "messageId": "msgwnCAYcJjcJspA1LCv+1yLw==",
+      "sender": "周爽",
+      "text": "@Charles（王玉恒）(Charles)",
+      "time": "2026-08-27 18:43:44"
+    },
+    {
+      "conversation": "UAT服务迁移",
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgMFh/unubGK/VtYCkQL/I/g==",
+      "resourceRefs": [
+        {
+          "download": {
+            "arguments": {
+              "message-id": "msgMFh/unubGK/VtYCkQL/I/g==",
+              "open-conversation-id": "cidsetY0AOW8gszT9u0xnLzKw==",
+              "resource-id": "@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA",
+              "type": "mediaId"
+            },
+            "missing": [],
+            "ready": true,
+            "shortcut": "+messages-resource-download"
+          },
+          "resourceId": "@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA",
+          "type": "mediaId"
+        }
+      ],
+      "sender": "Rambo",
+      "text": "[图片消息](mediaId=@lQLPJx4JoDRp6WPNA1zNB3KwJ6IVKIjN68cKWjWmyp-sAA)@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)  TEST 环境，ES无法正常查询，显示有失败的分片",
+      "time": "2026-08-21 11:29:14"
+    },
+    {
+      "conversation": "UAT服务迁移",
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgvmEosYJhWYAC7A6dl9sMOw==",
+      "sender": "Rambo",
+      "text": "@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)  OMS，新增以下表，PROD 的 SR 增加下表定义\n\nCREATE TABLE `oms_crawling_amz_info` (\n `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',\n `reporting_time` DATETIME NOT NULL COMMENT '上报时间',\n `asin` VARCHAR(64) NOT NULL COMMENT 'ASIN',\n `site` VARCHAR(32) NULL DEFAULT NULL COMMENT '站点',\n `currency` VARCHAR(16) NULL DEFAULT NULL COMMENT '币种',\n `title` VARCHAR(1024) NULL DEFAULT NULL COMMENT '标题',\n `price` decimal(12,2) DEFAULT NULL COMMENT '售价',\n `list_price` decimal(12,2) DEFAULT NULL COMMENT '划线价',\n `rating` decimal(3,1) DEFAULT NULL COMMENT '星级评分',\n `reviews` int DEFAULT NULL COMMENT '评论数',\n `seller` VARCHAR(512) NULL DEFAULT NULL COMMENT '卖家',\n `stock` VARCHAR(64) NULL DEFAULT NULL COMMENT '库存',\n `deal_badge` VARCHAR(128) NULL DEFAULT NULL COMMENT '活动标',\n `ac_badge` VARCHAR(1024) NULL DEFAULT NULL COMMENT 'AC标',\n `coupon` VARCHAR(128) NULL DEFAULT NULL COMMENT '优惠券',\n `parent_asin` VARCHAR(64) NULL DEFAULT NULL COMMENT '父体ASIN',\n `bsr_main_rank` VARCHAR(32) NULL DEFAULT NULL COMMENT 'BSR主类目排名',\n `bsr_main_category` VARCHAR(256) NULL DEFAULT NULL COMMENT 'BSR主类目名称',\n `bsr_sub_rank` VARCHAR(32) NULL DEFAULT NULL COMMENT 'BSR子类目排名',\n `bsr_sub_category` VARCHAR(256) NULL DEFAULT NULL COMMENT 'BSR子类目名称',\n `product_info` TEXT NULL DEFAULT NULL COMMENT '商品信息（JSON）',\n `url` VARCHAR(1024) NULL DEFAULT NULL COMMENT 'URL',\n `status` VARCHAR(32) NULL DEFAULT NULL COMMENT '状态',\n `error` VARCHAR(1024) NULL DEFAULT NULL COMMENT '错误信息',\n `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',\n `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',\n `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '是否删除，0否、1是',\n PRIMARY KEY (`id`),\n KEY `idx_asin` (`asin`),\n KEY `idx_reporting_time` (`reporting_time`)\n) ENGINE=InnoDB  COMMENT='爬取亚马逊信息表';",
+      "time": "2026-08-21 09:51:23"
+    },
+    {
+      "conversation": "UAT服务迁移",
+      "conversationId": "cidsetY0AOW8gszT9u0xnLzKw==",
+      "messageId": "msgs0IA6BRhW59syUx5Pv0rBw==",
+      "sender": "Rambo",
+      "text": "@Charles（王玉恒）(Charles) @Hollis（霍志祥）(Hollis（霍志祥）)   DMS，PROD 的 SR 添加下新表定义\n\nhttp://192.168.9.22/new-erp/DMS/-/blob/feature-20260818-%E9%94%80%E9%87%8F%E6%8A%A5%E8%A1%A8%E5%88%A9%E6%B6%A6%E9%9C%80%E6%B1%82/dms-start/erp-dms/src/main/resources/scripts/20260818-%E9%94%80%E9%87%8F%E6%8A%A5%E8%A1%A8%E5%88%A9%E6%B6%A6%E9%9C%80%E6%B1%82/ddl.sql",
+      "time": "2026-08-20 17:55:16"
+    },
+    {
+      "conversation": "研发小组负责人",
+      "conversationId": "cid5o3o2VL3MYLZEzMsLxTvQQ==",
+      "messageId": "msg76lOjl35nHhmxgrxbTA2Yg==",
+      "reactions": {
+        "counts": [
+          {
+            "count": 2,
+            "emoji": "OK"
+          }
+        ],
+        "details": [
+          {
+            "emoji": "OK",
+            "replyUsers": [
+              "Rambo",
+              "Charles"
+            ]
+          }
+        ]
+      },
+      "sender": "Hollis（霍志祥）",
+      "text": "@Clare（朱卓文）(Clare) @Run Li (李致远)(Run) @Charles（王玉恒）(Charles) @Rambo Yang（杨锐波）(Rambo)",
+      "time": "2026-08-12 12:08:55"
+    }
+  ],
+  "nextCursor": "KYgJ0RFgxRIEtM/uGOP6EPi529O7zzXek0RpuRfatYeJU26jfBt+kw9XKyuejswtU6MI1/MgXg8IL1TaEvZy3x2Gc31Dl0oHoc9BxACad06Xs/6+d5dQOr2K4HDD+wSZtsYILUvofWLGSreu1nCVGuYoWS8Z3KfgyAxprNwH14i1IRWiuEEhimIV/ebvjISDADlueO1rec3vSE8UkoK9UfdYfrAiP2lqePCdmq7/1FXTcqzJv2q5VdmgQVqSOoLC",
+  "pagesFetched": 1,
+  "paginationKnown": false,
+  "partial": false,
+  "stopReason": "single_page",
+  "truncated": false
+}

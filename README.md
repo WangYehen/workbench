@@ -136,7 +136,15 @@ npm run dev               # 前端 http://127.0.0.1:5174 + API http://127.0.0.1:
 3. 在 `.env` 填入 `OUTLOOK_ENTRA_CLIENT_ID`（多租户公共客户端，无需 Secret，采用 PKCE）、`DINGTALK_CLIENT_ID/SECRET`、`DEEPSEEK_API_KEY`。
 4. 重启，在「系统 / 接入」页点击连接并完成 OAuth 授权。
 
-## 桌面打包
+## Windows 本机网页版安装包（推荐分发方式）
+
+```bash
+npm run web:installer  # 输出 release-web/Setup.exe、SHA-256 与更新说明
+```
+
+安装时可选择 `D:\团队每日工作台` 或其他本机 NTFS 目录。安装后双击桌面快捷方式，后台服务会静默启动并自动打开浏览器；领导电脑不需要另装 Node/npm。程序按版本存放，配置、SQLite 与 Outlook 状态独立保留，直接运行新版安装包即可备份并覆盖升级。详见 [Windows 打包指南](docs/打包指南.md)。
+
+## Electron 打包（兼容保留）
 
 ```bash
 npm run electron:build   # 输出 release/ 安装包

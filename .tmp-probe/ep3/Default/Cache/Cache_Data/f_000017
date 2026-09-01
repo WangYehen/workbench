@@ -1,0 +1,251 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/pages/DailyReportPage.jsx");import __vite__cjsImport0_react_jsxDevRuntime from "/node_modules/.vite/deps/react_jsx-dev-runtime.js?v=9e8b89a9"; const jsxDEV = __vite__cjsImport0_react_jsxDevRuntime["jsxDEV"];
+var _s = $RefreshSig$();
+import __vite__cjsImport1_react from "/node_modules/.vite/deps/react.js?v=9e8b89a9"; const useEffect = __vite__cjsImport1_react["useEffect"]; const useState = __vite__cjsImport1_react["useState"];
+import { IconCheck, IconEdit, IconFileText } from "/node_modules/.vite/deps/@tabler_icons-react.js?v=9e8b89a9";
+import { api, todayStr } from "/src/api.js";
+import DateNav from "/src/components/DateNav.jsx";
+import GenerateButton from "/src/components/GenerateButton.jsx";
+export default function DailyReportPage() {
+  _s();
+  const [date, setDate] = useState(todayStr());
+  const [report, setReport] = useState(null);
+  const [sources, setSources] = useState({ total: 0 });
+  const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const load = async () => {
+    const [daily, raw] = await Promise.all([api.get(`/reports/daily?date=${date}`), api.get(`/reports/dingtalk?date=${date}`)]);
+    setReport(daily.report);
+    setSources(raw);
+  };
+  useEffect(() => {
+    load();
+  }, [date]);
+  const gen = async () => {
+    setBusy(true);
+    try {
+      await api.post("/reports/daily/generate", { date });
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const edit = () => {
+    setDraft(report?.content_json?.summary || "");
+    setEditing(true);
+  };
+  const save = async () => {
+    setBusy(true);
+    try {
+      await api.put("/reports/daily", { date, content: { summary: draft } });
+      await load();
+      setEditing(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const c = report?.content_json || {};
+  return /* @__PURE__ */ jsxDEV("div", { children: [
+    /* @__PURE__ */ jsxDEV("div", { className: "panel", style: { marginBottom: 14 }, children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "panel__head", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "panel__title", children: [
+          /* @__PURE__ */ jsxDEV(IconFileText, { size: 20 }, void 0, false, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 126
+          }, this),
+          "主管日报"
+        ] }, void 0, true, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 96
+        }, this),
+        /* @__PURE__ */ jsxDEV(DateNav, { date, onChange: setDate }, void 0, false, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 162
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+        lineNumber: 11,
+        columnNumber: 67
+      }, this),
+      /* @__PURE__ */ jsxDEV("p", { className: "meta", children: [
+        "本页只保留可编辑主管摘要；",
+        sources.total,
+        " 名成员的原始日志请在「团队」工作区按成员下钻。"
+      ] }, void 0, true, {
+        fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+        lineNumber: 11,
+        columnNumber: 210
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+      lineNumber: 11,
+      columnNumber: 15
+    }, this),
+    /* @__PURE__ */ jsxDEV("div", { className: "panel", children: [
+      /* @__PURE__ */ jsxDEV("div", { className: "panel__head", children: [
+        /* @__PURE__ */ jsxDEV("div", { className: "panel__title", children: [
+          date,
+          " 汇报摘要"
+        ] }, void 0, true, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 344
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "row", children: [
+          /* @__PURE__ */ jsxDEV(GenerateButton, { onClick: gen, busy }, void 0, false, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 412
+          }, this),
+          report && !editing && /* @__PURE__ */ jsxDEV("button", { className: "btn sm", onClick: edit, children: [
+            /* @__PURE__ */ jsxDEV(IconEdit, { size: 15 }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 521
+            }, this),
+            "编辑"
+          ] }, void 0, true, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 479
+          }, this),
+          editing && /* @__PURE__ */ jsxDEV("button", { className: "btn primary sm", onClick: save, disabled: busy, children: [
+            /* @__PURE__ */ jsxDEV(IconCheck, { size: 15 }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 633
+            }, this),
+            "保存"
+          ] }, void 0, true, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 567
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 391
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+        lineNumber: 11,
+        columnNumber: 315
+      }, this),
+      report ? /* @__PURE__ */ jsxDEV("div", { children: [
+        editing ? /* @__PURE__ */ jsxDEV("textarea", { value: draft, onChange: (e) => setDraft(e.target.value), rows: 7, style: { width: "100%" } }, void 0, false, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 706
+        }, this) : /* @__PURE__ */ jsxDEV("p", { style: { fontSize: 16, lineHeight: 1.8 }, children: typeof c.summary === "string" ? c.summary : "（摘要格式异常，请重新生成）" }, void 0, false, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 813
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "grid grid-2", children: [
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "sub", children: "团队阻塞" }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 959
+            }, this),
+            /* @__PURE__ */ jsxDEV("ul", { children: (c.teamBlockers || []).map((x, i) => /* @__PURE__ */ jsxDEV("li", { children: x }, i, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 1032
+            }, this)) }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 990
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 954
+          }, this),
+          /* @__PURE__ */ jsxDEV("div", { children: [
+            /* @__PURE__ */ jsxDEV("div", { className: "sub", children: "需主管审核" }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 1070
+            }, this),
+            /* @__PURE__ */ jsxDEV("ul", { children: (c.needManagerReview || []).map((x, i) => /* @__PURE__ */ jsxDEV("li", { children: x }, i, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 1149
+            }, this)) }, void 0, false, {
+              fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+              lineNumber: 11,
+              columnNumber: 1102
+            }, this)
+          ] }, void 0, true, {
+            fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+            lineNumber: 11,
+            columnNumber: 1065
+          }, this)
+        ] }, void 0, true, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 925
+        }, this),
+        /* @__PURE__ */ jsxDEV("div", { className: "meta", children: [
+          "来源 ",
+          c.sourceRefs?.length || 0,
+          " 项 · 生成于 ",
+          c.generatedAt ? new Date(c.generatedAt).toLocaleString("zh-CN") : report.generated_at
+        ] }, void 0, true, {
+          fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+          lineNumber: 11,
+          columnNumber: 1188
+        }, this)
+      ] }, void 0, true, {
+        fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+        lineNumber: 11,
+        columnNumber: 690
+      }, this) : /* @__PURE__ */ jsxDEV("div", { className: "empty", children: "该日期尚未生成主管日报。" }, void 0, false, {
+        fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+        lineNumber: 11,
+        columnNumber: 1351
+      }, this)
+    ] }, void 0, true, {
+      fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+      lineNumber: 11,
+      columnNumber: 292
+    }, this)
+  ] }, void 0, true, {
+    fileName: "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx",
+    lineNumber: 11,
+    columnNumber: 10
+  }, this);
+}
+_s(DailyReportPage, "Ug4VJY8PDMyFKLuYN2bTCGdKQ7U=");
+_c = DailyReportPage;
+var _c;
+$RefreshReg$(_c, "DailyReportPage");
+import * as RefreshRuntime from "/@react-refresh";
+const inWebWorker = typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope;
+if (import.meta.hot && !inWebWorker) {
+  if (!window.$RefreshReg$) {
+    throw new Error(
+      "@vitejs/plugin-react can't detect preamble. Something is wrong."
+    );
+  }
+  RefreshRuntime.__hmr_import(import.meta.url).then((currentExports) => {
+    RefreshRuntime.registerExportsForReactRefresh("D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx", currentExports);
+    import.meta.hot.accept((nextExports) => {
+      if (!nextExports) return;
+      const invalidateMessage = RefreshRuntime.validateRefreshBoundaryAndEnqueueUpdate("D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx", currentExports, nextExports);
+      if (invalidateMessage) import.meta.hot.invalidate(invalidateMessage);
+    });
+  });
+}
+function $RefreshReg$(type, id) {
+  return RefreshRuntime.register(type, "D:/AI学习/工作台/workbench/src/pages/DailyReportPage.jsx " + id);
+}
+function $RefreshSig$() {
+  return RefreshRuntime.createSignatureFunctionForTransform();
+}
+
+//# sourceMappingURL=data:application/json;base64,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R0FMdUJELGlCQUFlO0FBQUEsS0FBZkE7QUFBZSxJQUFBZ0Q7QUFBQSxhQUFBQSxJQUFBIiwibmFtZXMiOlsidXNlRWZmZWN0IiwidXNlU3RhdGUiLCJJY29uQ2hlY2siLCJJY29uRWRpdCIsIkljb25GaWxlVGV4dCIsImFwaSIsInRvZGF5U3RyIiwiRGF0ZU5hdiIsIkdlbmVyYXRlQnV0dG9uIiwiRGFpbHlSZXBvcnRQYWdlIiwiX3MiLCJkYXRlIiwic2V0RGF0ZSIsInJlcG9ydCIsInNldFJlcG9ydCIsInNvdXJjZXMiLCJzZXRTb3VyY2VzIiwidG90YWwiLCJidXN5Iiwic2V0QnVzeSIsImVkaXRpbmciLCJzZXRFZGl0aW5nIiwiZHJhZnQiLCJzZXREcmFmdCIsImxvYWQiLCJkYWlseSIsInJhdyIsIlByb21pc2UiLCJhbGwiLCJnZXQiLCJnZW4iLCJwb3N0IiwiZWRpdCIsImNvbnRlbnRfanNvbiIsInN1bW1hcnkiLCJzYXZlIiwicHV0IiwiY29udGVudCIsImMiLCJtYXJnaW5Cb3R0b20iLCJlIiwidGFyZ2V0IiwidmFsdWUiLCJ3aWR0aCIsImZvbnRTaXplIiwibGluZUhlaWdodCIsInRlYW1CbG9ja2VycyIsIm1hcCIsIngiLCJpIiwibmVlZE1hbmFnZXJSZXZpZXciLCJzb3VyY2VSZWZzIiwibGVuZ3RoIiwiZ2VuZXJhdGVkQXQiLCJEYXRlIiwidG9Mb2NhbGVTdHJpbmciLCJnZW5lcmF0ZWRfYXQiLCJfYyJdLCJpZ25vcmVMaXN0IjpbXSwic291cmNlcyI6WyJEYWlseVJlcG9ydFBhZ2UuanN4Il0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IHVzZUVmZmVjdCwgdXNlU3RhdGUgfSBmcm9tIFwicmVhY3RcIjtcbmltcG9ydCB7IEljb25DaGVjaywgSWNvbkVkaXQsIEljb25GaWxlVGV4dCB9IGZyb20gXCJAdGFibGVyL2ljb25zLXJlYWN0XCI7XG5pbXBvcnQgeyBhcGksIHRvZGF5U3RyIH0gZnJvbSBcIi4uL2FwaS5qc1wiO1xuaW1wb3J0IERhdGVOYXYgZnJvbSBcIi4uL2NvbXBvbmVudHMvRGF0ZU5hdi5qc3hcIjtcbmltcG9ydCBHZW5lcmF0ZUJ1dHRvbiBmcm9tIFwiLi4vY29tcG9uZW50cy9HZW5lcmF0ZUJ1dHRvbi5qc3hcIjtcblxuZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gRGFpbHlSZXBvcnRQYWdlKCl7XG4gY29uc3QgW2RhdGUsc2V0RGF0ZV09dXNlU3RhdGUodG9kYXlTdHIoKSk7Y29uc3QgW3JlcG9ydCxzZXRSZXBvcnRdPXVzZVN0YXRlKG51bGwpO2NvbnN0IFtzb3VyY2VzLHNldFNvdXJjZXNdPXVzZVN0YXRlKHt0b3RhbDowfSk7Y29uc3QgW2J1c3ksc2V0QnVzeV09dXNlU3RhdGUoZmFsc2UpO2NvbnN0IFtlZGl0aW5nLHNldEVkaXRpbmddPXVzZVN0YXRlKGZhbHNlKTtjb25zdCBbZHJhZnQsc2V0RHJhZnRdPXVzZVN0YXRlKFwiXCIpO1xuIGNvbnN0IGxvYWQ9YXN5bmMoKT0+e2NvbnN0IFtkYWlseSxyYXddPWF3YWl0IFByb21pc2UuYWxsKFthcGkuZ2V0KGAvcmVwb3J0cy9kYWlseT9kYXRlPSR7ZGF0ZX1gKSxhcGkuZ2V0KGAvcmVwb3J0cy9kaW5ndGFsaz9kYXRlPSR7ZGF0ZX1gKV0pO3NldFJlcG9ydChkYWlseS5yZXBvcnQpO3NldFNvdXJjZXMocmF3KX07dXNlRWZmZWN0KCgpPT57bG9hZCgpfSxbZGF0ZV0pO1xuIGNvbnN0IGdlbj1hc3luYygpPT57c2V0QnVzeSh0cnVlKTt0cnl7YXdhaXQgYXBpLnBvc3QoXCIvcmVwb3J0cy9kYWlseS9nZW5lcmF0ZVwiLHtkYXRlfSk7YXdhaXQgbG9hZCgpfWZpbmFsbHl7c2V0QnVzeShmYWxzZSl9fTtjb25zdCBlZGl0PSgpPT57c2V0RHJhZnQocmVwb3J0Py5jb250ZW50X2pzb24/LnN1bW1hcnl8fFwiXCIpO3NldEVkaXRpbmcodHJ1ZSl9O2NvbnN0IHNhdmU9YXN5bmMoKT0+e3NldEJ1c3kodHJ1ZSk7dHJ5e2F3YWl0IGFwaS5wdXQoXCIvcmVwb3J0cy9kYWlseVwiLHtkYXRlLGNvbnRlbnQ6e3N1bW1hcnk6ZHJhZnR9fSk7YXdhaXQgbG9hZCgpO3NldEVkaXRpbmcoZmFsc2UpfWZpbmFsbHl7c2V0QnVzeShmYWxzZSl9fTtjb25zdCBjPXJlcG9ydD8uY29udGVudF9qc29ufHx7fTtcbiByZXR1cm4gPGRpdj48ZGl2IGNsYXNzTmFtZT1cInBhbmVsXCIgc3R5bGU9e3ttYXJnaW5Cb3R0b206MTR9fT48ZGl2IGNsYXNzTmFtZT1cInBhbmVsX19oZWFkXCI+PGRpdiBjbGFzc05hbWU9XCJwYW5lbF9fdGl0bGVcIj48SWNvbkZpbGVUZXh0IHNpemU9ezIwfS8+5Li7566h5pel5oqlPC9kaXY+PERhdGVOYXYgZGF0ZT17ZGF0ZX0gb25DaGFuZ2U9e3NldERhdGV9Lz48L2Rpdj48cCBjbGFzc05hbWU9XCJtZXRhXCI+5pys6aG15Y+q5L+d55WZ5Y+v57yW6L6R5Li7566h5pGY6KaB77ybe3NvdXJjZXMudG90YWx9IOWQjeaIkOWRmOeahOWOn+Wni+aXpeW/l+ivt+WcqOOAjOWboumYn+OAjeW3peS9nOWMuuaMieaIkOWRmOS4i+mSu+OAgjwvcD48L2Rpdj48ZGl2IGNsYXNzTmFtZT1cInBhbmVsXCI+PGRpdiBjbGFzc05hbWU9XCJwYW5lbF9faGVhZFwiPjxkaXYgY2xhc3NOYW1lPVwicGFuZWxfX3RpdGxlXCI+e2RhdGV9IOaxh+aKpeaRmOimgTwvZGl2PjxkaXYgY2xhc3NOYW1lPVwicm93XCI+PEdlbmVyYXRlQnV0dG9uIG9uQ2xpY2s9e2dlbn0gYnVzeT17YnVzeX0gLz57cmVwb3J0JiYhZWRpdGluZyYmPGJ1dHRvbiBjbGFzc05hbWU9XCJidG4gc21cIiBvbkNsaWNrPXtlZGl0fT48SWNvbkVkaXQgc2l6ZT17MTV9Lz7nvJbovpE8L2J1dHRvbj59e2VkaXRpbmcmJjxidXR0b24gY2xhc3NOYW1lPVwiYnRuIHByaW1hcnkgc21cIiBvbkNsaWNrPXtzYXZlfSBkaXNhYmxlZD17YnVzeX0+PEljb25DaGVjayBzaXplPXsxNX0vPuS/neWtmDwvYnV0dG9uPn08L2Rpdj48L2Rpdj57cmVwb3J0PzxkaXY+e2VkaXRpbmc/PHRleHRhcmVhIHZhbHVlPXtkcmFmdH0gb25DaGFuZ2U9eyhlKT0+c2V0RHJhZnQoZS50YXJnZXQudmFsdWUpfSByb3dzPXs3fSBzdHlsZT17e3dpZHRoOlwiMTAwJVwifX0vPjo8cCBzdHlsZT17e2ZvbnRTaXplOjE2LGxpbmVIZWlnaHQ6MS44fX0+e3R5cGVvZiBjLnN1bW1hcnk9PT1cInN0cmluZ1wiP2Muc3VtbWFyeTpcIu+8iOaRmOimgeagvOW8j+W8guW4uO+8jOivt+mHjeaWsOeUn+aIkO+8iVwifTwvcD59PGRpdiBjbGFzc05hbWU9XCJncmlkIGdyaWQtMlwiPjxkaXY+PGRpdiBjbGFzc05hbWU9XCJzdWJcIj7lm6LpmJ/pmLvloZ48L2Rpdj48dWw+eyhjLnRlYW1CbG9ja2Vyc3x8W10pLm1hcCgoeCxpKT0+PGxpIGtleT17aX0+e3h9PC9saT4pfTwvdWw+PC9kaXY+PGRpdj48ZGl2IGNsYXNzTmFtZT1cInN1YlwiPumcgOS4u+euoeWuoeaguDwvZGl2Pjx1bD57KGMubmVlZE1hbmFnZXJSZXZpZXd8fFtdKS5tYXAoKHgsaSk9PjxsaSBrZXk9e2l9Pnt4fTwvbGk+KX08L3VsPjwvZGl2PjwvZGl2PjxkaXYgY2xhc3NOYW1lPVwibWV0YVwiPuadpea6kCB7Yy5zb3VyY2VSZWZzPy5sZW5ndGh8fDB9IOmhuSDCtyDnlJ/miJDkuo4ge2MuZ2VuZXJhdGVkQXQ/bmV3IERhdGUoYy5nZW5lcmF0ZWRBdCkudG9Mb2NhbGVTdHJpbmcoXCJ6aC1DTlwiKTpyZXBvcnQuZ2VuZXJhdGVkX2F0fTwvZGl2PjwvZGl2Pjo8ZGl2IGNsYXNzTmFtZT1cImVtcHR5XCI+6K+l5pel5pyf5bCa5pyq55Sf5oiQ5Li7566h5pel5oql44CCPC9kaXY+fTwvZGl2PjwvZGl2Pjtcbn1cbiJdLCJmaWxlIjoiRDovQUnlrabkuaAv5bel5L2c5Y+wL3dvcmtiZW5jaC9zcmMvcGFnZXMvRGFpbHlSZXBvcnRQYWdlLmpzeCJ9

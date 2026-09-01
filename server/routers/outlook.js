@@ -110,11 +110,12 @@ export default function outlookRouter(service) {
     json(res, 200, result);
   }));
 
-  router.get("/todos", wrap(async (req, res) => json(res, 200, await service.list("todos"))));
-  router.get("/archive", wrap(async (req, res) => json(res, 200, await service.list("archive"))));
-  router.get("/all", wrap(async (req, res) => json(res, 200, await service.list("all"))));
-  router.get("/informational", wrap(async (req, res) => json(res, 200, await service.list("informational"))));
-  router.get("/uncertain", wrap(async (req, res) => json(res, 200, await service.list("uncertain"))));
+  const listOptions = (req) => ({ q: req.query.q, limit: req.query.limit, offset: req.query.offset });
+  router.get("/todos", wrap(async (req, res) => json(res, 200, await service.list("todos", listOptions(req)))));
+  router.get("/archive", wrap(async (req, res) => json(res, 200, await service.list("archive", listOptions(req)))));
+  router.get("/all", wrap(async (req, res) => json(res, 200, await service.list("all", listOptions(req)))));
+  router.get("/informational", wrap(async (req, res) => json(res, 200, await service.list("informational", listOptions(req)))));
+  router.get("/uncertain", wrap(async (req, res) => json(res, 200, await service.list("uncertain", listOptions(req)))));
 
   router.post("/disconnect", wrap(async (req, res) => {
     assertAllowedObjectKeys(req.body || {}, new Set(), "OUTLOOK_INVALID_DISCONNECT_REQUEST");
