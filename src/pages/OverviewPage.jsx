@@ -1,253 +1,34 @@
 import { useEffect, useState } from "react";
-import { PageHeader } from "../components/PageHeader";
 import { useNavigate } from "react-router-dom";
-import {
-  IconMail,
-  IconCalendarEvent,
-  IconAlertTriangle,
-  IconUserX,
-  IconListCheck,
-  IconMailForward,
-  IconCalendarTime,
-  IconClipboardCheck,
-  IconShieldCheck,
-  IconSparkles,
-  IconRefresh,
-  IconThumbUp,
-  IconThumbDown,
-} from "@tabler/icons-react";
-import { api } from "../api.js";
+import { IconAlertTriangle, IconCalendarEvent, IconInfoCircle, IconListCheck, IconMail, IconRefresh, IconShieldCheck, IconUsers } from "@tabler/icons-react";
+import { api, todayStr, workbenchApi } from "../api.js";
 import DateNav from "../components/DateNav.jsx";
-import { StatusPill } from "../lib/project-status.jsx";
 import MeetingSchedule from "../components/MeetingSchedule.jsx";
-import GenerateButton from "../components/GenerateButton.jsx";
+import SyncButton from "../components/SyncButton.jsx";
+import "./OverviewPage.css";
 
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
+const WEEK=["周日","周一","周二","周三","周四","周五","周六"];
+const dashboardRequests = new Map();
+function loadDashboard(date) {
+ const existing=dashboardRequests.get(date);if(existing)return existing;
+ const request=workbenchApi.dashboard(date).finally(()=>dashboardRequests.delete(date));dashboardRequests.set(date,request);return request;
+}
+function fmtDateCn(iso){const [y,m,d]=iso.split("-").map(Number);return `${y}年${m}月${d}日 ${WEEK[new Date(y,m-1,d).getDay()]}`}
+function greeting(){const h=new Date().getHours();return h<11?"早上好":h<14?"中午好":h<18?"下午好":"晚上好"}
+function Kpi({label,icon,num,sub,subTone="muted",hint}){return <section className="oc-kpi"><div className="oc-kpi__top"><span className="oc-kpi__label">{label}{hint&&<span className="oc-kpi__hint"><button type="button" aria-label="查看统计规则"><IconInfoCircle size={14}/></button><span>{hint}</span></span>}</span><span className="oc-kpi__ic">{icon}</span></div><div className="oc-kpi__num">{num}</div><div className="oc-kpi__sub"><span className={`oc-dot oc-dot--${subTone}`}/>{sub}</div></section>}
+function SuggestionBand({date,data}){const [result,setResult]=useState(null);const [refreshing,setRefreshing]=useState(false);const load=async(force=false)=>{setRefreshing(force);try{setResult(await api.get(`/overview/suggestion?date=${date}${force?"&force=1":""}`))}finally{setRefreshing(false)}};useEffect(()=>{void load()},[date,data.inputHash]);useEffect(()=>{const state=result?.artifact?.status;if(!["queued","running","stale"].includes(state))return;const id=setTimeout(()=>void load(),2000);return()=>clearTimeout(id)},[result?.artifact?.status,result?.artifact?.updatedAt,date]);const artifact=result?.artifact;const updating=["queued","running","stale"].includes(artifact?.status);const generated=artifact?.generatedAt?new Date(artifact.generatedAt).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}):"刚刚";return <section className="oc-ai"><div className="oc-ai__head"><div className="oc-ai__titlewrap"><span className="oc-ai__spark">AI</span><span className="oc-ai__title">所选日期工作建议</span></div><button className="oc-ai__regen" onClick={()=>load(true)} disabled={refreshing} aria-label="重新生成建议"><IconRefresh size={15} className={refreshing?"oc-spin":""}/></button></div><p className="oc-ai__body">{result?.suggestion||"正在整理当前注意事项。"}</p><div className="oc-ai__meta"><span>{artifact?.ruleFallback||!artifact?.aiMeta?"即时规则":"AI 生成"}</span><span>·</span><span>{updating?"更新中，暂保留当前建议":`更新于 ${generated}`}</span></div><div className="oc-ai__tags">{data.attention.slice(0,3).map((item)=><span className="oc-chip" key={item.id}><span className={`oc-chip__priority oc-chip__priority--${(item.priority || "P2").toLowerCase()}`}>{item.priority}</span> · {item.title}</span>)}</div></section>}
 
-function greetingInfo() {
-  const now = new Date();
-  const hour = now.getHours();
-  const greet =
-    hour < 6 ? "凌晨好" : hour < 11 ? "早上好" : hour < 14 ? "中午好" : hour < 18 ? "下午好" : "晚上好";
-  const wd = WEEKDAYS[now.getDay()];
-  const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-  return { greet, wd, isWeekend };
+export default function OverviewPage(){
+ const [date,setDate]=useState(todayStr());const [data,setData]=useState(null);const [error,setError]=useState("");const [syncing,setSyncing]=useState(false);const nav=useNavigate();
+ const load=()=>loadDashboard(date).then(setData).catch((e)=>setError(e.message));useEffect(()=>{let live=true;loadDashboard(date).then((result)=>live&&setData(result)).catch((e)=>live&&setError(e.message));return()=>{live=false}},[date]);
+ const sync=async()=>{setSyncing(true);setError("");try{await workbenchApi.syncRun(date);await load()}catch(e){setError(e.message)}finally{setSyncing(false)}};
+ if(!data&&!error)return <div className="spinner">加载中…</div>; if(!data)return <div className="error">加载失败：{error}</div>;
+ const m=data.metrics;const latest=data.freshness.map((x)=>x.lastSuccessAt).filter(Boolean).sort().at(-1);const risks=data.projects.filter((p)=>["at_risk","overdue"].includes(p.status));const todoItems=data.attention.filter((x)=>x.kind==="todo");const mailItems=data.attention.filter((x)=>x.kind==="email");
+ return <div className="oc"><header className="oc-header"><div className="oc-header__left"><div className="oc-greet">{greeting()}{data.displayName?`，${data.displayName}`:""}</div><div className="oc-date">{fmtDateCn(data.date)} · 团队态势一览</div></div><div className="oc-actions"><DateNav date={date} onChange={setDate}/><span className="oc-syncchip"><span className="oc-syncdot"/>{latest?`最近成功 ${new Date(latest).toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})}`:"尚未同步"}</span><SyncButton className="oc-btn" onClick={sync} syncing={syncing} iconSize={15}>同步外部数据</SyncButton></div></header>
+ {error&&<div className="error">{error}</div>}{!data.hasData&&<div className="oc-empty">所选日期暂无数据。{data.availableDateHint&&<>最近有数据日期：<button className="oc-card__link" onClick={()=>setDate(data.availableDateHint)}>{data.availableDateHint}</button></>}</div>}
+ <div className="oc-kpis"><Kpi label="项目健康度" icon={<IconShieldCheck size={18}/>} num={m.projects.total?`${Math.round(m.projects.healthy/m.projects.total*100)}%`:"—"} sub={m.projects.total?`${m.projects.healthy} 健康 · ${m.projects.risk} 风险`:"暂无项目数据"} subTone={m.projects.risk?"warn":"ok"}/><Kpi label="待处理邮件" icon={<IconMail size={18}/>} num={m.email.open} sub={`${m.email.p0} 封 P0`} subTone={m.email.p0?"danger":"muted"}/><Kpi label={m.team.isFallbackDate?"团队提交率（昨日）":"团队提交率"} hint={`${m.team.ruleLabel || "按所选日期统计"}。当前统计日期：${m.team.metricDate || date}。手动切换日期后按所选日期统计。`} icon={<IconUsers size={18}/>} num={m.team.rate==null?"—":`${m.team.rate}%`} sub={`${m.team.submitted}/${m.team.rosterTotal} · ${m.team.missingStatus==="pending"?"待提交":"缺交"} ${m.team.missing} 人`} subTone={m.team.missing?"warn":"ok"}/><Kpi label="待办完成率" icon={<IconListCheck size={18}/>} num={m.todos.rate==null?"—":`${m.todos.rate}%`} sub={`${m.todos.done}/${m.todos.total} 已完成`}/></div>
+ <SuggestionBand date={date} data={data}/><div className="oc-grid"><div className="oc-col"><section className="oc-card oc-meeting-card"><div className="oc-card__head"><span className="oc-card__title"><span className="work-page-icon"><IconCalendarEvent size={17} stroke={1.8}/></span>今日会议（{data.meetings.length}）</span><button className="oc-card__link" onClick={()=>nav("/calendar")}>查看日历 →</button></div><MeetingSchedule meetings={data.meetings} live={date===todayStr()}/></section><section className="oc-card"><div className="oc-card__head"><span className="oc-card__title"><span className="work-page-icon"><IconMail size={17} stroke={1.8}/></span>待处理邮件</span><button className="oc-card__link" onClick={()=>nav("/actions?tab=email")}>进入行动中心 →</button></div>{mailItems.slice(0,5).map((x)=><button className="oc-row" key={x.id} onClick={()=>nav("/actions?tab=email")}><span className={`oc-tag oc-tag--${x.priority.toLowerCase()}`}>{x.priority}</span><span className="oc-row__main"><span className="oc-row__title">{x.title}</span><span className="oc-row__sub">{x.detail}</span></span></button>)}{!mailItems.length&&<div className="oc-empty">无待处理邮件</div>}</section></div>
+ <div className="oc-col"><section className="oc-card"><div className="oc-card__head"><span className="oc-card__title"><span className="work-page-icon"><IconAlertTriangle size={17} stroke={1.8}/></span>风险雷达</span><button className="oc-card__link" onClick={()=>nav("/projects")}>全部项目 →</button></div>{risks.map((p)=><div className="oc-risk-row" key={p.id}><span className="oc-risk-dot"/><div className="oc-risk-main"><div className="oc-risk-name">{p.name}</div><div className="oc-risk-sub">{p.owner||"未设置负责人"} · {p.progress}%</div></div><span className="oc-risk-status">{p.statusLabel}</span></div>)}{!data.projects.length?<div className="oc-empty"><IconAlertTriangle size={20}/>暂无项目数据</div>:!risks.length&&<div className="oc-empty">当前项目无风险信号</div>}</section><section className="oc-card"><div className="oc-card__head"><span className="oc-card__title"><span className="work-page-icon"><IconUsers size={17} stroke={1.8}/></span>团队信号</span><button className="oc-card__link" onClick={()=>nav("/team")}>查看团队 →</button></div><div className="oc-signals"><div className="oc-signal"><span className="oc-signal__num">{data.pulse.analysisStatus==="no_reports"?"—":data.pulse.blockers.length}</span><span className="oc-signal__lab">{data.pulse.analysisStatus==="no_reports"?"阻塞待分析":"阻塞"}</span></div><div className="oc-signal"><span className="oc-signal__num">{data.pulse.analysisStatus==="no_reports"?"—":data.pulse.reviewRequests.length}</span><span className="oc-signal__lab">{data.pulse.analysisStatus==="no_reports"?"待决策待分析":"待决策"}</span></div><div className="oc-signal"><span className="oc-signal__num">{data.pulse.missing.length}</span><span className="oc-signal__lab">{data.pulse.missingStatus==="pending"?"待提交":"未提交"}</span></div></div></section><section className="oc-card"><div className="oc-card__head"><span className="oc-card__title"><span className="work-page-icon"><IconListCheck size={17} stroke={1.8}/></span>最高优先级待办</span><button className="oc-card__link" onClick={()=>nav("/actions?tab=tasks")}>去处理 →</button></div>{todoItems.slice(0,5).map((x)=><div className="oc-todo-row" key={x.id}><span className={`oc-tag oc-tag--${x.priority.toLowerCase()}`}>{x.priority}</span><span className="oc-todo-txt">{x.title}</span></div>)}{!todoItems.length&&<div className="oc-empty">暂无待办</div>}</section></div></div></div>;
 }
 
-export default function OverviewPage() {
-  const [date, setDate] = useState("");
-  const [data, setData] = useState(null);
-  const [err, setErr] = useState("");
-  const navigate = useNavigate();
 
-  const [suggestion, setSuggestion] = useState("");
-  const [sugLoading, setSugLoading] = useState(false);
-  const [sugFeedback, setSugFeedback] = useState(null); // 'good' | 'bad' | null
-
-  useEffect(() => {
-    const q = date ? `?date=${date}` : "";
-    api
-      .get("/overview" + q)
-      .then((d) => {
-        setData(d);
-        if (!date) setDate(d.date); // 首次加载用后端默认的最近数据日
-      })
-      .catch((e) => setErr(e.message));
-  }, [date]);
-
-  useEffect(() => {
-    if (!data) return;
-    let active = true;
-    setSugLoading(true);
-    api
-      .get("/overview/suggestion")
-      .then((r) => active && setSuggestion(r.suggestion))
-      .catch(() => active && setSuggestion(""))
-      .finally(() => active && setSugLoading(false));
-    return () => { active = false; };
-  }, [data]);
-
-  async function regenerate(feedback) {
-    setSugLoading(true);
-    if (feedback) setSugFeedback(feedback);
-    try {
-      const r = await api.get(`/overview/suggestion?force=1${feedback ? `&feedback=${feedback}` : ""}`);
-      setSuggestion(r.suggestion);
-    } catch {
-      /* 忽略 */
-    } finally {
-      setSugLoading(false);
-    }
-  }
-
-  if (err) return <div className="error">加载失败：{err}</div>;
-  if (!data) return <div className="spinner">加载中…</div>;
-
-  const risks = data.riskProjects || [];
-  const g = greetingInfo();
-  const greeting = `${g.greet} 查尔斯${g.isWeekend ? "，周末，专注一件事就够了" : ""}。当日有 ${risks.length} 个风险项目 · ${data.pendingEmails.length} 封待处理邮件 · ${data.meetings.length} 场会议`;
-
-  const metrics = [
-    { label: "待处理邮件", value: data.pendingEmails.length, hint: "需主管亲自处理", accent: true, Icon: IconMail },
-    { label: "当日会议", value: data.meetings.length, hint: "按时间排序", Icon: IconCalendarEvent },
-    { label: "团队卡点", value: data.teamBlockers.length, hint: "需关注阻塞", color: "var(--danger)", Icon: IconAlertTriangle },
-    { label: "未提交日志", value: data.notSubmitted.length, hint: "待催办", color: "var(--warn)", Icon: IconUserX },
-    { label: "今日待办", value: data.openTodos || 0, hint: "个人事项", Icon: IconListCheck },
-  ];
-
-  return (
-    <div>
-      <PageHeader
-        eyebrow="OVERVIEW / WORKBENCH"
-        title="概览面板"
-        description={`${data.date} · 周${g.wd} · ${greeting}`}
-        actions={<DateNav date={date} onChange={setDate} />}
-      />
-
-      <div className="metric-strip">
-        {metrics.map((m) => (
-          <div key={m.label} className={`metric ${m.accent ? "metric--accent" : ""}`}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <span className="metric__label">{m.label}</span>
-              <m.Icon size={18} stroke={1.75} style={{ color: m.color || "var(--accent-soft)" }} />
-            </div>
-            <div className="metric__value" style={m.color ? { color: m.color } : undefined}>{m.value}</div>
-            <div className="metric__hint">{m.hint}</div>
-          </div>
-        ))}
-      </div>
-
-      <div className="panel risk-panel" style={{ marginBottom: 20, borderColor: risks.length ? "var(--danger)" : "var(--line)" }}>
-        <div className="panel__head">
-          <div className="panel__title">
-            <span className="work-page-icon" style={risks.length ? { borderColor: "var(--danger)", background: "var(--danger-wash)", color: "var(--danger)" } : undefined}>
-              {risks.length ? <IconAlertTriangle size={22} stroke={1.75} /> : <IconShieldCheck size={22} stroke={1.75} />}
-            </span>
-            {risks.length ? `风险项目预警（${risks.length}）` : "项目健康度"}
-          </div>
-          <button className="btn sm" onClick={() => navigate("/projects")}>查看项目</button>
-        </div>
-        {risks.length ? (
-          <div className="list">
-            {risks.map((r) => (
-              <div className="item" key={r.id} style={{ cursor: "pointer" }} onClick={() => navigate("/projects")}>
-                <StatusPill status={r.status} />
-                <div style={{ flex: 1 }}>
-                  <div className="title">{r.name}</div>
-                  <div className="sub">{r.owner} · 进度 {r.progress}%</div>
-                </div>
-                <div className="progress" style={{ width: 120 }}>
-                  <span style={{ width: `${r.progress}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="empty" style={{ padding: 18 }}>当前无风险项目，所有项目进度健康 ✓</div>
-        )}
-      </div>
-
-      <div className="panel ai-suggestion">
-        <div className="panel__head">
-          <div className="panel__title">
-            <span className="work-page-icon ai-suggestion__icon"><IconSparkles size={22} stroke={1.75} /></span>
-            今日 AI 工作建议
-          </div>
-          <div className="ai-suggestion__actions">
-            <button
-              className={`ai-feedback ${sugFeedback === "good" ? "on" : ""}`}
-              title="这条建议不错"
-              onClick={() => regenerate("good")}
-              disabled={sugLoading}
-            >
-              <IconThumbUp size={15} stroke={1.75} />
-            </button>
-            <button
-              className={`ai-feedback ${sugFeedback === "bad" ? "on" : ""}`}
-              title="换一条"
-              onClick={() => regenerate("bad")}
-              disabled={sugLoading}
-            >
-              <IconThumbDown size={15} stroke={1.75} />
-            </button>
-            <GenerateButton onClick={() => regenerate()} busy={sugLoading}>重新生成</GenerateButton>
-          </div>
-        </div>
-        <div className="ai-suggestion__body">
-          {sugLoading ? "正在为你生成今日建议…" : suggestion || "暂时无法生成建议。"}
-        </div>
-      </div>
-
-      <div className="overview-grid">
-        <div className="overview-stack">
-          <div className="panel">
-            <div className="panel__head">
-              <div className="panel__title">
-                <span className="work-page-icon"><IconMailForward size={22} stroke={1.75} /></span>
-                今日待处理邮件
-              </div>
-            </div>
-            <div className="list">
-              {data.pendingEmails.map((e) => (
-                <div className="item" key={e.id}>
-                  <span className={`pill ${e.importance === "high" ? "red" : "blue"}`}>邮件</span>
-                  <div>
-                    <div className="title">{e.subject}</div>
-                    <div className="sub">{e.sender}</div>
-                  </div>
-                </div>
-              ))}
-              {!data.pendingEmails.length && <div className="empty">暂无</div>}
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel__head">
-              <div className="panel__title">
-                <span className="work-page-icon"><IconCalendarTime size={22} stroke={1.75} /></span>
-                今日会议日程
-              </div>
-              <button className="btn sm ghost" onClick={() => navigate("/calendar")}>查看日历</button>
-            </div>
-            <MeetingSchedule meetings={data.meetings} onViewCalendar={() => navigate("/calendar")} />
-          </div>
-        </div>
-
-        <div className="overview-stack">
-          <div className="panel">
-            <div className="panel__head">
-              <div className="panel__title">
-                <span className="work-page-icon"><IconAlertTriangle size={22} stroke={1.75} /></span>
-                团队阻塞点
-              </div>
-            </div>
-            <div className="list">
-              {data.teamBlockers.map((b, i) => (
-                <div className="item" key={i}><span className="pill red">阻塞</span><div className="title">{b}</div></div>
-              ))}
-              {!data.teamBlockers.length && <div className="empty">无阻塞</div>}
-            </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel__head">
-              <div className="panel__title">
-                <span className="work-page-icon"><IconClipboardCheck size={22} stroke={1.75} /></span>
-                待审核 / 未提交
-              </div>
-            </div>
-            <div className="list">
-              {data.needReview.map((r, i) => (
-                <div className="item" key={i}><span className="pill amber">审核</span><div className="title">{r}</div></div>
-              ))}
-              {data.notSubmitted.map((n, i) => (
-                <div className="item" key={"ns" + i}><span className="pill gray">未提交</span><div className="title">{n}</div></div>
-              ))}
-              {!data.needReview.length && !data.notSubmitted.length && <div className="empty">全部就绪</div>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

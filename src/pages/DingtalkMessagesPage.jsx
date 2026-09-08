@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { IconBulb, IconCalendarEvent, IconCheck, IconChevronDown, IconCircleFilled, IconClock, IconFolder, IconLink, IconMail, IconMessageCircle2, IconX } from "@tabler/icons-react";
 import { dingtalkChatApi, todayStr, workbenchApi } from "../api.js";
-import "./Emails2Page.css";
-import "./Emails2PageFixes.css";
+import "./EmailsPage.css";
+import "./EmailsPageFixes.css";
 import "./DingtalkMessagesPage.css";
 
 const SECTIONS = [["priority", "优先处理"], ["confirm", "待确认"], ["know", "知晓即可"]];

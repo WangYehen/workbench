@@ -29,6 +29,14 @@ function day(value) {
   if (!value) return null;
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
 }
+function doneStatus(detail) {
+  if (detail?.isDone === true || detail?.done === true || detail?.completed === true) return "done";
+  if (detail?.isDone === false || detail?.done === false || detail?.completed === false) return "inbox";
+  const value = String(detail?.status || detail?.taskStatus || detail?.state || "").toLowerCase();
+  if (["done", "completed", "complete", "finished", "true"].includes(value)) return "done";
+  if (["inbox", "open", "todo", "pending", "false"].includes(value)) return "inbox";
+  return "inbox";
+}
 
 // Both creation entry points keep a durable local row before the non-idempotent external write.
 export function createTodoSyncService({ database = getDb, dwsClient } = {}) {
@@ -49,18 +57,17 @@ export function createTodoSyncService({ database = getDb, dwsClient } = {}) {
     const row = markLocal(id, patch);
     if (!row.external_task_id) return { verified: true, todo: row, externalSkipped: true };
     try {
-      const args = ["todo", "+complete", "--task-id", row.external_task_id];
-      if (row.status !== "done") args.splice(1, 1, "+reopen");
+      const args = ["todo", "task", "done", "--task-id", row.external_task_id, "--status", row.status === "done" ? "true" : "false"];
       if (row.dws_profile) args.push("--profile", row.dws_profile);
-      await dwsClient.write(args);
-      const result = await verify(id, "dingtalk_readback");
+      checked(await dwsClient.write(args));
+      const result = await verify(id, "dingtalk_readback", { expectedStatus: row.status });
       return { ...result, direction: "workbench" };
     } catch (error) {
       db().prepare("UPDATE todos SET sync_status='error',sync_error=?,sync_direction='workbench',last_sync_at=? WHERE id=?").run(error.message, new Date().toISOString(), id);
       return { verified: false, todo: get(id), error: error.message, direction: "workbench" };
     }
   }
-  async function verify(id, direction = "dingtalk_readback") {
+  async function verify(id, direction = "dingtalk_readback", { expectedStatus = null } = {}) {
     const row = get(id);
     try {
       const args = ["todo", "+get", "--task-id", row.external_task_id];
@@ -69,15 +76,17 @@ export function createTodoSyncService({ database = getDb, dwsClient } = {}) {
       if (String(detail?.taskId || "") !== row.external_task_id) throw new Error("钉钉回读的待办 ID 不一致");
       const title = detail.subject || detail.title;
       if (!title) throw new Error("钉钉回读缺少标题");
+      const nextStatus = doneStatus(detail);
+      if (expectedStatus && nextStatus !== expectedStatus) throw new Error(`钉钉回读状态仍为${nextStatus === "done" ? "已完成" : "未完成"}，未达到本次期望状态`);
       const priority = detail.priority >= 40 ? "P0" : detail.priority >= 30 ? "P1" : "P2";
       const executor = detail.executorIds?.[0] || detail.participantIds?.[0] || row.assignee_id;
       const syncedAt = new Date().toISOString();
       if (hasColumn("external_updated_at")) {
         db().prepare("UPDATE todos SET title=?,status=?,priority=?,due_date=?,completed_at=?,assignee_id=?,external_updated_at=?,last_sync_at=?,sync_direction=?,sync_status='synced',sync_error=NULL WHERE id=?")
-          .run(title, detail.isDone ? "done" : "inbox", priority, day(detail.dueTime || detail.planFinishDate), detail.isDone ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), detail.updatedAt || detail.updateTime || syncedAt, syncedAt, direction, id);
+          .run(title, nextStatus, priority, day(detail.dueTime || detail.planFinishDate), nextStatus === "done" ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), detail.updatedAt || detail.updateTime || detail.modifiedTime || syncedAt, syncedAt, direction, id);
       } else {
         db().prepare("UPDATE todos SET title=?,status=?,priority=?,due_date=?,completed_at=?,assignee_id=?,sync_status='synced',sync_error=NULL WHERE id=?")
-          .run(title, detail.isDone ? "done" : "inbox", priority, day(detail.dueTime || detail.planFinishDate), detail.isDone ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), id);
+          .run(title, nextStatus, priority, day(detail.dueTime || detail.planFinishDate), nextStatus === "done" ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), id);
       }
       return { verified: true, taskId: row.external_task_id, externalId: row.external_task_id, todo: get(id) };
     } catch (error) {

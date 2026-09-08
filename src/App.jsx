@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AppShell } from "./components/AppShell.jsx";
-import Overview2Page from "./pages/Overview2Page.jsx";
+import OverviewPage from "./pages/OverviewPage.jsx";
 const EmailsPage = lazy(() => import("./pages/EmailsPage.jsx"));
 const ActionsPage = lazy(() => import("./pages/ActionsPage.jsx"));
 const TeamPage = lazy(() => import("./pages/TeamPage.jsx"));
@@ -17,7 +17,7 @@ export default function App() {
   return (
     <AppShell>
       <Suspense fallback={<div className="spinner">加载中…</div>}><Routes>
-        <Route path="/" element={<Overview2Page />} />
+        <Route path="/" element={<OverviewPage />} />
         <Route path="/actions" element={<ActionsPage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/calendar" element={<CalendarPage />} />
@@ -35,7 +35,6 @@ export default function App() {
         <Route path="/review" element={<Navigate to="/reports?tab=review" replace />} />
         <Route path="/daily" element={<Navigate to="/reports?tab=daily" replace />} />
         <Route path="/weekly" element={<Navigate to="/reports?tab=weekly" replace />} />
-        <Route path="/team-load" element={<Navigate to="/team?tab=pulse" replace />} />
         <Route path="/system" element={<Navigate to="/settings" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes></Suspense>

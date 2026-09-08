@@ -605,20 +605,6 @@ label { font-size: var(--text-meta); color: var(--ink-soft); display: block; mar
 .progress.is-risk > span { background: linear-gradient(90deg, var(--warn-bright), var(--warn)); }
 .progress.is-overdue > span { background: linear-gradient(90deg, var(--danger-bright), var(--danger)); }
 
-/* ===== 团队负载矩阵 ===== */
-.load-matrix { display: flex; flex-direction: column; gap: 6px; }
-.load-row { display: grid; grid-template-columns: 1.4fr 1fr 0.8fr 0.8fr 2fr; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
-.load-row.load-head { background: transparent; border: none; padding: 4px 12px; }
-.load-head > div { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); }
-.load-name { display: flex; align-items: baseline; gap: 8px; }
-.load-cell { display: flex; align-items: center; }
-.load-bar-cell { display: flex; align-items: center; gap: 8px; }
-.load-bar-cell .progress { flex: 1; }
-@media (max-width: 768px) {
-  .load-row { grid-template-columns: 1fr 1fr; }
-  .load-head { display: none; }
-}
-
 /* ============================================================
    移植自 WangYehen/my-work-bench 的原生组件类（与 daily-hot 共用同一套白紫令牌）
    ============================================================ */

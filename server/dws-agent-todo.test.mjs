@@ -12,7 +12,8 @@ function todoDb() {
   db.exec(`CREATE TABLE todos (
     id TEXT PRIMARY KEY,title TEXT NOT NULL,note TEXT,status TEXT,priority TEXT,due_date TEXT,
     created_at TEXT,completed_at TEXT,source_type TEXT,source_id TEXT,project_id TEXT,assignee_id TEXT,
-    external_task_id TEXT,dws_profile TEXT,sync_status TEXT,sync_error TEXT
+    external_task_id TEXT,dws_profile TEXT,sync_status TEXT,sync_error TEXT,
+    local_updated_at TEXT,external_updated_at TEXT,last_sync_at TEXT,sync_direction TEXT
   ); CREATE UNIQUE INDEX idx_todos_source ON todos(source_type,source_id) WHERE source_type IS NOT NULL AND source_id IS NOT NULL;`);
   return db;
 }
@@ -84,6 +85,33 @@ test("外部创建超时保留本地记录并阻止盲目重放", async () => {
   const first = await service.create({ title: "同步测试", executorId: "u" }, { id: "timeout1" });
   await service.create({}, { id: "timeout1" });
   assert.equal(first.todo.sync_status, "unknown"); assert.equal(writes, 1); db.close();
+});
+
+test("工作台完成待办走 DWS 状态命令并按期望状态核验", async () => {
+  const db = todoDb();
+  db.prepare("INSERT INTO todos(id,title,status,priority,created_at,external_task_id,dws_profile,sync_status) VALUES(?,?,?,?,?,?,?,?)")
+    .run("todo1", "创建钉钉任务", "inbox", "P2", new Date().toISOString(), "56815195951", "p", "synced");
+  let externalDone = false;
+  const writes = [];
+  const service = createTodoSyncService({ database: () => db, dwsClient: {
+    currentProfile: async () => ({ id: "p" }),
+    write: async (command) => { writes.push(command); return { data: { ok: true, data: { taskId: "56815195951" } }, ledger: { complete: true } }; },
+    read: async () => ({ data: { ok: true, data: { taskId: "56815195951", subject: "创建钉钉任务", priority: 20, isDone: externalDone } }, ledger: { complete: true } }),
+  } });
+
+  const failed = await service.syncFromWorkbench("todo1", { status: "done" });
+  assert.equal(failed.verified, false);
+  assert.equal(failed.todo.status, "done");
+  assert.equal(failed.todo.sync_status, "unverified");
+  assert.match(failed.error, /未达到本次期望状态/);
+  assert.deepEqual(writes[0], ["todo", "task", "done", "--task-id", "56815195951", "--status", "true", "--profile", "p"]);
+
+  externalDone = true;
+  const verified = await service.syncFromWorkbench("todo1", { status: "done" });
+  assert.equal(verified.verified, true);
+  assert.equal(verified.todo.status, "done");
+  assert.equal(verified.todo.sync_status, "synced");
+  db.close();
 });
 
 test("真实 HTTP 手动创建自动同步；Agent 确认后同一列表可查询，确认前零写入", async (t) => {
