@@ -1,6 +1,18 @@
 # 主管驾驶舱与 DWS 前端开发文档
 
-> 状态：规划稿。本文定义“钉钉工作信号”下线后，面向团队主管的前端实现方案；不代表当前已交付能力。
+> 状态：实施中（截至 2026-09-01）。第一阶段的主管四问界面已交付；管理事项详情、DWS 真实数据接口和写回动作仍待后端配套。
+
+## 实施进度
+
+| 范围 | 状态 | 当前情况 |
+| --- | --- | --- |
+| 行动中心移除“钉钉信号”标签 | 已完成 | `ActionsPage.jsx` 已删除 DWS 信号标签、独立同步按钮和页面挂载。 |
+| 首页主管四问 | 已完成 | `ManagementQuestions.jsx` 已接入首页与行动中心，使用现有 `/attention` 数据。 |
+| 管理事项 API | 已完成 | `managementApi` 已加入 `src/api.js`，后端 `/management/*` 已实现；前端仍需将首页和行动中心切换到该数据源。 |
+| DWS 连接中心 | 未开始 | 当前仍使用旧系统页 DWS 配置区。 |
+| 事项详情与证据时间线 | 未开始 | 当前点击事项仅定位到行动中心列表。 |
+| DWS 确认后写回 | 后端基础已完成 | 后端已提供预览、确认门槛和审计；前端尚无预览弹窗，真实 DWS 写回连接器也尚未启用。 |
+| 构建验证 | 已完成 | `npm run build` 已通过。 |
 
 ## 1. 目标与非目标
 
@@ -29,7 +41,7 @@
 | 日历 `/calendar` | 显示关联事项、会前准备和会后行动项。 |
 | 设置 `/settings` | 将“钉钉个人消息（DWS）”升级为“钉钉连接中心”。 |
 
-建议新增页面组件：
+规划中的页面组件：
 
 ```text
 src/pages/ManagementDashboardPage.jsx       // 首页四问区块，可由 Overview2Page 组合
@@ -40,6 +52,8 @@ src/components/CaseEvidenceTimeline.jsx
 src/components/CaseActionPreviewModal.jsx
 src/components/DwsConnectionCenter.jsx
 ```
+
+已实际创建：`src/components/ManagementQuestions.jsx`。当前它在首页和行动中心复用，事项点击会定位到现有注意事项列表；其余规划组件尚未创建。
 
 ## 3. 四问界面规格
 
@@ -95,7 +109,7 @@ export const dwsApi = {
 
 ## 6. 与现有页面的衔接
 
-- `ActionsPage.jsx`：删除 `DingtalkMessagesPage` 导入、`dingtalk` tab 和独立同步按钮；使用 `ManagementCasesPage` 替换现有注意事项列表。
+- `ActionsPage.jsx`：已删除 `DingtalkMessagesPage` 导入、`dingtalk` tab 和独立同步按钮；当前使用 `ManagementQuestions` 加现有注意事项列表，待 `/management/cases` 上线后再替换为 `ManagementCasesPage`。
 - `Overview2Page.jsx`：在原有概览卡片后插入四问区块，采用摘要接口，避免首页一次下载所有证据。
 - `TodosPage.jsx`：显示“本地 / 已同步钉钉”状态；从管理事项进入时返回原事项。
 - `CalendarPage.jsx`：会议卡片显示关联事项数与“查看行动项”。

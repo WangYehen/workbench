@@ -16,6 +16,14 @@ async function request(url, options = {}) {
   return res.json();
 }
 
+export async function fetchSse(url, body, onEvent) {
+  const response = await fetch(`${BASE}${url}`, { method: "POST", headers: { "Content-Type": "application/json", Accept: "text/event-stream" }, body: JSON.stringify(body || {}) });
+  if (!response.ok) { let message = `请求失败 ${response.status}`; try { message = (await response.json()).error || message; } catch {} throw new Error(message); }
+  if (!response.body) throw new Error("当前浏览器不支持流式响应");
+  const reader = response.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
+  while (true) { const { done, value } = await reader.read(); if (done) break; buffer += decoder.decode(value, { stream: true }); const chunks = buffer.split("\n\n"); buffer = chunks.pop() || ""; for (const chunk of chunks) { const event = chunk.match(/^event:\s*(.+)$/m)?.[1] || "message"; const data = chunk.match(/^data:\s*(.+)$/m)?.[1]; if (data) onEvent?.(event, JSON.parse(data)); } }
+}
+
 export const api = {
   get: (url) => request(url),
   post: (url, body) => request(url, { method: "POST", body: JSON.stringify(body || {}) }),
@@ -61,6 +69,41 @@ export const workbenchApi = {
   pulse: (date) => api.get(`/team/pulse?date=${encodeURIComponent(date || todayStr())}`),
   syncStatus: () => api.get("/sync/status"),
   syncRun: (date, sources) => api.post("/sync/run", { date: date || todayStr(), sources }),
+};
+
+export const managementApi = {
+  dashboard: (date) => api.get(`/management/dashboard?date=${encodeURIComponent(date || todayStr())}`),
+  cases: (filters = {}) => api.get(`/management/cases?${new URLSearchParams(filters)}`),
+  detail: (id) => api.get(`/management/cases/${encodeURIComponent(id)}`),
+  update: (id, patch) => api.patch(`/management/cases/${encodeURIComponent(id)}`, patch),
+  actionPreview: (id, action) => api.post(`/management/cases/${encodeURIComponent(id)}/actions/preview`, action),
+  actionExecute: (id, action) => api.post(`/management/cases/${encodeURIComponent(id)}/actions/execute`, action),
+};
+
+export const dwsApi = {
+  status: () => api.get("/dws/status"),
+  capabilities: () => api.get("/dws/capabilities"),
+};
+
+export const dwsAgentApi = {
+  conversations: () => api.get("/dws-agent/conversations"),
+  createConversation: (title) => api.post("/dws-agent/conversations", { title }),
+  renameConversation: (id, title) => api.patch(`/dws-agent/conversations/${encodeURIComponent(id)}`, { title }),
+  archiveConversation: (id) => api.post(`/dws-agent/conversations/${encodeURIComponent(id)}/archive`, {}),
+  messages: (id) => api.get(`/dws-agent/conversations/${encodeURIComponent(id)}/messages`),
+  sendTurn: (id, content, onEvent) => fetchSse(`/dws-agent/conversations/${encodeURIComponent(id)}/turns`, { content }, onEvent),
+  confirm: (id, payload) => api.post(`/dws-agent/conversations/${encodeURIComponent(id)}/confirm`, payload),
+};
+
+export const meetingsApi = {
+  list: (view = "pending") => api.get(`/meetings?view=${encodeURIComponent(view)}`),
+  detail: (id) => api.get(`/meetings/${encodeURIComponent(id)}`),
+  sync: () => api.post("/meetings/sync", {}),
+  import: (reference) => api.post("/meetings/import", { reference }),
+  search: (query) => api.get(`/meetings/search/${encodeURIComponent(query)}`),
+  updateItem: (id, patch) => api.patch(`/meetings/items/${encodeURIComponent(id)}`, patch),
+  preview: (id, itemIds) => api.post(`/meetings/${encodeURIComponent(id)}/preview`, { itemIds }),
+  confirm: (id, previewId) => api.post(`/meetings/${encodeURIComponent(id)}/confirm`, { previewId, confirmed: true }),
 };
 
 export const dingtalkChatApi = {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
-import { IconCalendarWeek, IconHistory } from "@tabler/icons-react";
+import { IconCalendarWeek } from "@tabler/icons-react";
 import { api } from "../api.js";
 import GenerateButton from "../components/GenerateButton.jsx";
 
@@ -36,7 +36,15 @@ export default function WeeklyReportPage() {
   }
   useEffect(() => { loadWeekly(); }, [week.weekStart]);
 
-  async function genWeekly() { setBusy(true); await api.post("/reports/weekly/generate", week); await loadWeekly(); setBusy(false); }
+  async function genWeekly() {
+    setBusy(true);
+    try {
+      await api.post("/reports/weekly/generate", week);
+      await loadWeekly();
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const list = (arr) => (arr || []).map((x, i) => <li key={i}>{x}</li>);
 
@@ -73,13 +81,6 @@ export default function WeeklyReportPage() {
             {!weekly.content_json.narrative && !weekly.content_json.highlights && <div className="empty">已生成周报，暂无可展示内容</div>}
           </div>
         ) : <div className="empty">尚未生成，点击「生成 / 刷新」创建本周周报</div>}
-      </div>
-
-      <div className="panel" style={{ marginTop: 14 }}>
-        <div className="panel__head">
-          <div className="panel__title"><span className="work-page-icon"><IconHistory size={22} stroke={1.75} /></span>历史周报</div>
-        </div>
-        <div className="meta">历史周报均保存在本地 SQLite（weekly_reports 表）。切换周起始日期可回溯不同周；单日日报见「日报」页。</div>
       </div>
     </div>
   );

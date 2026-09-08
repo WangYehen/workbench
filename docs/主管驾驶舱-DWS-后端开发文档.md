@@ -1,6 +1,22 @@
 # 主管驾驶舱与 DWS 后端开发文档
 
-> 状态：规划稿。本文定义从“钉钉工作信号”迁移到主管管理事项与 DWS 协作底座的服务端实施方案。
+> 状态：实施中（截至 2026-09-01）。后端第一阶段已完成：通用 DWS Client、管理事项数据模型与 `/management/*` 路由均已落地；真实 DWS 连接器与写回仍待实施。
+
+## 实施进度
+
+| 范围 | 状态 | 当前情况 |
+| --- | --- | --- |
+| 停止消息自动生成信号 | 已完成 | 个人消息仍归档；同步协调器不再将新增消息送入 AI 信号队列，AI 分类也不再写入 `work_signals`。 |
+| 通用 DWS Client | 已完成 | `server/dws-client.mjs` 已提供状态、明确 profile 校验、能力探测、JSON 读取、分页 ledger 与预览/确认门槛。 |
+| 管理事项数据模型 | 已完成 | `management_cases`、证据表和动作审计表已由 `db.mjs` 幂等创建。 |
+| 管理事项生成规则 | 已完成 | 已覆盖临期/逾期待办、高优先级 Outlook 邮件、团队日志阻塞/审核、项目风险和今日日程；按 `source_hash` 去重。 |
+| `/api/management/*` | 已完成 | Dashboard、列表、详情、更新、动作预览/执行端点已注册。 |
+| `/api/dws/*` | 部分完成 | 已提供状态与能力接口；同步端点已预留，连接器尚未启用时明确返回 HTTP 501。 |
+| DWS 只读连接器 | 未开始 | 通用 Client 已具备读取基础；待办、日历、通讯录、听记和审批的领域连接器仍待实现。 |
+| DWS 确认后写回 | 部分完成 | 已实现预览、确认门槛、幂等键和动作审计；真实写回与回读等待领域连接器。 |
+| 实时事件 | 未开始 | 当前仍是同步协调器模式，未接入 DWS event listener。 |
+
+已验证：`npm run test` 通过 58 项；`npm run build` 通过。
 
 ## 1. 架构原则
 
@@ -27,7 +43,7 @@ server/routers/dws.js
 server/routers/management.js
 ```
 
-`dingtalk-chat.mjs` 在过渡期只保留消息归档、会话设置和附件按需下载，内部改为调用 `dws-connectors/chat.mjs`；不得继续生成 `work_signals`。
+当前已完成 `dws-client.mjs`、`management-cases.mjs`、`routers/dws.js` 与 `routers/management.js`。`dingtalk-chat.mjs` 仍负责消息归档、会话设置和附件按需下载，且不得继续自动生成 `work_signals`；各领域 `dws-connectors/*` 属于下一阶段。
 
 ## 3. DWS Client 契约
 
@@ -149,6 +165,8 @@ POST /api/dws/sync/calendar
 
 同步接口按既有 `sync-coordinator.mjs` 模式记录来源、时间、计数、错误和部分成功状态。待办和日历的 DWS 同步需避免与企业应用日程重复：以外部 ID + source 区分并显式去重。
 
+> 当前实现说明：`POST /api/dws/sync/:source` 已预留；在真实连接器完成前返回 HTTP 501，不能视为同步成功。
+
 ### 动作请求
 
 预览请求示例：
@@ -197,6 +215,8 @@ server/dws-connectors.test.mjs
 server/management-cases.test.mjs
 server/management-router.test.mjs
 ```
+
+当前已完成 `server/dws-client.test.mjs`、`server/management-cases.test.mjs`，并更新 `server/sync-coordinator.test.mjs` 验证个人消息同步不再自动进入 AI 信号队列。路由级测试和真实连接器测试随下一阶段补齐。
 
 必须覆盖：
 

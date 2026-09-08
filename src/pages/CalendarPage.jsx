@@ -97,7 +97,7 @@ export default function CalendarPage() {
   useEffect(() => {
     const ds = ymd(weekStartDate);
     api.get(`/calendar/week?start=${ds}`)
-      .then((r) => { setWeekData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); setLastSyncAt(r.lastSyncAt || ""); })
+      .then((r) => { setWeekData(r.days || []); setConfigured(!!r.configured); setSyncError(r.syncError || ""); setLastSyncAt(r.lastSyncAt || ""); })
       .catch(() => setWeekData([]));
   }, [weekStartDate, syncNonce]);
 
@@ -105,7 +105,7 @@ export default function CalendarPage() {
   useEffect(() => {
     if (viewMode !== "month") return;
     api.get(`/calendar/month?year=${month.y}&month=${month.m}`)
-      .then((r) => { setMonthData(r.days || []); setConfigured(!!r.configured); if (r.syncError) setSyncError(r.syncError); setLastSyncAt(r.lastSyncAt || ""); })
+      .then((r) => { setMonthData(r.days || []); setConfigured(!!r.configured); setSyncError(r.syncError || ""); setLastSyncAt(r.lastSyncAt || ""); })
       .catch(() => setMonthData([]));
   }, [viewMode, month, syncNonce]);
 

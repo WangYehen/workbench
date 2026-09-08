@@ -26,6 +26,13 @@ function lastCalendarSyncAt(db) {
   return row ? (JSON.parse(row.value_json)?.at || "") : "";
 }
 
+// 自动同步成功后，先前的瞬时网络错误不应继续出现在页面上。
+function currentCalendarSyncError(db) {
+  if (!lastSyncError) return null;
+  const lastSuccess = Date.parse(lastCalendarSyncAt(db));
+  return Number.isFinite(lastSuccess) && lastSuccess >= lastSyncError.at ? null : lastSyncError.message;
+}
+
 async function ensureSynced(startStr, endStr) {
   if (!dingtalk.calendarReady()) return; // 未配置钉钉（或缺主管 userid）：依赖演示/已有数据，不阻塞请求
   const blockedRow = getDb().prepare("SELECT value_json FROM sync_state WHERE key='sync_status_calendar'").get();
@@ -44,7 +51,7 @@ async function ensureSynced(startStr, endStr) {
     for (const dd of days) syncedDays.set(dd, now);
     lastSyncError = null;
   } catch (err) {
-    lastSyncError = err.message;
+    lastSyncError = { message: err.message, at: Date.now() };
     for (const dd of need) syncedDays.set(dd, now); // 标记已尝试，TTL 内不再重试轰炸
     console.error("[calendar] 钉钉日程同步失败：", err.message);
   }
@@ -59,7 +66,7 @@ router.get("/meetings", async (req, res) => {
     date,
     meetings: rows.map((m) => ({ ...m, start: fmt(m.start_at), end: m.end_at ? fmt(m.end_at) : "" })),
     configured: dingtalk.calendarReady(),
-    syncError: lastSyncError,
+    syncError: currentCalendarSyncError(db),
     lastSyncAt: lastCalendarSyncAt(db),
   });
 });
@@ -82,7 +89,7 @@ router.get("/week", async (req, res) => {
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
   }
-  res.json({ start, days, configured: dingtalk.calendarReady(), syncError: lastSyncError, lastSyncAt: lastCalendarSyncAt(db) });
+  res.json({ start, days, configured: dingtalk.calendarReady(), syncError: currentCalendarSyncError(db), lastSyncAt: lastCalendarSyncAt(db) });
 });
 
 // 一月摘要：用于日历月视图，显示每天的会议/待办/邮件数量
@@ -105,7 +112,7 @@ router.get("/month", async (req, res) => {
     const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE date(received_at)=? AND needs_action=1 AND source='outlook'").get(ds).c;
     days.push({ date: ds, meetings, todos, emails });
   }
-  res.json({ year, month, days, configured: dingtalk.calendarReady(), syncError: lastSyncError, lastSyncAt: lastCalendarSyncAt(db) });
+  res.json({ year, month, days, configured: dingtalk.calendarReady(), syncError: currentCalendarSyncError(db), lastSyncAt: lastCalendarSyncAt(db) });
 });
 
 // 点击某一天，聚合这一天所有数据
@@ -128,7 +135,7 @@ router.get("/day/:date", async (req, res) => {
     review,
     dailyReport: daily,
     configured: dingtalk.calendarReady(),
-    syncError: lastSyncError,
+    syncError: currentCalendarSyncError(db),
     lastSyncAt: lastCalendarSyncAt(db),
   });
 });
@@ -145,7 +152,7 @@ router.post("/sync", async (req, res) => {
     lastSyncError = null;
     res.json({ ok: true, count, start, end });
   } catch (err) {
-    lastSyncError = err.message;
+    lastSyncError = { message: err.message, at: Date.now() };
     res.status(502).json({ error: err.message });
   }
 });

@@ -22,7 +22,16 @@ import aihot from "./routers/aihot.js";
 import systemRouter from "./routers/system.js";
 import workbenchRouter from "./routers/workbench.js";
 import dingtalkChatRouter from "./routers/dingtalk-chat.js";
+import dwsRouter from "./routers/dws.js";
+import managementRouter from "./routers/management.js";
+import dwsAgentRouter from "./routers/dws-agent.js";
 import { createSyncCoordinator } from "./sync-coordinator.mjs";
+import { dwsClient } from "./dws-client.mjs";
+import { createManagementCases } from "./management-cases.mjs";
+import { createDwsAgentService } from "./dws-agent.mjs";
+import { createOpenCodeAdapter } from "./opencode-adapter.mjs";
+import { createMeetingClosureService } from "./meeting-closure.mjs";
+import meetingsRouter from "./routers/meetings.js";
 import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undici";
 
 // ---------------------------------------------------------------------------
@@ -125,7 +134,13 @@ const outlookService = createOutlookService({
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
 const aiScheduler = createAiScheduler({ aiService: ai });
-const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat });
+const meetingClosureService = createMeetingClosureService({ dwsClient, aiService: ai });
+const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat, meetingClosureService, dwsClient });
+const managementCases = createManagementCases({ database: getDb });
+// Agent 只需要 OpenCode 的推理能力，不需要扫描整个工作台源码；使用本地数据目录作为
+// 轻量工作目录，避免每轮启动都索引前端工程导致首字节延迟过长。
+const openCode = createOpenCodeAdapter({ enabled: process.env.OPENCODE_ENABLED === "1", executable: config.ai.opencode.path || "opencode", cwd: config.dataDir, model: config.ai.opencode.model, timeoutMs: config.ai.opencode.timeoutMs });
+const dwsAgent = createDwsAgentService({ database: getDb, dwsClient, agentRuntime: openCode, dashboard: (date) => managementCases.dashboard(date) });
 
 // 路由
 app.use("/api/outlook", outlookRouter(outlookService));
@@ -137,6 +152,10 @@ app.use("/api/reports", reports);
 app.use("/api/projects", projects);
 app.use("/api/ai-hot", aihot);
 app.use("/api/dingtalk-chat", dingtalkChatRouter(dingtalkChat));
+app.use("/api/dws", dwsRouter(dwsClient));
+app.use("/api/meetings", meetingsRouter(meetingClosureService));
+app.use("/api/management", managementRouter(managementCases, dwsClient));
+app.use("/api/dws-agent", dwsAgentRouter(dwsAgent));
 app.use("/api", workbenchRouter(syncCoordinator));
 app.use("/api", systemRouter(aiScheduler));
 

@@ -5,8 +5,8 @@ import { createSyncCoordinator, SYNC_POLICIES } from "./sync-coordinator.mjs";
 
 function db(){const value=new Database(":memory:");value.exec("CREATE TABLE sync_state(key TEXT PRIMARY KEY,value_json TEXT)");return value}
 
-test("同步策略覆盖邮件、团队日志、日程和个人消息",()=>{
-  assert.deepEqual(Object.keys(SYNC_POLICIES),["outlook","dingtalk","calendar","dingtalk_chat"]);
+test("同步策略覆盖邮件、团队日志、日程、个人消息和 AI 听记",()=>{
+  assert.deepEqual(Object.keys(SYNC_POLICIES),["outlook","dingtalk","calendar","dingtalk_chat","dingtalk_minutes"]);
   for(const policy of Object.values(SYNC_POLICIES))assert.equal(policy.intervalMinutes,15);
 });
 
@@ -21,7 +21,7 @@ test("状态快照读取不触发连接器探测",()=>{
   memory.close();
 });
 
-test("个人消息同步使用 DWS 状态并只将新增消息交给 AI",async()=>{
+test("个人消息同步使用 DWS 状态归档消息，但不再自动生成 AI 信号",async()=>{
   const memory=db();let received=[];
   const coordinator=createSyncCoordinator({
     outlookService:{status:async()=>({configured:false})},dingtalkService:{isConfigured:()=>false,calendarReady:()=>false},
@@ -29,7 +29,7 @@ test("个人消息同步使用 DWS 状态并只将新增消息交给 AI",async()
     aiScheduler:{dashboardArtifact:()=>{},dingtalkChatMessagesArtifact:(ids)=>{received=ids}},database:()=>memory,now:()=>new Date("2026-08-27T04:00:00.000Z"),
   });
   const [result]=await coordinator.run(["dingtalk_chat"],{date:"2026-08-27",trigger:"manual"});
-  assert.equal(result.status,"success");assert.equal(result.recordCount,2);assert.deepEqual(received,["m1","m2"]);memory.close();
+  assert.equal(result.status,"success");assert.equal(result.recordCount,2);assert.deepEqual(received,[]);memory.close();
 });
 
 test("自动邮件同步会写统一状态并镜像到邮件读取表",async()=>{

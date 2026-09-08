@@ -8,9 +8,11 @@ import {
   IconFileAnalytics,
   IconFlame,
   IconRoute,
+  IconNotes,
   IconSettings,
   IconMenu,
   IconCommand,
+  IconMessageCircle2,
 } from "@tabler/icons-react";
 
 const NAV_GROUPS = [
@@ -22,6 +24,8 @@ const NAV_GROUPS = [
       { to: "/team", label: "团队", Icon: IconUsers },
       { to: "/calendar", label: "日历", Icon: IconCalendarEvent },
       { to: "/projects", label: "项目", Icon: IconRoute },
+      { to: "/meetings", label: "会议闭环", Icon: IconNotes },
+      { to: "/dws", label: "DWS Agent", Icon: IconMessageCircle2 },
       { to: "/reports", label: "汇报", Icon: IconFileAnalytics },
       { to: "/settings", label: "设置", Icon: IconSettings },
     ],

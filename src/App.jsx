@@ -10,6 +10,8 @@ const CalendarPage = lazy(() => import("./pages/CalendarPage.jsx"));
 const AiHotPage = lazy(() => import("./pages/AiHotPage.jsx"));
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage.jsx"));
 const SystemPage = lazy(() => import("./pages/SystemPage.jsx"));
+const MeetingsPage = lazy(() => import("./pages/MeetingsPage.jsx"));
+const DwsAgentPage = lazy(() => import("./pages/DwsAgentPage.jsx"));
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/ai-hot" element={<AiHotPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/meetings" element={<MeetingsPage />} />
+        <Route path="/dws" element={<DwsAgentPage />} />
         <Route path="/settings" element={<SystemPage />} />
         <Route path="/mail-setup" element={<EmailsPage />} />
         <Route path="/overview2" element={<Navigate to="/" replace />} />

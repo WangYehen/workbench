@@ -25,7 +25,7 @@ function priorityRank(priority) {
   return { P0: 0, high: 0, P1: 1, medium: 1, P2: 2, low: 2 }[priority] ?? 3;
 }
 
-export function buildTeamPulse(db, date) {
+export function buildTeamPulse(db, date, now = new Date()) {
   const rows = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=? ORDER BY user_name").all(date);
   const byUser = new Map();
   for (const row of rows) {
@@ -49,6 +49,7 @@ export function buildTeamPulse(db, date) {
   }
 
   const roster = getRosterBaseline(db);
+  const submissionWindowOpen = teamMetricDate(date, now).isFallbackDate;
   const rosterKeys = new Set(roster.map((member) => member.key));
   for (const member of roster) {
     if (byUser.has(member.key)) continue;
@@ -64,7 +65,8 @@ export function buildTeamPulse(db, date) {
   }
   for (const [key, member] of byUser) {
     if (!rosterKeys.has(key)) rosterKeys.add(key);
-    member.signalScore = member.blockers.length * 2 + member.review.length + (member.submitted ? 0 : 3);
+    member.submissionState = member.submitted ? "submitted" : submissionWindowOpen ? "pending" : "missing";
+    member.signalScore = member.blockers.length * 2 + member.review.length + (member.submissionState === "missing" ? 3 : 0);
   }
 
   const members = [...byUser.values()].sort(
@@ -82,6 +84,8 @@ export function buildTeamPulse(db, date) {
     submittedUnique,
     submissionRate: rosterTotal ? Math.round((submittedUnique / rosterTotal) * 100) : null,
     missing,
+    missingStatus: submissionWindowOpen ? "pending" : "missing",
+    analysisStatus: submittedUnique ? "available" : "no_reports",
     blockers,
     reviewRequests,
     members,
@@ -198,9 +202,9 @@ export function buildAttentionItems(db, date) {
 }
 
 export function buildDashboard(db, date, now = new Date()) {
-  const pulse = buildTeamPulse(db, date);
+  const pulse = buildTeamPulse(db, date, now);
   const teamRule = teamMetricDate(date, now);
-  const metricPulse = teamRule.date === date ? pulse : buildTeamPulse(db, teamRule.date);
+  const metricPulse = teamRule.date === date ? pulse : buildTeamPulse(db, teamRule.date, now);
   const attention = buildAttentionItems(db, date);
   const projects = db.prepare("SELECT * FROM projects").all();
   const phases = db.prepare("SELECT * FROM project_phases").all();
@@ -211,7 +215,11 @@ export function buildDashboard(db, date, now = new Date()) {
   }
   const enrichedProjects = projects.map((project) => enrichProject(project, phasesByProject.get(project.id) || [], date));
   const meetings = db.prepare("SELECT * FROM calendars WHERE day=? ORDER BY start_at").all(date).map(enrichCalendarMeeting);
-  const todos = db.prepare("SELECT * FROM todos WHERE due_date IS NULL OR due_date='' OR due_date<=?").all(date);
+  const todos = db.prepare(`
+    SELECT * FROM todos
+    WHERE status != 'done'
+       OR (status = 'done' AND due_date IS NOT NULL AND due_date != '' AND due_date >= ?)
+  `).all(date);
   const latest = db.prepare("SELECT MAX(report_date) AS date FROM dingtalk_reports").get()?.date || null;
   const projectRisk = enrichedProjects.filter((project) => project.status === "at_risk" || project.status === "overdue");
   const openTodos = todos.filter((todo) => todo.status !== "done");
@@ -235,6 +243,7 @@ export function buildDashboard(db, date, now = new Date()) {
         rosterTotal: metricPulse.rosterTotal,
         submitted: metricPulse.submittedUnique,
         missing: metricPulse.missing.length,
+        missingStatus: metricPulse.missingStatus,
         rate: metricPulse.submissionRate,
         metricDate: teamRule.date,
         isFallbackDate: teamRule.isFallbackDate,

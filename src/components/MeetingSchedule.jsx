@@ -50,9 +50,9 @@ function TruncatedMeetingText({ className, text, children }) {
   return <span ref={ref} className={className} title={isTruncated ? text : undefined} aria-label={text}>{children}</span>;
 }
 
-function meetingStatus(meeting, now, live) {
-  // 非当天视图中的会议均属于历史快照，明确标记为已结束，避免“当日”造成误解。
-  if (!live) return { key: "ended", label: "已结束" };
+function meetingStatus(meeting, now) {
+  // 状态取决于会议的实际起止时间，而非当前查看的是哪一天。
+  // 否则查看未来日期时会把尚未开始的会议误标为“已结束”。
   if (meeting._start <= now && meeting._end >= now) return { key: "live", label: "进行中" };
   if (meeting._start > now) return { key: "upcoming", label: "未开始" };
   return { key: "ended", label: "已结束" };
@@ -92,7 +92,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
   const pct = isCurrent ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 0;
   const isOnline = featured.location && /^https?:\/\//i.test(featured.location);
   const durMin = durationMin(featured._start, featured._end);
-  const featuredStatus = meetingStatus(featured, now, live);
+  const featuredStatus = meetingStatus(featured, now);
 
   return (
     <div className="meeting-schedule">
@@ -142,7 +142,7 @@ export default function MeetingSchedule({ meetings, onViewCalendar, live = true 
             {rest.map((m, i) => {
               const online = m.location && /^https?:\/\//i.test(m.location);
               const locLabel = online ? "线上" : (m.location || "地点未填写");
-              const status = meetingStatus(m, now, live);
+              const status = meetingStatus(m, now);
               return (
                 <div className="meeting-compact-row" key={`${m.id || "meeting"}-${i}`}>
                   <span className="meeting-compact-row__time">{fmtTime(m.start_at)}</span>

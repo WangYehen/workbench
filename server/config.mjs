@@ -59,6 +59,7 @@ export const config = {
     apiFallbackOrder: list(process.env.AI_API_FALLBACK_ORDER),
     opencode: {
       path: process.env.OPENCODE_CLI_PATH || "",
+      model: process.env.OPENCODE_MODEL || "opencode/big-pickle",
       freeModelOrder: list(process.env.OPENCODE_FREE_MODEL_ORDER),
       timeoutMs: Math.max(5_000, Number(process.env.OPENCODE_TIMEOUT_MS || 90_000)),
     },

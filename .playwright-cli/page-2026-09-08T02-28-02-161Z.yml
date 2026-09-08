@@ -1,0 +1,101 @@
+- generic [ref=f1e3]:
+  - complementary [ref=f1e4]:
+    - generic [ref=f1e9]:
+      - generic [ref=f1e10]: 个人AI工作台
+      - generic [ref=f1e11]: Personal AI Workbench
+    - navigation [ref=f1e12]:
+      - generic [ref=f1e13]:
+        - generic [ref=f1e14]: 工作区
+        - link "今日指挥台" [ref=f1e15] [cursor=pointer]:
+          - /url: /
+        - link "行动中心" [ref=f1e22] [cursor=pointer]:
+          - /url: /actions
+        - link "团队" [ref=f1e26] [cursor=pointer]:
+          - /url: /team
+        - link "日历" [ref=f1e33] [cursor=pointer]:
+          - /url: /calendar
+        - link "项目" [ref=f1e38] [cursor=pointer]:
+          - /url: /projects
+        - link "会议闭环" [ref=f1e44] [cursor=pointer]:
+          - /url: /meetings
+        - link "DWS Agent" [ref=f1e48] [cursor=pointer]:
+          - /url: /dws
+        - link "汇报" [ref=f1e52] [cursor=pointer]:
+          - /url: /reports
+        - link "设置" [ref=f1e57] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=f1e62]:
+        - generic [ref=f1e63]: 工具
+        - link "AI 热点" [ref=f1e64] [cursor=pointer]:
+          - /url: /ai-hot
+  - main [ref=f1e68]:
+    - generic [ref=f1e70]:
+      - generic [ref=f1e72]:
+        - heading "行动中心" [level=1] [ref=f1e73]
+        - paragraph [ref=f1e74]: 从发现问题到分类、处理、转待办和跟踪的统一入口
+      - navigation "行动中心视图" [ref=f1e75]:
+        - button "管理事项" [ref=f1e76] [cursor=pointer]
+        - button "邮件" [ref=f1e77] [cursor=pointer]
+        - button "待办" [ref=f1e78] [cursor=pointer]
+      - generic [ref=f1e79]:
+        - generic [ref=f1e81]:
+          - text: //
+          - heading "今日待办" [level=1] [ref=f1e82]
+          - paragraph [ref=f1e83]: 新建待办将自动同步到钉钉，Agent 创建的待办也会显示在这里
+        - generic [ref=f1e84]:
+          - generic [ref=f1e85]:
+            - generic [ref=f1e86]: 待办列表
+            - generic [ref=f1e92]:
+              - generic [ref=f1e93]: 11 项
+              - button "添加待办" [ref=f1e94] [cursor=pointer]
+          - generic [ref=f1e96]:
+            - generic [ref=f1e97]:
+              - checkbox [checked] [ref=f1e98]
+              - generic "优先级 P1" [ref=f1e99]: P1
+              - generic [ref=f1e100]:
+                - generic [ref=f1e101]: 在下周五下班前将发票报销单提交至财务审核。（来自 王玉恒）
+                - generic [ref=f1e102]: 截止 2026-09-04
+              - button "删除" [ref=f1e103] [cursor=pointer]
+            - generic [ref=f1e108]:
+              - checkbox [checked] [ref=f1e109]
+              - generic "优先级 P1" [ref=f1e110]: P1
+              - generic [ref=f1e111]:
+                - generic [ref=f1e112]: ERP Dev构建失败待处理
+                - generic [ref=f1e113]: 截止 2026-09-01
+              - button "删除" [ref=f1e114] [cursor=pointer]
+            - generic [ref=f1e119]:
+              - checkbox [checked] [ref=f1e120]
+              - generic "优先级 P0" [ref=f1e121]: P0
+              - generic [ref=f1e122]:
+                - generic [ref=f1e123]: 邮件发送
+                - generic [ref=f1e124]: 截止 2026-08-28
+              - button "删除" [ref=f1e125] [cursor=pointer]
+            - generic [ref=f1e130]:
+              - checkbox [checked] [ref=f1e131]
+              - generic "优先级 P0" [ref=f1e132]: P0
+              - generic [ref=f1e133]:
+                - generic [ref=f1e134]: 加班打车发票报销
+                - generic [ref=f1e135]: 截止 2026-08-28
+              - button "删除" [ref=f1e136] [cursor=pointer]
+            - generic [ref=f1e141]:
+              - checkbox [checked] [ref=f1e142]
+              - generic "优先级 P1" [ref=f1e143]: P1
+              - generic [ref=f1e144]:
+                - generic [ref=f1e145]: 团队周会
+                - generic [ref=f1e146]: 截止 2026-08-28
+              - button "删除" [ref=f1e147] [cursor=pointer]
+          - button "查看更多（还有 6 条）" [ref=f1e152] [cursor=pointer]
+        - dialog [ref=f1e153]:
+          - generic [ref=f1e154]:
+            - heading "添加待办" [level=2] [ref=f1e155]
+            - button "关闭" [ref=f1e159] [cursor=pointer]
+          - textbox "待办内容…" [active] [ref=f1e163]
+          - generic [ref=f1e164]:
+            - combobox [ref=f1e165] [cursor=pointer]:
+              - option "P0 — 紧急"
+              - option "P1 — 重要" [selected]
+              - option "P2 — 普通"
+            - button "选择日期" [ref=f1e167] [cursor=pointer]
+          - generic [ref=f1e171]:
+            - button "取消" [ref=f1e172] [cursor=pointer]
+            - button "添加并同步钉钉" [disabled] [ref=f1e173]

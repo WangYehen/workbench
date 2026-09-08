@@ -8,6 +8,7 @@ export const SYNC_POLICIES = {
   dingtalk: { label: "钉钉团队日志", intervalMinutes: 15, scope: "同步当天启用模板的日志" },
   calendar: { label: "钉钉日程", intervalMinutes: 15, scope: "同步今天起 30 天的主管主日历" },
   dingtalk_chat: { label: "钉钉个人消息", intervalMinutes: 15, scope: "同步私聊及启用群的 @我 消息" },
+  dingtalk_minutes: { label: "钉钉 AI 听记", intervalMinutes: 15, scope: "同步近 7 天可访问听记的摘要与行动项" },
 };
 
 function readState(db, key) {
@@ -26,7 +27,7 @@ function addDays(date, days) {
   return localDateString(value);
 }
 
-export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, dingtalkChatService = null, mirrorEmails = mirrorToEmails }) {
+export function createSyncCoordinator({ outlookService, aiScheduler = null, now = () => new Date(), database = getDb, dingtalkService = dingtalk, dingtalkChatService = null, meetingClosureService = null, dwsClient = null, mirrorEmails = mirrorToEmails }) {
   const running = new Set();
   const readinessCache = new Map();
   let timer = null;
@@ -40,6 +41,10 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
     if (source === "dingtalk_chat") {
       const chat = dingtalkChatService ? await dingtalkChatService.status({ probeCapabilities: false, force }) : { installed: false, connected: false };
       return { configured: Boolean(chat.installed), ready: Boolean(chat.installed && chat.connected), reason: !chat.installed ? "未安装 DWS" : !chat.connected ? "待连接个人钉钉" : null };
+    }
+    if (source === "dingtalk_minutes") {
+      const status = dwsClient ? await dwsClient.status({ force }) : { installed: false, connected: false };
+      return { configured: Boolean(status.installed), ready: Boolean(status.installed && status.connected), reason: !status.installed ? "未安装 DWS" : !status.connected ? "待连接钉钉" : null };
     }
     return { configured: dingtalkService.isConfigured(), ready: dingtalkService.isConfigured(), reason: dingtalkService.isConfigured() ? null : "未配置" };
   }
@@ -102,13 +107,9 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       } else if (source === "dingtalk_chat") {
         const result = await dingtalkChatService.sync({ days: dingtalkChatDays, forceBackfill: dingtalkChatBackfill });
         recordCount = result.count;
-        if (!result.firstSync) {
-          const ids = result.added?.map((item) => item.id) || [];
-          // 手动同步也会重试曾因“AI 来源不可用”而得到 0% 兜底的消息；自动同步不重复消耗模型额度。
-          const retryIds = trigger === "manual" ? dingtalkChatService.retryableAnalysisMessageIds?.() || [] : [];
-          const uniqueIds = [...new Set([...ids, ...retryIds])];
-          if (uniqueIds.length) aiScheduler?.dingtalkChatMessagesArtifact?.(uniqueIds, { trigger: "sync:dingtalk_chat", force: trigger === "manual" && retryIds.length > 0 });
-        }
+      } else if (source === "dingtalk_minutes") {
+        if (!meetingClosureService) throw new Error("会议闭环连接器未启用");
+        recordCount = (await meetingClosureService.syncRecent()).count;
       } else {
         recordCount = await dingtalkService.syncCalendarForRange(date, addDays(date, 30));
       }

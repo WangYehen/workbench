@@ -14,6 +14,8 @@ import {
   reliableClassifierPromptSystem,
   reliableClassifierPromptUser,
   dingtalkSignalSystemPrompt,
+  meetingClosureSystemPrompt,
+  formatMeetingForClosure,
 } from "./prompts/index.mjs";
 
 const OUTLOOK_CLASSIFICATION_SCHEMA = {
@@ -134,6 +136,25 @@ const DINGTALK_MESSAGE_SCHEMA = {
   required: ["classification", "summary", "actionText", "dueDate", "priority", "confidence", "assigneeSelf", "draftTitle", "draftNote", "draftDueDate", "draftPriority", "draftRationale"],
 };
 
+const MEETING_CLOSURE_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    decisions: { type: "array", items: { type: "string" } },
+    risks: { type: "array", items: { type: "string" } },
+  }, required: ["decisions", "risks"],
+};
+
+const AGENT_PLAN_SCHEMA = {
+  type: "object", additionalProperties: false,
+  properties: {
+    kind: { type: "string", enum: ["final", "tool_call", "structured_write", "confirmation"] },
+    tool: { type: ["string", "null"] }, arguments: { type: "object" },
+    answer: { type: "string" }, reason: { type: "string" }, result_schema: { type: ["string", "null"] },
+  },
+  required: ["kind", "tool", "arguments", "answer", "reason", "result_schema"],
+};
+const AGENT_ANSWER_SCHEMA = { type: "object", additionalProperties: false, properties: { answer: { type: "string" } }, required: ["answer"] };
+
 const outlookClassification = z.object({
   queue: z.enum(["action", "informational", "uncertain"]),
   actionType: z.enum(["reply", "approval", "confirmation", "submission", "deadline", "other"]),
@@ -172,6 +193,12 @@ const dingtalkMessage = z.object({
   draftPriority: z.enum(["P0", "P1", "P2"]), draftRationale: z.string(),
   signal: z.object({ title: z.string(), conclusion: z.string(), facts: z.array(z.string()), steps: z.array(z.string()), mergeSignalId: z.string().nullable(), mergeConfidence: z.number().int().min(0).max(100), evidenceMessageIds: z.array(z.string()), associations: z.array(z.object({ targetType: z.enum(["outlook", "calendar", "project", "todo"]), targetId: z.string(), confidence: z.number().int().min(0).max(100), reason: z.string() })) }).optional(),
 });
+const meetingClosure = z.object({ decisions: z.array(z.string()), risks: z.array(z.string()) });
+const agentPlan = z.object({
+  kind: z.enum(["final", "tool_call", "structured_write", "confirmation"]),
+  tool: z.string().nullable(), arguments: z.record(z.any()), answer: z.string(), reason: z.string(), result_schema: z.string().nullable(),
+});
+const agentAnswer = z.object({ answer: z.string().min(1) });
 
 function compactReportSummary(report) {
   const raw = String(report?.content_json || "");
@@ -366,6 +393,14 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
       });
     },
 
+    async analyzeMeetingClosure(meeting) {
+      return execute({
+        kind: "meeting.closure", sensitivity: "general", system: meetingClosureSystemPrompt,
+        user: formatMeetingForClosure(meeting), schema: MEETING_CLOSURE_SCHEMA, validator: meetingClosure,
+        fallback: () => ({ decisions: [], risks: [] }),
+      });
+    },
+
     async classifyEmails(emails) {
       return execute({
         kind: "email.classify.batch", sensitivity: "sensitive", system: classifyEmailsSystemPrompt,
@@ -417,6 +452,35 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
         kind: "email.draft", sensitivity: "sensitive", system: buildDraftReplySystemPrompt(ctx.tone),
         user: JSON.stringify(ctx), schema: DRAFT_SCHEMA, validator: draft,
         fallback: () => localDraft(ctx.tone),
+      });
+    },
+
+    async agentPlan({ messages = [], tools = [], userText = "" }) {
+      const system = [
+        "你是团队主管工作台的 DWS Agent。你只能使用给定工具；先读取真实数据，再回答或提出结构化写入预览。",
+        "任何改变钉钉或工作台状态的操作必须返回 confirmation，不得直接执行。",
+        "严格返回 JSON：kind(final/tool_call/structured_write/confirmation)、tool、arguments、answer、reason、result_schema。",
+        `可用工具：${JSON.stringify(tools)}`,
+      ].join("\n");
+      const fallback = () => {
+        const text = String(userText || "");
+        if (/(创建|新建|添加|指派)/.test(text) && /(待办|任务|todo)/i.test(text)) { const title = text.match(/(?:内容是|内容为|标题是|任务是)\s*[：:]?\s*(.+)$/)?.[1]?.trim() || text.replace(/^.*?(?:创建|新建|添加|指派)(?:一个)?(?:待办|任务)?[，,：:]?\s*/i, "").trim() || "待办"; return { kind: "confirmation", tool: "dws.todo.assign", arguments: { title }, answer: "我已整理好待办创建预览，请确认后同步到钉钉和工作台。", reason: "创建待办需要确认", result_schema: "todo_sync" }; }
+        if (/(查询|查看|看看|有哪些|列出|搜索)/.test(text) && /(待办|任务|todo)/i.test(text) && !/(创建|新建|添加|指派)/.test(text)) return { kind: "tool_call", tool: "dws.todo.related", arguments: {}, answer: "我先读取与你相关的钉钉待办。", reason: "需要查询真实待办", result_schema: "todo_list" };
+        if (/(查询|查看|看看|有哪些|安排|日程|日历)/.test(text) && /(今天|今日|明天|本周|会议|日程)/.test(text) && !/(创建|新建|安排一场|开一个|约一个)/.test(text)) return { kind: "tool_call", tool: "dws.calendar.agenda", arguments: {}, answer: "我先读取你的钉钉日程，再整理今天需要参加的会议。", reason: "需要查询真实日程", result_schema: "calendar_agenda" };
+        if (/(谁没有|未提交|没提交|没有提交)/.test(text) && /日志|日报/.test(text)) return { kind: "tool_call", tool: "dws.report.missing", arguments: { date: /上周五/.test(text) ? "previous_friday" : "today" }, answer: "我先对比日报提交名单和团队成员名单。", reason: "需要真实提交记录和团队名册", result_schema: "missing_reports" };
+        if (/日志|日报|阻塞|卡点/.test(text)) return { kind: "tool_call", tool: "dws.report.list", arguments: { date: /上周五/.test(text) ? "previous_friday" : "today" }, answer: "我先从钉钉读取对应时间的日志，再整理结果。", reason: "需要真实日志数据", result_schema: "management_cases" };
+        if (/会议|日程|开会|评审/.test(text)) return { kind: "confirmation", tool: "dws.calendar.create", arguments: {}, answer: "请补充会议主题、时间和参会人后，我会生成创建预览。", reason: "创建会议需要明确参数", result_schema: null };
+        return { kind: "final", tool: null, arguments: {}, answer: "我可以帮你查询钉钉日志、待办、日程和会议听记，也可以在确认后创建会议或同步管理事项。", reason: "当前请求不匹配已启用工具", result_schema: null };
+      };
+      return execute({ kind: "dws.agent.plan", sensitivity: "general", system, user: JSON.stringify({ messages, userText }), schema: AGENT_PLAN_SCHEMA, validator: agentPlan, fallback });
+    },
+
+    async agentAnswer({ messages = [], context = "" }) {
+      return execute({
+        kind: "dws.agent.answer", sensitivity: "general",
+        system: "你是团队主管工作台的助理。根据工具返回的真实数据，用简体中文给出简洁、可执行的回答；不得编造事实。严格返回 JSON {answer:string}。",
+        user: JSON.stringify({ messages, context }), schema: AGENT_ANSWER_SCHEMA, validator: agentAnswer,
+        fallback: () => ({ answer: context || "已完成数据读取，请查看下方结果。" }),
       });
     },
   };

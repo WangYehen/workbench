@@ -185,9 +185,8 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,due_date=excluded.due_date,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,draft_generated_at=excluded.draft_generated_at,updated_at=excluded.updated_at`)
         .run(message.id, result.classification, result.summary, result.actionText, result.dueDate, result.priority, result.confidence, result.assigneeSelf ? 1 : 0, JSON.stringify(result.aiMeta || null), null,
           result.draftTitle || result.actionText || null, result.draftNote || null, result.draftPriority || result.priority || "P2", result.draftDueDate || null, result.draftRationale || null, stamp, stamp, stamp);
-      const signalId = persistSignal(db(), message, context, result, stamp);
       db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(result.classification === "action" ? "needs_confirmation" : result.classification === "informational" ? "informational" : "needs_confirmation", stamp, message.id);
-      return { payload: { classification: result.classification, confidence: result.confidence, signalId }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
+      return { payload: { classification: result.classification, confidence: result.confidence }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
     }
     if (task.kind === "dashboard.suggestion") {
       const context = dashboardSummary(db(), task.scope);

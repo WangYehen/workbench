@@ -260,6 +260,43 @@ function migrate(d) {
     CREATE INDEX IF NOT EXISTS idx_ai_tasks_pending ON ai_tasks(status, priority DESC, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_ai_artifacts_status ON ai_artifacts(status, updated_at DESC);
 
+    -- 会议闭环：仅保留听记元数据、摘要与审核后的结构化事项，不保存逐字稿。
+    CREATE TABLE IF NOT EXISTS meeting_closures (
+      id TEXT PRIMARY KEY,
+      minutes_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      meeting_at TEXT,
+      organizer TEXT,
+      summary TEXT,
+      keywords_json TEXT NOT NULL DEFAULT '[]',
+      source_url TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      ai_meta_json TEXT,
+      sync_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_meeting_closures_status ON meeting_closures(status, meeting_at DESC);
+
+    CREATE TABLE IF NOT EXISTS meeting_closure_items (
+      id TEXT PRIMARY KEY,
+      meeting_id TEXT NOT NULL REFERENCES meeting_closures(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      title TEXT NOT NULL,
+      note TEXT,
+      assignee_id TEXT,
+      assignee_name TEXT,
+      due_date TEXT,
+      priority TEXT NOT NULL DEFAULT 'P2',
+      status TEXT NOT NULL DEFAULT 'draft',
+      external_task_id TEXT,
+      result_json TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(meeting_id, kind, title)
+    );
+    CREATE INDEX IF NOT EXISTS idx_meeting_closure_items_meeting ON meeting_closure_items(meeting_id, status);
+
     -- 手动维护的钉钉日志模板（替代旧的“调钉钉接口查全部模板 + 勾选”方案）
     -- name 即钉钉日志接口服务端过滤用的 template_name；enabled=1 才参与同步拉取
     CREATE TABLE IF NOT EXISTS report_templates (
@@ -268,6 +305,54 @@ function migrate(d) {
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS dws_agent_conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_message_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_dws_agent_conversations_recent ON dws_agent_conversations(status, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS dws_agent_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES dws_agent_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT 'text',
+      tool_name TEXT,
+      payload_json TEXT,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dws_agent_messages_conversation ON dws_agent_messages(conversation_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS dws_agent_runs (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES dws_agent_conversations(id) ON DELETE CASCADE,
+      user_message_id TEXT,
+      status TEXT NOT NULL DEFAULT 'running',
+      input_hash TEXT NOT NULL,
+      output_json TEXT,
+      error_json TEXT,
+      created_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS dws_agent_actions (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL REFERENCES dws_agent_runs(id) ON DELETE CASCADE,
+      action_type TEXT NOT NULL,
+      preview_json TEXT NOT NULL,
+      confirmed INTEGER NOT NULL DEFAULT 0,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      external_id TEXT,
+      result_json TEXT,
+      status TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      executed_at TEXT
     );
   `);
 
@@ -280,6 +365,8 @@ function migrate(d) {
     "003_projects",
     "004_ai_hot_cache",
     "011_ai_scheduler",
+    "018_meeting_closure",
+    "019_dws_agent",
   ];
   for (const v of versions) {
     if (!applied.has(v)) {
@@ -429,7 +516,29 @@ function migrate(d) {
       UNIQUE(signal_id, message_id)
     );
     CREATE INDEX IF NOT EXISTS idx_work_signal_evidence_signal ON work_signal_evidence(signal_id, sent_at);
+
+    CREATE TABLE IF NOT EXISTS management_cases (
+      id TEXT PRIMARY KEY, category TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'decision_needed', priority TEXT NOT NULL DEFAULT 'P2',
+      title TEXT NOT NULL, management_summary TEXT, owner_id TEXT, owner_name TEXT, due_at TEXT, project_id TEXT,
+      source_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, resolved_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_management_cases_active ON management_cases(state, priority, due_at, updated_at DESC);
+    CREATE TABLE IF NOT EXISTS management_case_evidence (
+      id TEXT PRIMARY KEY, case_id TEXT NOT NULL REFERENCES management_cases(id) ON DELETE CASCADE,
+      source_type TEXT NOT NULL, source_id TEXT NOT NULL, role TEXT NOT NULL, excerpt TEXT, occurred_at TEXT, created_at TEXT NOT NULL,
+      UNIQUE(case_id, source_type, source_id)
+    );
+    CREATE TABLE IF NOT EXISTS management_case_actions (
+      id TEXT PRIMARY KEY, case_id TEXT NOT NULL REFERENCES management_cases(id) ON DELETE CASCADE,
+      action_type TEXT NOT NULL, payload_json TEXT NOT NULL, status TEXT NOT NULL, preview_id TEXT,
+      idempotency_key TEXT NOT NULL UNIQUE, external_id TEXT, result_json TEXT, created_at TEXT NOT NULL, executed_at TEXT
+    );
   `);
+  // 018: durable task sync state shared by manual creation and DWS Agent.
+  const syncColumns = new Set(d.prepare("PRAGMA table_info(todos)").all().map((column) => column.name));
+  for (const column of ["external_task_id", "dws_profile", "sync_status", "sync_error", "local_updated_at", "external_updated_at", "last_sync_at", "sync_direction"]) {
+    if (!syncColumns.has(column)) d.exec(`ALTER TABLE todos ADD COLUMN ${column} TEXT`);
+  }
 }
 
 export function upsert(table, rows, conflictCols) {

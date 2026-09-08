@@ -1,0 +1,190 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: 个人AI工作台
+      - generic [ref=e11]: Personal AI Workbench
+    - navigation [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]: 工作区
+        - link "今日指挥台" [ref=e15] [cursor=pointer]:
+          - /url: /
+        - link "行动中心" [ref=e22] [cursor=pointer]:
+          - /url: /actions
+        - link "团队" [ref=e26] [cursor=pointer]:
+          - /url: /team
+        - link "日历" [ref=e33] [cursor=pointer]:
+          - /url: /calendar
+        - link "项目" [ref=e38] [cursor=pointer]:
+          - /url: /projects
+        - link "会议闭环" [ref=e44] [cursor=pointer]:
+          - /url: /meetings
+        - link "汇报" [ref=e48] [cursor=pointer]:
+          - /url: /reports
+        - link "设置" [ref=e53] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e58]:
+        - generic [ref=e59]: 工具
+        - link "AI 热点" [ref=e60] [cursor=pointer]:
+          - /url: /ai-hot
+  - main [ref=e64]:
+    - generic [ref=e66]:
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - text: //
+          - heading "日历 / 日详情" [level=1] [ref=e69]
+          - paragraph [ref=e70]: 月视图 · 点击任意一天查看当日邮件 / 待办 / 会议 / 日志 / 复盘
+        - generic [ref=e73]:
+          - generic [ref=e74]: 钉钉日程已接入
+          - button "同步钉钉日程" [ref=e75] [cursor=pointer]
+          - generic "2026/9/7 15:05:51" [ref=e220]: 最近同步：09/07 15:05
+          - generic [ref=e80]: 每 15 分钟自动同步未来 30 天
+          - button "周视图" [ref=e81] [cursor=pointer]
+          - button "月视图" [active] [ref=e85] [cursor=pointer]
+      - generic [ref=e91]:
+        - generic [ref=e92]:
+          - generic [ref=e93]: 月度视图
+          - generic [ref=e97]:
+            - button "上个月" [ref=e221] [cursor=pointer]
+            - generic [ref=e222]: 2026 年 9 月
+            - button "下个月" [ref=e223] [cursor=pointer]
+            - button "今天" [ref=e224] [cursor=pointer]
+            - button "收起为周" [ref=e225] [cursor=pointer]
+        - generic [ref=e105]:
+          - generic [ref=e229]: 周一
+          - generic [ref=e230]: 周二
+          - generic [ref=e231]: 周三
+          - generic [ref=e232]: 周四
+          - generic [ref=e233]: 周五
+          - generic [ref=e234]: 周六
+          - generic [ref=e235]: 周日
+          - generic [ref=e236] [cursor=pointer]
+          - generic [ref=e237] [cursor=pointer]:
+            - generic [ref=e238]:
+              - generic [ref=e239]: "1"
+              - generic "1 待办" [ref=e241]: "1"
+            - generic [ref=e242]:
+              - generic [ref=e243]: IT周会
+              - generic [ref=e245]: 写日志
+          - generic [ref=e247] [cursor=pointer]:
+            - generic [ref=e248]: "2"
+            - generic [ref=e250]:
+              - generic [ref=e251]: 旧系统收口工作对齐
+              - generic [ref=e253]: 监控助手需求调研
+              - generic [ref=e255]: "+1"
+          - generic [ref=e256] [cursor=pointer]:
+            - generic [ref=e257]: "3"
+            - generic [ref=e259]:
+              - generic [ref=e260]: 写日志
+              - generic [ref=e262]: 「 IT部门日报 」
+          - generic [ref=e264] [cursor=pointer]:
+            - generic [ref=e265]:
+              - generic [ref=e266]: "4"
+              - generic "1 待办" [ref=e268]: "1"
+            - generic [ref=e269]: 写日志
+          - generic [ref=e272] [cursor=pointer]:
+            - generic [ref=e273]: "5"
+            - generic [ref=e275]: 无安排
+          - generic [ref=e277] [cursor=pointer]:
+            - generic [ref=e278]: "6"
+            - generic [ref=e280]: 无安排
+          - generic [ref=e282] [cursor=pointer]:
+            - generic [ref=e283]: "7"
+            - generic [ref=e285]: 写日志
+          - generic [ref=e288] [cursor=pointer]:
+            - generic [ref=e289]: "8"
+            - generic [ref=e291]:
+              - generic [ref=e292]: IT周会
+              - generic [ref=e294]: 共享库存需求评审
+          - generic [ref=e296] [cursor=pointer]:
+            - generic [ref=e297]: "9"
+            - generic [ref=e299]: 旧系统收口工作对齐
+          - generic [ref=e302] [cursor=pointer]:
+            - generic [ref=e303]: "10"
+            - generic [ref=e305]: 无安排
+          - generic [ref=e307] [cursor=pointer]:
+            - generic [ref=e308]: "11"
+            - generic [ref=e310]: 无安排
+          - generic [ref=e312] [cursor=pointer]:
+            - generic [ref=e313]: "12"
+            - generic [ref=e315]: 无安排
+          - generic [ref=e317] [cursor=pointer]:
+            - generic [ref=e318]: "13"
+            - generic [ref=e320]: 无安排
+          - generic [ref=e322] [cursor=pointer]:
+            - generic [ref=e323]: "14"
+            - generic [ref=e325]: 无安排
+          - generic [ref=e327] [cursor=pointer]:
+            - generic [ref=e328]: "15"
+            - generic [ref=e330]: 无安排
+          - generic [ref=e332] [cursor=pointer]:
+            - generic [ref=e333]: "16"
+            - generic [ref=e335]: 无安排
+          - generic [ref=e337] [cursor=pointer]:
+            - generic [ref=e338]: "17"
+            - generic [ref=e340]: 无安排
+          - generic [ref=e342] [cursor=pointer]:
+            - generic [ref=e343]: "18"
+            - generic [ref=e345]: 无安排
+          - generic [ref=e347] [cursor=pointer]:
+            - generic [ref=e348]: "19"
+            - generic [ref=e350]: 无安排
+          - generic [ref=e352] [cursor=pointer]:
+            - generic [ref=e353]: "20"
+            - generic [ref=e355]: 无安排
+          - generic [ref=e357] [cursor=pointer]:
+            - generic [ref=e358]: "21"
+            - generic [ref=e360]: 无安排
+          - generic [ref=e362] [cursor=pointer]:
+            - generic [ref=e363]: "22"
+            - generic [ref=e365]: 无安排
+          - generic [ref=e367] [cursor=pointer]:
+            - generic [ref=e368]: "23"
+            - generic [ref=e370]: 无安排
+          - generic [ref=e372] [cursor=pointer]:
+            - generic [ref=e373]: "24"
+            - generic [ref=e375]: 写日志
+          - generic [ref=e378] [cursor=pointer]:
+            - generic [ref=e379]: "25"
+            - generic [ref=e381]: 无安排
+          - generic [ref=e383] [cursor=pointer]:
+            - generic [ref=e384]: "26"
+            - generic [ref=e386]: 无安排
+          - generic [ref=e388] [cursor=pointer]:
+            - generic [ref=e389]: "27"
+            - generic [ref=e391]: 无安排
+          - generic [ref=e393] [cursor=pointer]:
+            - generic [ref=e394]: "28"
+            - generic [ref=e396]: 无安排
+          - generic [ref=e398] [cursor=pointer]:
+            - generic [ref=e399]: "29"
+            - generic [ref=e401]: 无安排
+          - generic [ref=e403] [cursor=pointer]:
+            - generic [ref=e404]: "30"
+            - generic [ref=e406]: 无安排
+          - generic [ref=e408] [cursor=pointer]
+          - generic [ref=e409] [cursor=pointer]
+          - generic [ref=e410] [cursor=pointer]
+          - generic [ref=e411] [cursor=pointer]
+      - generic [ref=e160]:
+        - generic [ref=e161]:
+          - generic [ref=e162]: 当日会议（1）
+          - generic [ref=e169]:
+            - generic [ref=e170]:
+              - generic [ref=e171]: 18:15–18:30
+              - generic [ref=e172]: 未开始
+              - generic [ref=e173]: 钉钉
+            - generic [ref=e174]: 写日志
+            - generic [ref=e175]:
+              - generic [ref=e176]: 约 15 分钟
+              - generic [ref=e180]: 地点未填写
+              - generic [ref=e184]: 11 人 · 6 人接受
+              - generic [ref=e190]: 组织者 Clare
+        - generic [ref=e191]:
+          - generic [ref=e192]: 待办（0）
+          - generic [ref=e199]: 无
+        - generic [ref=e201]:
+          - generic [ref=e202]: 需处理邮件（0）
+          - generic [ref=e208]: 无
+        - generic [ref=e210]:
+          - generic [ref=e211]: 团队日志 / 复盘
+          - generic [ref=e218]: 无记录
