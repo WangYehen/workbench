@@ -17,15 +17,15 @@ SetCompressorDictSize 64
   !error "OUTPUT_DIR is required"
 !endif
 
-!define APP_NAME "团队每日工作台"
+!define APP_NAME "个人AI工作台"
 !define REG_KEY "Software\TeamDailyWorkbench"
 !define UNINSTALL_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\TeamDailyWorkbench"
 
 Name "${APP_NAME} ${VERSION}"
-OutFile "${OUTPUT_DIR}\团队每日工作台-Web版-Setup-${VERSION}.exe"
-InstallDir "$LOCALAPPDATA\Programs\团队每日工作台"
+OutFile "${OUTPUT_DIR}\个人AI工作台-Web版-Setup-${VERSION}.exe"
+InstallDir "$LOCALAPPDATA\Programs\个人AI工作台"
 InstallDirRegKey HKCU "${REG_KEY}" "InstallDir"
-BrandingText "团队每日工作台"
+BrandingText "个人AI工作台"
 ShowInstDetails show
 ShowUninstDetails show
 
@@ -36,7 +36,7 @@ Var DeleteUserData
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION LaunchWorkbench
-!define MUI_FINISHPAGE_RUN_TEXT "启动团队每日工作台"
+!define MUI_FINISHPAGE_RUN_TEXT "启动个人AI工作台"
 
 !insertmacro MUI_PAGE_WELCOME
 PageEx directory
@@ -60,7 +60,7 @@ Function .onInit
     StrCpy $IsUpgrade "1"
   ${Else}
     IfFileExists "D:\" 0 +2
-      StrCpy $INSTDIR "D:\团队每日工作台"
+      StrCpy $INSTDIR "D:\个人AI工作台"
   ${EndIf}
 FunctionEnd
 
@@ -132,23 +132,23 @@ Section "安装" SEC_MAIN
   WriteRegStr HKCU "${REG_KEY}" "Version" "${VERSION}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Team Daily Workbench"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "Personal AI Workbench"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoModify" 1
   WriteRegDWORD HKCU "${UNINSTALL_KEY}" "NoRepair" 1
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
-  CreateDirectory "$SMPROGRAMS\团队每日工作台"
-  CreateShortCut "$DESKTOP\团队每日工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" start'
+  CreateDirectory "$SMPROGRAMS\个人AI工作台"
+  CreateShortCut "$DESKTOP\个人AI工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" start'
   CreateShortCut "$DESKTOP\停止工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" stop'
   CreateShortCut "$DESKTOP\重启工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" restart'
   CreateShortCut "$DESKTOP\卸载工作台.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortCut "$SMPROGRAMS\团队每日工作台\团队每日工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" start'
-  CreateShortCut "$SMPROGRAMS\团队每日工作台\停止工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" stop'
-  CreateShortCut "$SMPROGRAMS\团队每日工作台\重启工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" restart'
-  CreateShortCut "$SMPROGRAMS\团队每日工作台\导出本地备份.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" backup'
-  CreateShortCut "$SMPROGRAMS\团队每日工作台\卸载.lnk" "$INSTDIR\Uninstall.exe"
+  CreateShortCut "$SMPROGRAMS\个人AI工作台\个人AI工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" start'
+  CreateShortCut "$SMPROGRAMS\个人AI工作台\停止工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" stop'
+  CreateShortCut "$SMPROGRAMS\个人AI工作台\重启工作台.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" restart'
+  CreateShortCut "$SMPROGRAMS\个人AI工作台\导出本地备份.lnk" "$SYSDIR\wscript.exe" '"$INSTDIR\launcher\invoke.vbs" backup'
+  CreateShortCut "$SMPROGRAMS\个人AI工作台\卸载.lnk" "$INSTDIR\Uninstall.exe"
 SectionEnd
 
 Function un.onInit
@@ -183,11 +183,11 @@ Section "Uninstall"
   IfFileExists "$INSTDIR\launcher\invoke.vbs" 0 +2
     ExecWait '"$SYSDIR\wscript.exe" "$INSTDIR\launcher\invoke.vbs" stop' $0
 
-  Delete "$DESKTOP\团队每日工作台.lnk"
+  Delete "$DESKTOP\个人AI工作台.lnk"
   Delete "$DESKTOP\停止工作台.lnk"
   Delete "$DESKTOP\重启工作台.lnk"
   Delete "$DESKTOP\卸载工作台.lnk"
-  RMDir /r "$SMPROGRAMS\团队每日工作台"
+  RMDir /r "$SMPROGRAMS\个人AI工作台"
   RMDir /r "$INSTDIR\launcher"
   RMDir /r "$INSTDIR\versions"
   Delete "$INSTDIR\current.json"

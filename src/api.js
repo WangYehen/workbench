@@ -95,17 +95,6 @@ export const dwsAgentApi = {
   confirm: (id, payload) => api.post(`/dws-agent/conversations/${encodeURIComponent(id)}/confirm`, payload),
 };
 
-export const meetingsApi = {
-  list: (view = "pending") => api.get(`/meetings?view=${encodeURIComponent(view)}`),
-  detail: (id) => api.get(`/meetings/${encodeURIComponent(id)}`),
-  sync: () => api.post("/meetings/sync", {}),
-  import: (reference) => api.post("/meetings/import", { reference }),
-  search: (query) => api.get(`/meetings/search/${encodeURIComponent(query)}`),
-  updateItem: (id, patch) => api.patch(`/meetings/items/${encodeURIComponent(id)}`, patch),
-  preview: (id, itemIds) => api.post(`/meetings/${encodeURIComponent(id)}/preview`, { itemIds }),
-  confirm: (id, previewId) => api.post(`/meetings/${encodeURIComponent(id)}/confirm`, { previewId, confirmed: true }),
-};
-
 export const dingtalkChatApi = {
   status: ({ refresh = false } = {}) => api.get(`/dingtalk-chat/status${refresh ? "?refresh=1" : ""}`),
   startAuth: () => api.post("/dingtalk-chat/auth/start", {}),

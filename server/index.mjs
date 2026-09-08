@@ -4,12 +4,12 @@ import path from "node:path";
 import fs from "node:fs";
 import { config } from "./config.mjs";
 import { getDb } from "./db.mjs";
-import { seedDemoIfEmpty } from "./demo.mjs";
-import { createOutlookService, OutlookServiceError } from "./outlook.mjs";
-import { dingtalk } from "./dingtalk.mjs";
-import { dingtalkChat } from "./dingtalk-chat.mjs";
-import { ai } from "./ai.mjs";
-import { createAiScheduler } from "./ai-scheduler.mjs";
+import { seedDemoIfEmpty } from "./core/demo.mjs";
+import { createOutlookService, OutlookServiceError } from "./integrations/outlook.mjs";
+import { dingtalk } from "./integrations/dingtalk.mjs";
+import { dingtalkChat } from "./integrations/dingtalk-chat.mjs";
+import { ai } from "./ai/ai.mjs";
+import { createAiScheduler } from "./ai/ai-scheduler.mjs";
 
 import outlookRouter from "./routers/outlook.js";
 import team from "./routers/team.js";
@@ -25,14 +25,12 @@ import dingtalkChatRouter from "./routers/dingtalk-chat.js";
 import dwsRouter from "./routers/dws.js";
 import managementRouter from "./routers/management.js";
 import dwsAgentRouter from "./routers/dws-agent.js";
-import { createSyncCoordinator } from "./sync-coordinator.mjs";
-import { createDwsTodoEventService } from "./dws-todo-events.mjs";
-import { dwsClient } from "./dws-client.mjs";
-import { createManagementCases } from "./management-cases.mjs";
-import { createDwsAgentService } from "./dws-agent.mjs";
-import { createOpenCodeAdapter } from "./opencode-adapter.mjs";
-import { createMeetingClosureService } from "./meeting-closure.mjs";
-import meetingsRouter from "./routers/meetings.js";
+import { createSyncCoordinator } from "./core/sync-coordinator.mjs";
+import { createDwsTodoEventService } from "./domains/dws-todo-events.mjs";
+import { dwsClient } from "./integrations/dws-client.mjs";
+import { createManagementCases } from "./domains/management-cases.mjs";
+import { createDwsAgentService } from "./domains/dws-agent.mjs";
+import { createOpenCodeAdapter } from "./ai/opencode-adapter.mjs";
 import { setGlobalDispatcher, EnvHttpProxyAgent, ProxyAgent, Agent } from "undici";
 
 // ---------------------------------------------------------------------------
@@ -116,7 +114,7 @@ app.use(express.json({ limit: "2mb" }));
 // 启动器用该接口区分“工作台已就绪”和“8787 被其他程序占用”。
 app.get("/api/health", (req, res) => res.json({
   ok: true,
-  service: "team-daily-workbench",
+  service: "personal-ai-workbench",
   version: config.appVersion,
   runtimeMode: config.runtimeMode,
   instanceId: process.env.WORKBENCH_INSTANCE_ID || "development",
@@ -135,8 +133,7 @@ const outlookService = createOutlookService({
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
 const aiScheduler = createAiScheduler({ aiService: ai });
-const meetingClosureService = createMeetingClosureService({ dwsClient, aiService: ai });
-const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat, meetingClosureService, dwsClient });
+const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat });
 const dwsTodoEvents = createDwsTodoEventService({ database: getDb, dwsClient });
 const managementCases = createManagementCases({ database: getDb });
 // Agent 只需要 OpenCode 的推理能力，不需要扫描整个工作台源码；使用本地数据目录作为
@@ -155,7 +152,6 @@ app.use("/api/projects", projects);
 app.use("/api/ai-hot", aihot);
 app.use("/api/dingtalk-chat", dingtalkChatRouter(dingtalkChat));
 app.use("/api/dws", dwsRouter(dwsClient));
-app.use("/api/meetings", meetingsRouter(meetingClosureService));
 app.use("/api/management", managementRouter(managementCases, dwsClient));
 app.use("/api/dws-agent", dwsAgentRouter(dwsAgent));
 app.use("/api", workbenchRouter(syncCoordinator));

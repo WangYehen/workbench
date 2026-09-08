@@ -1,5 +1,5 @@
 import express from "express";
-import { aihot } from "../aihot.mjs";
+import { aihot } from "../ai/aihot.mjs";
 
 const router = express.Router();
 

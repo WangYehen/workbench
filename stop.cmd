@@ -3,11 +3,11 @@ chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-:: Only stop a verified Team Daily Workbench instance.
-curl.exe --silent --max-time 2 http://127.0.0.1:8787/api/health | findstr /c:"team-daily-workbench" >nul
+:: Only stop a verified Personal AI Workbench instance.
+curl.exe --silent --max-time 2 http://127.0.0.1:8787/api/health | findstr /c:"personal-ai-workbench" >nul
 if errorlevel 1 goto :not_running
 
-echo [STOP] Closing Team Daily Workbench ...
+echo [STOP] Closing Personal AI Workbench ...
 call :stop_port 8787
 call :stop_port 5174
 call :wait_for_ports
@@ -17,7 +17,7 @@ echo [DONE] Workbench service stopped.
 exit /b 0
 
 :not_running
-echo [INFO] No Team Daily Workbench service is running.
+echo [INFO] No Personal AI Workbench service is running.
 pause
 exit /b 0
 

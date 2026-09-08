@@ -1,8 +1,8 @@
 import express from "express";
 import { getDb } from "../db.mjs";
-import { dingtalk } from "../dingtalk.mjs";
-import { localDateString, resolveDateKey } from "../local-date.mjs";
-import { buildTeamPulse } from "../workbench-domain.mjs";
+import { dingtalk } from "../integrations/dingtalk.mjs";
+import { localDateString, resolveDateKey } from "../core/local-date.mjs";
+import { buildTeamPulse } from "../domains/workbench-domain.mjs";
 
 const router = express.Router();
 

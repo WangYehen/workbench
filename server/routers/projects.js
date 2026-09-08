@@ -1,6 +1,6 @@
 import express from "express";
 import { getDb } from "../db.mjs";
-import { enrichProject } from "../project-status.mjs";
+import { enrichProject } from "../domains/project-status.mjs";
 
 const router = express.Router();
 

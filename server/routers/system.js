@@ -1,9 +1,9 @@
 import express from "express";
 import { config, configured } from "../config.mjs";
-import { dingtalk } from "../dingtalk.mjs";
+import { dingtalk } from "../integrations/dingtalk.mjs";
 import { getDb } from "../db.mjs";
-import { resolveDateKey } from "../local-date.mjs";
-import { buildDashboard } from "../workbench-domain.mjs";
+import { resolveDateKey } from "../core/local-date.mjs";
+import { buildDashboard } from "../domains/workbench-domain.mjs";
 
 export default function systemRouter(aiScheduler) {
 const router = express.Router();

@@ -1,8 +1,8 @@
 import express from "express";
 import { getDb } from "../db.mjs";
-import { dingtalk } from "../dingtalk.mjs";
-import { localTimeString } from "../local-date.mjs";
-import { enrichCalendarMeeting } from "../workbench-domain.mjs";
+import { dingtalk } from "../integrations/dingtalk.mjs";
+import { localTimeString } from "../core/local-date.mjs";
+import { enrichCalendarMeeting } from "../domains/workbench-domain.mjs";
 
 const router = express.Router();
 

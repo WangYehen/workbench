@@ -1,7 +1,7 @@
 import express from "express";
 import { getDb } from "../db.mjs";
-import { dwsClient } from "../dws-client.mjs";
-import { createTodoSyncService } from "../todo-sync.mjs";
+import { dwsClient } from "../integrations/dws-client.mjs";
+import { createTodoSyncService } from "../domains/todo-sync.mjs";
 
 export function createTodosRouter({ database = getDb, client = dwsClient } = {}) {
 const router = express.Router();

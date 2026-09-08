@@ -77,7 +77,7 @@ async function showError(error) {
   const target = path.join(logsDir, "last-launch-error.txt");
   await writeFile(target, message, "utf8");
   if (quiet) return;
-  const child = spawn("wscript.exe", [path.join(__dirname, "message.vbs"), target, "团队每日工作台"], {
+  const child = spawn("wscript.exe", [path.join(__dirname, "message.vbs"), target, "个人AI工作台"], {
     detached: true,
     stdio: "ignore",
     windowsHide: true,
@@ -89,7 +89,7 @@ async function waitForHealth(instanceId, timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const info = await health(800);
-    if (info?.service === "team-daily-workbench" && (!instanceId || info.instanceId === instanceId)) return info;
+    if (info?.service === "personal-ai-workbench" && (!instanceId || info.instanceId === instanceId)) return info;
     await new Promise((resolve) => setTimeout(resolve, 300));
   }
   return null;
@@ -99,7 +99,7 @@ async function startServer({ openBrowser = true } = {}) {
   await ensureLayout();
   const running = await health();
   if (running) {
-    if (running.service !== "team-daily-workbench") throw new Error(`端口 ${servicePort} 已被其他程序占用，请关闭占用程序后重试。`);
+    if (running.service !== "personal-ai-workbench") throw new Error(`端口 ${servicePort} 已被其他程序占用，请关闭占用程序后重试。`);
     if (openBrowser) openTarget(appUrl);
     return running;
   }
@@ -111,7 +111,7 @@ async function startServer({ openBrowser = true } = {}) {
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
     const starting = await waitForHealth(null, 20_000);
-    if (starting?.service === "team-daily-workbench") {
+    if (starting?.service === "personal-ai-workbench") {
       if (openBrowser) openTarget(appUrl);
       return starting;
     }
@@ -174,14 +174,17 @@ async function stopServer() {
     await rm(pidPath, { force: true });
     return false;
   }
-  if (info.service !== "team-daily-workbench") throw new Error(`端口 ${servicePort} 由其他程序占用，工作台不会结束该进程。`);
+  if (info.service !== "personal-ai-workbench") throw new Error(`端口 ${servicePort} 由其他程序占用，工作台不会结束该进程。`);
   if (!pidState?.pid || pidState.instanceId !== info.instanceId) {
     throw new Error("无法确认后台服务的进程身份，请注销 Windows 后再执行升级。 ");
   }
   const result = spawnSync("taskkill.exe", ["/PID", String(pidState.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
-  if (result.status !== 0) throw new Error("无法停止工作台后台服务，请在任务管理器结束 node.exe 后重试。");
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline && await health(400)) await new Promise((resolve) => setTimeout(resolve, 250));
+  if (await health(400)) {
+    if (result.status !== 0) throw new Error("无法停止工作台后台服务，请在任务管理器结束 node.exe 后重试。");
+    throw new Error("工作台后台服务未在 10 秒内停止，请稍后重试。");
+  }
   await rm(pidPath, { force: true });
   return true;
 }

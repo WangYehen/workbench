@@ -1,8 +1,8 @@
 @echo off
 REM ============================================================
-REM  团队每日工作台 - Windows 一键打包脚本
+REM  个人AI工作台 - Windows 一键打包脚本
 REM  用法：在项目根目录双击本文件，或在终端执行  build-exe.cmd
-REM  产物：release\团队每日工作台 Setup 0.1.0.exe  （NSIS 安装包）
+REM  产物：release\个人AI工作台 Setup 0.1.0.exe  （NSIS 安装包）
 REM ============================================================
 setlocal
 cd /d "%~dp0"
@@ -36,8 +36,8 @@ if errorlevel 1 goto :err
 echo.
 echo ============================================================
 echo  打包完成！
-echo  安装包：release\团队每日工作台 Setup 0.1.0.exe
-echo  解包版：release\win-unpacked\团队每日工作台.exe
+echo  安装包：release\个人AI工作台 Setup 0.1.0.exe
+echo  解包版：release\win-unpacked\个人AI工作台.exe
 echo ============================================================
 goto :eof
 

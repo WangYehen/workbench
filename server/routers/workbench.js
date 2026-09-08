@@ -1,8 +1,8 @@
 import express from "express";
 import { getDb } from "../db.mjs";
 import { config } from "../config.mjs";
-import { resolveDateKey } from "../local-date.mjs";
-import { buildAttentionItems, buildDashboard, buildTeamPulse } from "../workbench-domain.mjs";
+import { resolveDateKey } from "../core/local-date.mjs";
+import { buildAttentionItems, buildDashboard, buildTeamPulse } from "../domains/workbench-domain.mjs";
 
 export default function workbenchRouter(syncCoordinator) {
   const router = express.Router();

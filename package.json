@@ -1,9 +1,9 @@
 {
-  "name": "team-daily-workbench",
+  "name": "personal-ai-workbench",
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "面向团队主管的每日工作台：Outlook 邮件 AI 分类、钉钉日志/日程、每日/周报、待办、复盘、日历与项目时间线",
+  "description": "面向个人主管的 AI 工作台：Outlook 邮件 AI 分类、钉钉日志/日程、每日/周报、待办、复盘、日历与项目时间线",
   "scripts": {
     "dev": "concurrently -k -n SERVER,CLIENT -c blue,green \"node server/index.mjs\" \"vite\"",
     "server": "node server/index.mjs",
@@ -37,8 +37,8 @@
   },
   "main": "electron/main.mjs",
   "build": {
-    "appId": "com.team.dailyworkbench",
-    "productName": "团队每日工作台",
+    "appId": "com.personal.aiworkbench",
+    "productName": "个人AI工作台",
     "files": [
       "dist/client/**/*",
       "server/**/*",

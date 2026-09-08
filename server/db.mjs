@@ -265,43 +265,6 @@ function migrate(d) {
     CREATE INDEX IF NOT EXISTS idx_ai_tasks_pending ON ai_tasks(status, priority DESC, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_ai_artifacts_status ON ai_artifacts(status, updated_at DESC);
 
-    -- 会议闭环：仅保留听记元数据、摘要与审核后的结构化事项，不保存逐字稿。
-    CREATE TABLE IF NOT EXISTS meeting_closures (
-      id TEXT PRIMARY KEY,
-      minutes_id TEXT NOT NULL UNIQUE,
-      title TEXT NOT NULL,
-      meeting_at TEXT,
-      organizer TEXT,
-      summary TEXT,
-      keywords_json TEXT NOT NULL DEFAULT '[]',
-      source_url TEXT,
-      status TEXT NOT NULL DEFAULT 'pending',
-      ai_meta_json TEXT,
-      sync_error TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS idx_meeting_closures_status ON meeting_closures(status, meeting_at DESC);
-
-    CREATE TABLE IF NOT EXISTS meeting_closure_items (
-      id TEXT PRIMARY KEY,
-      meeting_id TEXT NOT NULL REFERENCES meeting_closures(id) ON DELETE CASCADE,
-      kind TEXT NOT NULL,
-      title TEXT NOT NULL,
-      note TEXT,
-      assignee_id TEXT,
-      assignee_name TEXT,
-      due_date TEXT,
-      priority TEXT NOT NULL DEFAULT 'P2',
-      status TEXT NOT NULL DEFAULT 'draft',
-      external_task_id TEXT,
-      result_json TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      UNIQUE(meeting_id, kind, title)
-    );
-    CREATE INDEX IF NOT EXISTS idx_meeting_closure_items_meeting ON meeting_closure_items(meeting_id, status);
-
     -- 手动维护的钉钉日志模板（替代旧的“调钉钉接口查全部模板 + 勾选”方案）
     -- name 即钉钉日志接口服务端过滤用的 template_name；enabled=1 才参与同步拉取
     CREATE TABLE IF NOT EXISTS report_templates (
@@ -370,7 +333,6 @@ function migrate(d) {
     "003_projects",
     "004_ai_hot_cache",
     "011_ai_scheduler",
-    "018_meeting_closure",
     "019_dws_agent",
   ];
   for (const v of versions) {

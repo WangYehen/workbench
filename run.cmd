@@ -3,7 +3,7 @@ chcp 65001 >nul 2>&1
 setlocal enabledelayedexpansion
 
 :: ============================================================
-::  Team Daily Workbench - start / restart
+::  Personal AI Workbench - start / restart
 ::  Frontend: http://localhost:5174  Backend: http://localhost:8787
 ::  Stop: Ctrl + C
 :: ============================================================
@@ -43,7 +43,7 @@ exit /b 1
 :check_service
 :: Verify the backend identity before stopping an existing process.
 set "SERVICE_STATE=STOPPED"
-curl.exe --silent --max-time 2 http://127.0.0.1:8787/api/health | findstr /c:"team-daily-workbench" >nul
+curl.exe --silent --max-time 2 http://127.0.0.1:8787/api/health | findstr /c:"personal-ai-workbench" >nul
 if not errorlevel 1 set "SERVICE_STATE=RUNNING"
 if /i "!SERVICE_STATE!"=="RUNNING" goto :restart_service
 

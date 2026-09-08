@@ -46,5 +46,4 @@ export {
 } from "./draft-reply.mjs";
 
 export { dingtalkSignalSystemPrompt } from "./dingtalk-signal.mjs";
-export { meetingClosureSystemPrompt, formatMeetingForClosure } from "./meeting-closure.mjs";
 export { buildOpenCodeSystemPrompt, buildCodexPrompt } from "./ai-runtime-guard.mjs";

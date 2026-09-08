@@ -89,7 +89,7 @@ for (const name of ["invoke.vbs", "message.vbs"]) {
 await cp(path.join(root, "installer", "app.env.example"), path.join(stageDir, "app.env.example"));
 
 const manifest = {
-  service: "team-daily-workbench",
+  service: "personal-ai-workbench",
   version,
   builtAt: new Date().toISOString(),
   node: process.version,
@@ -105,16 +105,16 @@ run(makensis, [
   path.join(root, "installer", "web-installer.nsi"),
 ]);
 
-const installerName = `团队每日工作台-Web版-Setup-${version}.exe`;
+const installerName = `个人AI工作台-Web版-Setup-${version}.exe`;
 const installerPath = path.join(outputDir, installerName);
 const digest = createHash("sha256").update(await readFile(installerPath)).digest("hex");
 await writeFile(path.join(outputDir, `${installerName}.sha256`), `${digest}  ${installerName}\n`, "utf8");
 await writeFile(path.join(outputDir, `更新说明-${version}.txt`), [
-  `团队每日工作台 ${version}`,
+  `个人AI工作台 ${version}`,
   "",
   "安装：双击 Setup.exe，可选择 D 盘或其他本机 NTFS 目录。",
   "升级：直接运行新版安装包，配置和数据会自动备份并保留。",
-  "启动：双击桌面“团队每日工作台”，后台服务会静默启动并打开浏览器。",
+  "启动：双击桌面“个人AI工作台”，后台服务会静默启动并打开浏览器。",
   "注意：安装包暂未签名，Windows 可能显示未知发布者提示。",
   "",
 ].join("\r\n"), "utf8");

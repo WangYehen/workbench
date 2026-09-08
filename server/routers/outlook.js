@@ -1,8 +1,8 @@
 import express from "express";
 import { getDb, upsert } from "../db.mjs";
-import { OutlookServiceError } from "../outlook.mjs";
-import { ai } from "../ai.mjs";
-import { generateDraft } from "../outlook-draft.mjs";
+import { OutlookServiceError } from "../integrations/outlook.mjs";
+import { ai } from "../ai/ai.mjs";
+import { generateDraft } from "../integrations/outlook-draft.mjs";
 
 // 优先级（P0/P1/P2）映射到旧 emails 表的 importance / priority 字段，供概览、日历、系统页读取
 const PRIORITY_TO_IMPORTANCE = { P0: "high", P1: "medium", P2: "low" };
