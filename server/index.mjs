@@ -26,6 +26,7 @@ import dwsRouter from "./routers/dws.js";
 import managementRouter from "./routers/management.js";
 import dwsAgentRouter from "./routers/dws-agent.js";
 import { createSyncCoordinator } from "./sync-coordinator.mjs";
+import { createDwsTodoEventService } from "./dws-todo-events.mjs";
 import { dwsClient } from "./dws-client.mjs";
 import { createManagementCases } from "./management-cases.mjs";
 import { createDwsAgentService } from "./dws-agent.mjs";
@@ -136,6 +137,7 @@ const outlookService = createOutlookService({
 const aiScheduler = createAiScheduler({ aiService: ai });
 const meetingClosureService = createMeetingClosureService({ dwsClient, aiService: ai });
 const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat, meetingClosureService, dwsClient });
+const dwsTodoEvents = createDwsTodoEventService({ database: getDb, dwsClient });
 const managementCases = createManagementCases({ database: getDb });
 // Agent 只需要 OpenCode 的推理能力，不需要扫描整个工作台源码；使用本地数据目录作为
 // 轻量工作目录，避免每轮启动都索引前端工程导致首字节延迟过长。
@@ -196,7 +198,8 @@ const server = app.listen(config.port, config.host, () => {
   void ai.status().catch(() => {});
   void dingtalkChat.status({ probeCapabilities: false }).catch(() => {});
   aiScheduler.start();
-  syncCoordinator.start();
+syncCoordinator.start();
+dwsTodoEvents.start();
 });
 server.on("error", async (error) => {
   console.error(`[team-workbench] server failed: ${error?.message || error}`);

@@ -151,6 +151,11 @@ function migrate(d) {
       key TEXT PRIMARY KEY,
       value_json TEXT
     );
+    CREATE TABLE IF NOT EXISTS dws_todo_event_log (
+      event_id TEXT PRIMARY KEY,
+      payload_json TEXT NOT NULL,
+      handled_at TEXT NOT NULL
+    );
 
     CREATE TABLE IF NOT EXISTS email_drafts (
       message_id TEXT PRIMARY KEY,

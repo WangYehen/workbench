@@ -34,6 +34,7 @@ function day(value) {
 export function createTodoSyncService({ database = getDb, dwsClient } = {}) {
   const db = () => database();
   const get = (id) => db().prepare("SELECT * FROM todos WHERE id=?").get(id);
+  const hasColumn = (name) => db().prepare("PRAGMA table_info(todos)").all().some((column) => column.name === name);
   const markLocal = (id, patch) => {
     const now = new Date().toISOString();
     const status = patch.status;
@@ -71,8 +72,13 @@ export function createTodoSyncService({ database = getDb, dwsClient } = {}) {
       const priority = detail.priority >= 40 ? "P0" : detail.priority >= 30 ? "P1" : "P2";
       const executor = detail.executorIds?.[0] || detail.participantIds?.[0] || row.assignee_id;
       const syncedAt = new Date().toISOString();
-      db().prepare("UPDATE todos SET title=?,status=?,priority=?,due_date=?,completed_at=?,assignee_id=?,external_updated_at=?,last_sync_at=?,sync_direction=?,sync_status='synced',sync_error=NULL WHERE id=?")
-        .run(title, detail.isDone ? "done" : "inbox", priority, day(detail.dueTime || detail.planFinishDate), detail.isDone ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), detail.updatedAt || detail.updateTime || syncedAt, syncedAt, direction, id);
+      if (hasColumn("external_updated_at")) {
+        db().prepare("UPDATE todos SET title=?,status=?,priority=?,due_date=?,completed_at=?,assignee_id=?,external_updated_at=?,last_sync_at=?,sync_direction=?,sync_status='synced',sync_error=NULL WHERE id=?")
+          .run(title, detail.isDone ? "done" : "inbox", priority, day(detail.dueTime || detail.planFinishDate), detail.isDone ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), detail.updatedAt || detail.updateTime || syncedAt, syncedAt, direction, id);
+      } else {
+        db().prepare("UPDATE todos SET title=?,status=?,priority=?,due_date=?,completed_at=?,assignee_id=?,sync_status='synced',sync_error=NULL WHERE id=?")
+          .run(title, detail.isDone ? "done" : "inbox", priority, day(detail.dueTime || detail.planFinishDate), detail.isDone ? (get(id).completed_at || syncedAt) : null, executor == null ? null : String(executor), id);
+      }
       return { verified: true, taskId: row.external_task_id, externalId: row.external_task_id, todo: get(id) };
     } catch (error) {
       db().prepare("UPDATE todos SET sync_status='unverified',sync_error=? WHERE id=?").run(error.message, id);

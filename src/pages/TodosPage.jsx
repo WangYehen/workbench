@@ -23,6 +23,7 @@ export default function TodosPage() {
   const [visibleCount, setVisibleCount] = useState(5);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [syncingId, setSyncingId] = useState(null);
   const requestId = useRef(null);
   const savingRef = useRef(false);
 
@@ -45,8 +46,13 @@ export default function TodosPage() {
     finally { savingRef.current = false; setSaving(false); }
   }
   async function toggle(t) {
-    await api.patch(`/todos/${t.id}`, { status: t.status === "done" ? "inbox" : "done" });
-    load();
+    setSyncingId(t.id); setNotice("");
+    try {
+      const result = await api.patch(`/todos/${t.id}`, { status: t.status === "done" ? "inbox" : "done" });
+      setNotice(result.verified === false ? `工作台状态已更新，钉钉同步待核验：${result.error || "请稍后重试"}` : "待办状态已同步到钉钉。");
+      await load();
+    } catch (error) { setNotice(`工作台状态同步失败：${error.message}`); await load(); }
+    finally { setSyncingId(null); }
   }
   async function del(id) { await api.del(`/todos/${id}`); load(); }
   async function verify(id) {
@@ -86,12 +92,13 @@ export default function TodosPage() {
         <div className="list">
           {visibleItems.map((t) => (
             <div className="item todo-item" key={t.id}>
-              <input type="checkbox" checked={t.status === "done"} onChange={() => toggle(t)} style={{ width: 18 }} />
+              <input type="checkbox" checked={t.status === "done"} disabled={syncingId === t.id} onChange={() => toggle(t)} style={{ width: 18 }} />
               <PriorityBadge priority={t.priority} className="todo-priority" />
               <div style={{ flex: 1 }}>
                 <div className={`title todo-title ${t.status === "done" ? "is-done" : ""}`}>{t.title}</div>
                 {t.due_date && <div className="sub">截止 {t.due_date}</div>}
                 {t.sync_status && <div className="sub" title={t.sync_error || ""}>{t.sync_status === "synced" ? "已同步钉钉" : t.sync_status === "pending" ? "正在同步钉钉" : `钉钉待核验 · ${t.sync_error || "请检查同步结果"}`}</div>}
+                {syncingId === t.id && <div className="sub">正在同步状态…</div>}
               </div>
               <DeleteButton onClick={() => del(t.id)} />
               {t.external_task_id && t.sync_status !== "synced" && <button className="btn sm" onClick={() => verify(t.id)}>重新核验</button>}
