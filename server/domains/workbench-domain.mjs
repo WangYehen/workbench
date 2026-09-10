@@ -354,6 +354,25 @@ export function buildDashboard(db, date, now = new Date()) {
 
 export function buildTeamDashboard(db, date, now = new Date()) {
   const digest = buildTeamDailyDigest(db, date, now);
+  const pulse = buildTeamPulse(db, digest.date, now);
+  const detailsByMember = new Map(digest.members.map((member) => [member.user_id, member]));
+  const history = buildMemberSubmissionHistory(db, digest.date);
+  const members = pulse.members.map((member) => {
+    const detail = detailsByMember.get(member.user_id);
+    const submissionHistory = history.byMember.get(member.user_id) || emptyMemberHistory(history.dates.length);
+    const completed = detail?.completed || [];
+    const inProgress = detail?.inProgress || [];
+    const workload = inProgress.length + member.blockers.length + member.review.length;
+    return {
+      ...member,
+      summary: detail?.summary || "",
+      completed,
+      inProgress,
+      workload,
+      submissionHistory,
+      attentionScore: member.signalScore + Math.max(0, submissionHistory.missingStreak - 1),
+    };
+  }).sort((a, b) => b.attentionScore - a.attentionScore || b.workload - a.workload || a.name.localeCompare(b.name));
   const projects = db.prepare("SELECT * FROM projects").all();
   const phases = db.prepare("SELECT * FROM project_phases").all();
   const phasesByProject = new Map();
@@ -363,6 +382,50 @@ export function buildTeamDashboard(db, date, now = new Date()) {
   }
   return {
     ...digest,
+    members,
+    submissionHistoryDates: history.dates,
+    submissionTrend: [...history.dates].reverse().map((reportDate) => ({
+      date: reportDate,
+      submitted: history.submittedByDate.get(reportDate)?.size || 0,
+      rate: pulse.rosterTotal ? Math.round(((history.submittedByDate.get(reportDate)?.size || 0) / pulse.rosterTotal) * 100) : null,
+    })),
     projects: projects.map((project) => enrichProject(project, phasesByProject.get(project.id) || [], digest.date)),
   };
+}
+
+function emptyMemberHistory(totalDates) {
+  return { submittedCount: 0, totalDates, submissionRate: totalDates ? 0 : null, missingStreak: totalDates, submittedDates: [] };
+}
+
+function buildMemberSubmissionHistory(db, throughDate) {
+  const rows = db.prepare(
+    "SELECT DISTINCT report_date, user_id, user_name FROM dingtalk_reports WHERE report_date<=? ORDER BY report_date DESC",
+  ).all(throughDate);
+  const dates = [...new Set(rows.map((row) => row.report_date))].slice(0, 10);
+  const selectedDates = new Set(dates);
+  const byMember = new Map();
+  const submittedByDate = new Map(dates.map((reportDate) => [reportDate, new Set()]));
+  for (const row of rows) {
+    if (!selectedDates.has(row.report_date)) continue;
+    const memberId = row.user_id || row.user_name;
+    if (!memberId) continue;
+    if (!byMember.has(memberId)) byMember.set(memberId, new Set());
+    byMember.get(memberId).add(row.report_date);
+    submittedByDate.get(row.report_date).add(memberId);
+  }
+  for (const [memberId, submittedDates] of byMember) {
+    let missingStreak = 0;
+    for (const reportDate of dates) {
+      if (submittedDates.has(reportDate)) break;
+      missingStreak += 1;
+    }
+    byMember.set(memberId, {
+      submittedCount: submittedDates.size,
+      totalDates: dates.length,
+      submissionRate: dates.length ? Math.round((submittedDates.size / dates.length) * 100) : null,
+      missingStreak,
+      submittedDates: [...submittedDates],
+    });
+  }
+  return { dates, byMember, submittedByDate };
 }
