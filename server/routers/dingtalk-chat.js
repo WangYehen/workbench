@@ -20,6 +20,7 @@ export default function dingtalkChatRouter(service) {
   });
   router.get("/settings", (req, res) => res.json({ settings: service.settings() }));
   router.patch("/settings", (req, res) => respond(res, () => ({ settings: service.updateSettings(req.body || {}) })));
+  router.get("/inbox", (req, res) => respond(res, () => service.inbox()));
   router.get("/signals", (req, res) => respond(res, () => service.listSignals({ state: req.query.state ?? "open", limit: req.query.limit, offset: req.query.offset })));
   router.get("/signals/:id", (req, res) => {
     const item = service.signal(req.params.id);

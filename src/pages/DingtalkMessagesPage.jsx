@@ -1,83 +1,42 @@
-import { useCallback, useEffect, useState } from "react";
-import { IconBulb, IconCalendarEvent, IconCheck, IconChevronDown, IconCircleFilled, IconClock, IconFolder, IconLink, IconMail, IconMessageCircle2, IconX } from "@tabler/icons-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { IconCheck, IconClock, IconFolder, IconMessageCircle2, IconRefresh, IconSearch, IconX } from "@tabler/icons-react";
 import { dingtalkChatApi, todayStr, workbenchApi } from "../api.js";
-import "./EmailsPage.css";
-import "./EmailsPageFixes.css";
 import "./DingtalkMessagesPage.css";
 
-const SECTIONS = [["priority", "优先处理"], ["confirm", "待确认"], ["know", "知晓即可"]];
-const TARGET_TEXT = { outlook: "邮件", calendar: "日程", project: "项目", todo: "待办" };
 const formatTime = (value) => value ? new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
-function relativeTime(value) {
-  const minutes = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 60_000));
-  if (minutes < 1) return "刚刚";
-  if (minutes < 60) return `${minutes} 分钟前`;
-  if (minutes < 24 * 60) return `${Math.round(minutes / 60)} 小时前`;
-  return formatTime(value);
+const priorityLabel = { P0: "紧急", P1: "重要", P2: "一般" };
+
+function Item({ item, active, onClick }) {
+  return <button className={`signal-nav__item ${active ? "is-selected" : ""}`} onClick={() => onClick(item)}>
+    <strong><span className={`oc-tag oc-tag--${(item.priority || "P2").toLowerCase()}`}>{priorityLabel[item.priority] || item.priority}</span>{item.title}</strong>
+    <span>{item.project_name ? `${item.project_name} · ` : ""}{item.conversation_title || "钉钉会话"}{item.mention_scope === "self" ? " · @我" : item.mention_scope === "all" ? " · @所有人" : ""}</span>
+    <time>{formatTime(item.sent_at || item.updated_at)}</time>
+  </button>;
 }
-function SignalNav({ groups, selected, onSelect }) {
-  return <aside className="signal-nav">{SECTIONS.map(([key, label]) => {
-    const items = groups.filter((item) => item.section === key);
-    return <section className="signal-nav__section" key={key}><h2><IconCircleFilled className={`signal-dot signal-dot--${key}`} size={9} />{label}<span>{items.length}</span></h2>
-      {items.map((item) => <button key={item.id} className={`signal-nav__item ${selected?.id === item.id ? "is-selected" : ""}`} onClick={() => onSelect(item)}><strong>{item.title}</strong><span>{item.conversation_title || "钉钉会话"}{item.mention_scope === "all" ? " · @所有人" : item.mention_scope === "self" ? " · @我" : ""}</span><time>{relativeTime(item.latest_evidence_at || item.updated_at)}</time></button>)}
-    </section>;
-  })}{!groups.length && <div className="signal-empty">目前没有需要你关注的钉钉信号。</div>}</aside>;
+
+function Queue({ items, selected, onSelect, query }) {
+  const [expanded, setExpanded] = useState(false);
+  const visibleItems = expanded ? items : items.slice(0, 20);
+  useEffect(() => setExpanded(false), [query, items]);
+  if (!items.length) return <p className="signal-empty">没有匹配的事项</p>;
+  return <div className="signal-nav__list">{visibleItems.map((item) => <Item key={`${item.source}:${item.id}:${item.project_id || ""}`} item={item} active={selected?.id === item.id && selected?.source === item.source} onClick={onSelect} />)}{items.length > 20 && <button className="signal-nav__more" onClick={() => setExpanded((value) => !value)}>{expanded ? "收起列表" : `查看其余 ${items.length - 20} 条`}</button>}</div>;
 }
 
 export default function DingtalkMessagesPage({ onStatusChange, onSyncReady, onSyncingChange }) {
-  const [signals, setSignals] = useState([]); const [selectedSignal, setSelectedSignal] = useState(null);
-  const [detail, setDetail] = useState(null); const [status, setStatus] = useState(null);
-  const [syncing, setSyncing] = useState(false); const [busy, setBusy] = useState("");
-  const [error, setError] = useState(""); const [showRaw, setShowRaw] = useState(false);
-  const selectSignal = useCallback(async (signal) => {
-    setSelectedSignal(signal); setShowRaw(false); setError("");
-    try {
-      if (signal.source === "message") {
-        const message = (await dingtalkChatApi.message(signal.id)).item;
-        setDetail({ ...message, isMessage: true, title: message.summary || message.content?.slice(0, 60) || "待确认消息", conclusion: message.summary || "该消息尚未获得可靠的 AI 判断。", facts: [], steps: [], evidence: [{ message_id: message.id, conversation_title: message.conversation_title, sender_name: message.sender_name, sent_at: message.sent_at, excerpt: message.content, raw_content: message.content, message_available: true, is_root: true }] });
-      } else setDetail((await dingtalkChatApi.signal(signal.id)).item);
-    } catch (e) { setError(e.message); }
-  }, []);
-  const load = useCallback(async () => {
-    try {
-      const [result, messages, info] = await Promise.all([
-        dingtalkChatApi.signals({ limit: "200" }),
-        dingtalkChatApi.messages({ status: "needs_confirmation", limit: "200" }),
-        dingtalkChatApi.status().catch(() => null),
-      ]);
-      const pending = (messages.items || []).filter((item) => Number(item.confidence) === 0).map((item) => ({ ...item, source: "message", section: "confirm", title: item.summary || item.content?.slice(0, 60) || "待确认消息", latest_evidence_at: item.sent_at }));
-      setSignals([...(result.items || []).filter((item) => Number(item.confidence) > 0), ...pending]);
-      setStatus(info); onStatusChange?.(info);
-    } catch (e) { setError(e.message); }
-  }, [onStatusChange]);
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (!signals.length) { setSelectedSignal(null); setDetail(null); } else if (!selectedSignal || !signals.some((item) => item.id === selectedSignal.id)) void selectSignal(signals[0]); }, [signals, selectedSignal, selectSignal]);
-  const sync = useCallback(async () => { setSyncing(true); onSyncingChange?.(true); setError(""); try { await workbenchApi.syncRun(todayStr(), ["dingtalk_chat"]); await load(); } catch (e) { setError(e.message); } finally { setSyncing(false); onSyncingChange?.(false); } }, [load, onSyncingChange]);
+  const [inbox, setInbox] = useState(null); const [selected, setSelected] = useState(null); const [detail, setDetail] = useState(null);
+  const [syncing, setSyncing] = useState(false); const [busy, setBusy] = useState(""); const [error, setError] = useState("");
+  const [view, setView] = useState("reply"); const [query, setQuery] = useState("");
+  const load = useCallback(async () => { try { const [result, status] = await Promise.all([dingtalkChatApi.inbox(), dingtalkChatApi.status().catch(() => null)]); setInbox(result); onStatusChange?.(status); } catch (e) { setError(e.message); } }, [onStatusChange]);
+  useEffect(() => { void load(); const timer = setInterval(() => void load(), 30000); return () => clearInterval(timer); }, [load]);
+  const select = useCallback(async (item) => { setSelected(item); setDetail(null); setError(""); try { setDetail(item.source === "message" ? { ...(await dingtalkChatApi.message(item.id)).item, source: "message" } : { ...(await dingtalkChatApi.signal(item.id)).item, source: "signal" }); } catch (e) { setError(e.message); } }, []);
+  const queues = useMemo(() => inbox ? [{ key: "reply", label: "待回复", hint: "推断：尚未发现你的后续回复，非钉钉已读回执。", items: inbox.replyPending }, { key: "action", label: "待处理", items: inbox.actionRequired }, { key: "project", label: "项目动态", hint: "仅包含群聊中 @我/@所有人的已关联消息。", items: inbox.projectUpdates }] : [], [inbox]);
+  const activeQueue = queues.find((queue) => queue.key === view) || queues[0];
+  const visibleItems = useMemo(() => (activeQueue?.items || []).filter((item) => `${item.title || ""} ${item.conversation_title || ""} ${item.project_name || ""}`.toLowerCase().includes(query.trim().toLowerCase())), [activeQueue, query]);
+  useEffect(() => { if (visibleItems[0] && !selected) void select(visibleItems[0]); }, [visibleItems, selected, select]);
+  const sync = useCallback(async () => { setSyncing(true); onSyncingChange?.(true); try { await workbenchApi.syncRun(todayStr(), ["dingtalk_chat"]); await load(); } catch (e) { setError(e.message); } finally { setSyncing(false); onSyncingChange?.(false); } }, [load, onSyncingChange]);
   useEffect(() => { onSyncReady?.(sync); return () => onSyncReady?.(null); }, [onSyncReady, sync]);
-  const update = async (key, work) => { if (!detail) return; setBusy(key); setError(""); try { await work(); await load(); } catch (e) { setError(e.message); } finally { setBusy(""); } };
-  const adopt = () => update("adopt", () => detail?.isMessage ? dingtalkChatApi.createTodo(detail.id) : dingtalkChatApi.confirmSignalDraft(detail.id, { title: detail.draft_title || detail.title, note: detail.draft_note || "", priority: detail.draft_priority || detail.priority || "P2", dueDate: detail.draft_due_date || null }));
-  const evidence = detail?.evidence || []; const rootEvidence = evidence.find((item) => item.is_root) || evidence.at(-1);
-  const suggestedSteps = Array.isArray(detail?.steps) && detail.steps.length ? detail.steps : [
-    "确认事项是否需要由你推进，以及相关负责人。",
-    "核对关联对象与上下文，避免遗漏已有安排。",
-    "采纳后创建待办；不需要处理时将不再出现在默认列表。",
-  ];
-  const rawMessages = evidence;
-  return <div className="signal-page">
-    {error && <div className="error">{error}</div>}
-    <div className="signal-head"><div><h1>钉钉工作信号</h1><p>AI 从与你相关的对话中提炼需要关注的事项</p></div><div className="signal-head__actions"><span className="signal-head__sync"><i />{status?.lastSync?.finishedAt ? `最近同步 ${formatTime(status.lastSync.finishedAt)}` : "等待同步"}{syncing ? " · 同步中" : ""}</span></div></div>
-    <div className="signal-layout"><SignalNav groups={signals} selected={selectedSignal} onSelect={selectSignal} />
-      <main className="signal-brief">{detail ? <>
-        <div className="signal-source"><span>{rootEvidence?.conversation_title || "钉钉会话"}</span>{rootEvidence?.mention_scope === "all" ? <b>@所有人</b> : rootEvidence?.mention_scope === "self" ? <b>@我</b> : null}<time>{relativeTime(rootEvidence?.sent_at || detail.updated_at)}</time></div><h2>{detail.title}</h2>
-        <section className="signal-reading"><h3><IconMessageCircle2 size={21} />AI 读懂 </h3><strong>{detail.conclusion || "正在分析这条工作信号"}</strong><p>{detail.draft_note || (detail.classification === "action" ? "这件事需要你作出判断或推动下一步。" : "这是一条重要同步，当前无需你直接处理。")}</p></section>
-        <section className="signal-steps"><h3><IconBulb size={20} />建议你如何处理</h3><ul>{suggestedSteps.map((step) => <li key={step}>{step}</li>)}</ul></section>
-        <div className="signal-actions"><button className="btn primary" disabled={busy === "adopt"} onClick={adopt}><IconCheck size={16} />{busy === "adopt" ? "正在创建…" : detail?.isMessage ? "转为待办" : "采纳待办建议"}</button>{!detail?.isMessage && <button className="btn" disabled={busy === "waiting"} onClick={() => update("waiting", () => dingtalkChatApi.updateSignal(detail.id, "waiting"))}><IconClock size={16} />标记等待他人</button>}<button className="btn" disabled={busy === "ignore"} onClick={() => update("ignore", () => detail?.isMessage ? dingtalkChatApi.updateMessage(detail.id, "ignored") : dingtalkChatApi.updateSignal(detail.id, "ignored"))}><IconX size={16} />不需要处理</button></div>
-      </> : <div className="signal-empty">选择一条工作信号查看 AI 判断。</div>}</main>
-      <aside className="signal-evidence">{detail && <><h2>AI 如何得出这个结论</h2><section><h3>核心事实</h3><ul className="signal-facts">{(detail.facts?.length ? detail.facts : ["尚未获得有效 AI 分析结果"]).map((fact) => <li key={fact}>{fact}</li>)}</ul></section>
-        <section><h3>相关对象（项目、邮件、日程）</h3>{detail.links?.length ? detail.links.map((link) => { const TargetIcon = link.target_type === "project" ? IconFolder : link.target_type === "calendar" ? IconCalendarEvent : link.target_type === "outlook" ? IconMail : IconLink; return <div className={`signal-link signal-link--${link.target_type}`} key={link.id}><TargetIcon size={17} /><span>{TARGET_TEXT[link.target_type] || link.target_type}：{link.target_id}</span><IconChevronDown size={15} /></div>; }) : <p className="signal-muted">暂未识别到明确的邮件、项目或日程关联。</p>}</section>
-        <section><h3>上下文时间线（{evidence.length} 条）</h3><div className="signal-timeline">{evidence.slice(0, 4).map((item) => <p key={item.id}><time>{formatTime(item.sent_at)}</time><b>{item.sender_name || "成员"}</b>{item.excerpt || "（原消息已清理）"}</p>)}</div></section>
-        <button className="signal-raw" onClick={() => setShowRaw((value) => !value)}><IconChevronDown size={16} />{showRaw ? "收起原始消息" : `展开 ${rawMessages.length} 条原始消息`}</button>{showRaw && <div className="signal-raw-list">{rawMessages.map((item) => <p key={item.id}><b>{item.sender_name || "成员"}</b>：{item.message_available ? (item.raw_content || item.excerpt || "（非文本消息）") : "原始消息已按保留策略清理"}</p>)}</div>}
-      </>}</aside>
-    </div>
-  </div>;
+  const act = async (key, fn) => { if (!detail) return; setBusy(key); try { await fn(); setSelected(null); setDetail(null); await load(); } catch (e) { setError(e.message); } finally { setBusy(""); } };
+  if (!inbox) return <div className="spinner">加载钉钉事项中心…</div>;
+  if (!inbox.ready) return <div className="error">{inbox.error}</div>;
+  return <div className="signal-page">{error && <div className="error">{error}</div>}<div className="signal-head"><div><h1>钉钉事项中心</h1><p>按主管需要回复、处理和关注的项目动态集中整理</p></div><button className="btn sm" onClick={sync} disabled={syncing}><IconRefresh size={15}/>{syncing ? "同步中" : "同步并研判"}</button></div><div className="signal-layout"><aside className="signal-nav"><div className="signal-nav__tabs" role="tablist" aria-label="事项分组">{queues.map((queue) => <button key={queue.key} role="tab" aria-selected={view === queue.key} className={view === queue.key ? "is-active" : ""} onClick={() => { setView(queue.key); setQuery(""); setSelected(null); setDetail(null); }}>{queue.label}<span>{queue.items.length}</span></button>)}</div><div className="signal-nav__search"><IconSearch size={16}/><input value={query} onChange={(event) => { setQuery(event.target.value); setSelected(null); setDetail(null); }} placeholder="搜索当前事项" aria-label="搜索当前事项" /></div>{activeQueue?.hint && <p className="signal-muted signal-nav__hint">{activeQueue.hint}</p>}<Queue items={visibleItems} selected={selected} onSelect={select} query={`${view}:${query}`}/></aside><main className="signal-brief">{detail ? <><div className="signal-source"><span>{detail.conversation_title || detail.evidence?.at(-1)?.conversation_title || "钉钉会话"}</span><time>{formatTime(detail.sent_at || detail.updated_at)}</time></div><h2>{detail.title || detail.summary || detail.content?.slice(0, 80)}</h2><section className="signal-reading"><h3><IconMessageCircle2 size={20}/>AI 判断</h3><strong>{detail.conclusion || detail.summary || "待你确认后续处理方式"}</strong><p>{detail.draft_note || detail.action_text || detail.content}</p></section>{detail.facts?.length ? <section className="signal-steps"><h3><IconFolder size={20}/>关键信息</h3><ul>{detail.facts.map((fact) => <li key={fact}>{fact}</li>)}</ul></section> : null}<div className="signal-actions"><button className="btn primary" disabled={busy} onClick={() => act("todo", () => detail.source === "message" ? dingtalkChatApi.createTodo(detail.id) : dingtalkChatApi.confirmSignalDraft(detail.id, { title: detail.draft_title || detail.title, note: detail.draft_note || "", priority: detail.draft_priority || detail.priority || "P2", dueDate: detail.draft_due_date || null }))}><IconCheck size={16}/>转为待办</button>{detail.source === "signal" && <button className="btn" disabled={busy} onClick={() => act("waiting", () => dingtalkChatApi.updateSignal(detail.id, "waiting"))}><IconClock size={16}/>等待他人</button>}<button className="btn" disabled={busy} onClick={() => act("ignore", () => detail.source === "message" ? dingtalkChatApi.updateMessage(detail.id, "ignored") : dingtalkChatApi.updateSignal(detail.id, "ignored"))}><IconX size={16}/>不需要处理</button></div></> : <div className="signal-empty">选择一条事项查看详情。</div>}</main><aside className="signal-evidence">{detail ? <><div className="signal-evidence__head"><h2>消息证据</h2><span>最近 5 条</span></div><div className="signal-timeline signal-evidence__timeline">{(detail.evidence || detail.context || []).slice(-5).map((item) => <p key={item.id}><time>{formatTime(item.sent_at)}</time><b>{item.sender_name || "成员"}</b>{item.raw_content || item.content || item.excerpt}</p>)}</div></> : <div className="signal-empty">详情会显示关联消息。</div>}</aside></div></div>;
 }

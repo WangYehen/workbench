@@ -21,15 +21,15 @@ test("状态快照读取不触发连接器探测",()=>{
   memory.close();
 });
 
-test("个人消息同步使用 DWS 状态归档消息，但不再自动生成 AI 信号",async()=>{
-  const memory=db();let received=[];
+test("个人消息同步后自动分析新增消息和待重试消息",async()=>{
+  const memory=db();let received=[];let options=null;
   const coordinator=createSyncCoordinator({
     outlookService:{status:async()=>({configured:false})},dingtalkService:{isConfigured:()=>false,calendarReady:()=>false},
-    dingtalkChatService:{status:async()=>({installed:true,connected:true}),sync:async()=>({count:2,firstSync:false,added:[{id:"m1"},{id:"m2"}]})},
-    aiScheduler:{dashboardArtifact:()=>{},dingtalkChatMessagesArtifact:(ids)=>{received=ids}},database:()=>memory,now:()=>new Date("2026-08-27T04:00:00.000Z"),
+    dingtalkChatService:{status:async()=>({installed:true,connected:true}),sync:async()=>({count:2,firstSync:false,added:[{id:"m1"},{id:"m2"}]}),retryableAnalysisMessageIds:()=>["m2","m3"]},
+    aiScheduler:{dashboardArtifact:()=>{},dingtalkChatMessagesArtifact:(ids,value)=>{received=ids;options=value}},database:()=>memory,now:()=>new Date("2026-08-27T04:00:00.000Z"),
   });
   const [result]=await coordinator.run(["dingtalk_chat"],{date:"2026-08-27",trigger:"manual"});
-  assert.equal(result.status,"success");assert.equal(result.recordCount,2);assert.deepEqual(received,[]);memory.close();
+  assert.equal(result.status,"success");assert.equal(result.recordCount,2);assert.deepEqual(received,["m1","m2","m3"]);assert.deepEqual(options,{trigger:"sync:dingtalk_chat",force:true});memory.close();
 });
 
 test("自动邮件同步会写统一状态并镜像到邮件读取表",async()=>{
@@ -53,6 +53,33 @@ test("团队名册接口失败不会阻断钉钉日志同步",async()=>{
   });
   const [result]=await coordinator.run(["dingtalk"],{date:"2026-08-27",trigger:"automatic"});
   assert.equal(result.status,"success");assert.equal(result.recordCount,1);assert.match(result.warning,/保留本地名册/);assert.equal(reportsSynced,1);memory.close();
+});
+
+test("团队日志分析按实际同步到的日志日期入队",async()=>{
+  const memory=db();const analyzed=[];
+  const coordinator=createSyncCoordinator({
+    outlookService:{status:async()=>({configured:false})},
+    dingtalkService:{isConfigured:()=>true,calendarReady:()=>false,syncMembers:async()=>[],syncReports:async()=>[{id:"r1",report_date:"2026-08-26"},{id:"r2",report_date:"2026-08-26"},{id:"r3",report_date:"2026-08-27"}]},
+    aiScheduler:{dashboardArtifact:()=>{},teamAnalysisArtifact:(date,options)=>analyzed.push({date,options})},database:()=>memory,now:()=>new Date("2026-08-27T04:00:00.000Z"),
+  });
+  await coordinator.run(["dingtalk"],{date:"2026-08-27",trigger:"automatic"});
+  assert.deepEqual(analyzed,[
+    {date:"2026-08-26",options:{trigger:"sync:dingtalk",force:false}},
+    {date:"2026-08-27",options:{trigger:"sync:dingtalk",force:false}},
+  ]);
+  memory.close();
+});
+
+test("手动同步强制重新分析已完成的团队日志",async()=>{
+  const memory=db();const analyzed=[];
+  const coordinator=createSyncCoordinator({
+    outlookService:{status:async()=>({configured:false})},
+    dingtalkService:{isConfigured:()=>true,calendarReady:()=>false,syncMembers:async()=>[],syncReports:async()=>[{id:"r1",report_date:"2026-08-26"}]},
+    aiScheduler:{dashboardArtifact:()=>{},teamAnalysisArtifact:(date,options)=>analyzed.push({date,options})},database:()=>memory,
+  });
+  await coordinator.run(["dingtalk"],{date:"2026-08-27",trigger:"manual"});
+  assert.deepEqual(analyzed,[{date:"2026-08-26",options:{trigger:"sync:dingtalk",force:true}}]);
+  memory.close();
 });
 
 test("钉钉白名单错误会暂停自动调度但允许手动恢复",async()=>{

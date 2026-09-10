@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import EmailsPage from "./EmailsPage.jsx";
 import TodosPage from "./TodosPage.jsx";
+import DingtalkMessagesPage from "./DingtalkMessagesPage.jsx";
 import DateNav from "../components/DateNav.jsx";
 import { todayStr, workbenchApi } from "../api.js";
 import "./WorkspacePages.css";
@@ -17,19 +18,26 @@ export default function ActionsPage() {
   const [error, setError] = useState("");
   const [outlookStatus, setOutlookStatus] = useState(null);
   const [emailSyncing, setEmailSyncing] = useState(false);
+  const [dingtalkStatus, setDingtalkStatus] = useState(null);
+  const [dingtalkSyncing, setDingtalkSyncing] = useState(false);
   const syncEmailRef = useRef(null);
-  useEffect(() => { if (tab === "dingtalk") setParams({}); }, [tab, setParams]);
+  const syncDingtalkRef = useRef(null);
   useEffect(() => { workbenchApi.attention(date).then((r) => setItems(r.items)).catch((e) => setError(e.message)); }, [date]);
   const setTab = (next) => setParams(next === "attention" ? {} : { tab: next });
   const setEmailSync = useCallback((sync) => { syncEmailRef.current = sync; }, []);
+  const setDingtalkSync = useCallback((sync) => { syncDingtalkRef.current = sync; }, []);
   const lastSuccess = outlookStatus?.lastSyncAt
     ? new Date(outlookStatus.lastSyncAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
     : "—";
+  const dingtalkLastSuccess = dingtalkStatus?.lastSync?.finishedAt
+    ? new Date(dingtalkStatus.lastSync.finishedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })
+    : "—";
   return <div className="workspace-page">
-    <header className="workspace-head"><div><h1>行动中心</h1><p>从发现问题到分类、处理、转待办和跟踪的统一入口</p></div>{tab === "attention" && <DateNav date={date} onChange={setDate}/>} {tab === "email" && <div className="actions-mail-sync"><span><i />最近成功 {lastSuccess}</span><SyncButton className="btn primary" type="button" syncing={emailSyncing} disabled={!syncEmailRef.current} onClick={() => syncEmailRef.current?.()}>立即同步</SyncButton></div>}</header>
-    <nav className="workspace-tabs" aria-label="行动中心视图">{[["attention","管理事项"],["email","邮件"],["tasks","待办"]].map(([key,label])=><button key={key} className={tab===key?"is-active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav>
+    <header className="workspace-head"><div><h1>行动中心</h1><p>从发现问题到分类、处理、转待办和跟踪的统一入口</p></div>{tab === "attention" && <DateNav date={date} onChange={setDate}/>} {tab === "email" && <div className="actions-mail-sync"><span><i />最近成功 {lastSuccess}</span><SyncButton className="btn primary" type="button" syncing={emailSyncing} disabled={!syncEmailRef.current} onClick={() => syncEmailRef.current?.()}>立即同步</SyncButton></div>}{tab === "dingtalk" && <div className="actions-mail-sync"><span><i />最近成功 {dingtalkLastSuccess}</span><SyncButton className="btn primary" type="button" syncing={dingtalkSyncing} disabled={!syncDingtalkRef.current} onClick={() => syncDingtalkRef.current?.()}>立即同步并研判</SyncButton></div>}</header>
+    <nav className="workspace-tabs" aria-label="行动中心视图">{[["attention","管理事项"],["email","邮件"],["dingtalk","钉钉消息"],["tasks","待办"]].map(([key,label])=><button key={key} className={tab===key?"is-active":""} onClick={()=>setTab(key)}>{label}</button>)}</nav>
     {error && <div className="error">{error}</div>}
     {tab === "email" && <EmailsPage embedded onStatusChange={setOutlookStatus} onSyncReady={setEmailSync} onSyncingChange={setEmailSyncing} />}
+    {tab === "dingtalk" && <DingtalkMessagesPage onStatusChange={setDingtalkStatus} onSyncReady={setDingtalkSync} onSyncingChange={setDingtalkSyncing} />}
     {tab === "tasks" && <TodosPage embedded />}
     {tab === "attention" && <><ManagementQuestions items={items} onOpen={(item) => document.getElementById(`attention-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })} /><div className="attention-list" style={{ marginTop: 18 }}>{items.map((item)=><article id={`attention-${item.id}`} className="attention-item" key={item.id}><PriorityBadge priority={item.priority}/><div><h3>{item.title}</h3><p>{item.detail || ""}</p></div><span className="attention-item__action">{item.recommendedAction}</span></article>)}{!items.length&&<div className="empty-state">该日期没有待处理管理事项。</div>}</div></>}
   </div>;

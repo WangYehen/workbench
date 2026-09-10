@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IconArchive, IconArrowUp, IconCheck, IconEdit, IconMessagePlus, IconRefresh, IconRobot, IconTool, IconX } from "@tabler/icons-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { dwsAgentApi } from "../api.js";
 import "./DwsAgentPage.css";
 
@@ -20,6 +22,9 @@ const displayToolResult = (item) => {
   return item.content || JSON.stringify(value, null, 2);
 };
 const initialConversation = () => ({ id: "local-new", title: "新对话", local: true });
+const MessageContent = ({ item }) => item.role === "assistant" && item.event_type === "text"
+  ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content || ""}</ReactMarkdown>
+  : item.content;
 
 export default function DwsAgentPage() {
   const messageList = useRef(null);
@@ -68,7 +73,7 @@ export default function DwsAgentPage() {
   return <div className="dws-agent-page">
     <aside className="dws-agent-sidebar"><div className="dws-agent-sidebar__head"><strong>DWS Agent</strong><button className="btn primary sm" onClick={newConversation}><IconMessagePlus size={15} />新对话</button></div><div className="dws-agent-sidebar__list">{conversations.map((item) => <div className={`dws-agent-conversation ${active?.id === item.id ? "is-active" : ""}`} key={item.id}><button onClick={() => choose(item)}><IconMessagePlus size={15} /><span>{item.title}</span><small>{formatTime(item.updated_at)}</small></button><div><button title="重命名" onClick={() => rename(item)}><IconEdit size={14} /></button><button title="归档" onClick={() => archive(item)}><IconArchive size={14} /></button></div></div>)}{!conversations.length && <div className="dws-agent-empty">新建一个对话开始</div>}</div></aside>
     <main className="dws-agent-main"><header className="dws-agent-main__head"><div><h1>{active?.title || "DWS Agent"}</h1><p>让 Agent 查询钉钉真实数据，并在确认后更新工作台。</p></div><button className="btn sm" onClick={() => active && loadMessages(active.id)}><IconRefresh size={14} />刷新</button></header>
-      <section ref={messageList} className="dws-agent-messages" onScroll={(event) => { const el = event.currentTarget; const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 64; followLatest.current = nearBottom; setAwayFromLatest(!nearBottom); }}>{!visible.length && <div className="dws-agent-welcome"><IconRobot size={34} /><h2>今天想让 DWS 帮你推进什么？</h2><p>例如：总结今日日志中的团队阻塞点，或创建一场项目风险评审会。</p></div>}{visible.map((item) => <article className={`dws-agent-message dws-agent-message--${item.role}`} key={item.id}><span className="dws-agent-message__avatar">{item.role === "user" ? "我" : item.role === "tool" ? <IconTool size={14} /> : <IconRobot size={15} />}</span><div className="dws-agent-message__body"><div className="dws-agent-message__meta">{item.role === "user" ? "你" : item.role === "tool" ? `DWS · ${item.tool_name || "工具结果"}` : "DWS Agent"} · {formatTime(item.created_at)}</div><div className={item.event_type === "tool_result" ? "dws-agent-tool-result" : "dws-agent-message__content"}>{item.event_type === "tool_result" ? displayToolResult(item) : item.content}</div></div></article>)}{busy && <div className="dws-agent-running"><span className="dws-agent-dots" />Agent 正在处理…</div>}</section>
+      <section ref={messageList} className="dws-agent-messages" onScroll={(event) => { const el = event.currentTarget; const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 64; followLatest.current = nearBottom; setAwayFromLatest(!nearBottom); }}>{!visible.length && <div className="dws-agent-welcome"><IconRobot size={34} /><h2>今天想让 DWS 帮你推进什么？</h2><p>例如：总结今日日志中的团队阻塞点，或创建一场项目风险评审会。</p></div>}{visible.map((item) => <article className={`dws-agent-message dws-agent-message--${item.role}`} key={item.id}><span className="dws-agent-message__avatar">{item.role === "user" ? "我" : item.role === "tool" ? <IconTool size={14} /> : <IconRobot size={15} />}</span><div className="dws-agent-message__body"><div className="dws-agent-message__meta">{item.role === "user" ? "你" : item.role === "tool" ? `DWS · ${item.tool_name || "工具结果"}` : "DWS Agent"} · {formatTime(item.created_at)}</div><div className={item.event_type === "tool_result" ? "dws-agent-tool-result" : "dws-agent-message__content"}>{item.event_type === "tool_result" ? displayToolResult(item) : <MessageContent item={item} />}</div></div></article>)}{busy && <div className="dws-agent-running"><span className="dws-agent-dots" />Agent 正在处理…</div>}</section>
       {awayFromLatest && <button type="button" className="btn sm dws-agent-jump" onClick={jumpToLatest}>回到最新消息 ↓</button>}
       {pending && <section className="dws-agent-confirm"><div><strong>需要确认后执行</strong><p>{pending.preview?.summary || "该操作将改变工作台或钉钉数据。"}</p>{pending.preview?.payload?.items?.length > 0 && <ul className="dws-agent-preview-list">{pending.preview.payload.items.map((item, index) => <li key={`${item.sourceId || item.title}-${index}`}><b>{item.title}</b>{item.ownerName ? ` · ${item.ownerName}` : ""}</li>)}</ul>}</div><div className="dws-agent-confirm__actions"><button className="btn" onClick={() => setPending(null)}><IconX size={15} />取消</button><button className="btn primary" disabled={busy} onClick={confirm}><IconCheck size={15} />确认执行</button></div></section>}
       {error && <div className="error dws-agent-error">{error}</div>}

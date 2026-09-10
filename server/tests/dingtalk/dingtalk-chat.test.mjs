@@ -14,7 +14,8 @@ const SCHEMA = `CREATE TABLE sync_state(key TEXT PRIMARY KEY,value_json TEXT);
   CREATE TABLE dingtalk_chat_attachments(id TEXT PRIMARY KEY,message_id TEXT,conversation_id TEXT,kind TEXT,name TEXT,mime_type TEXT,size_bytes INTEGER,ref_json TEXT,local_path TEXT,downloaded_at TEXT,download_error TEXT,created_at TEXT);
   CREATE TABLE todos(id TEXT PRIMARY KEY,title TEXT,note TEXT,status TEXT,priority TEXT,due_date TEXT,created_at TEXT,completed_at TEXT,source_type TEXT,source_id TEXT,project_id TEXT,assignee_id TEXT);
   CREATE TABLE work_signals(id TEXT PRIMARY KEY,title TEXT,classification TEXT,state TEXT,priority TEXT,confidence INTEGER,conclusion TEXT,facts_json TEXT,steps_json TEXT,draft_title TEXT,draft_note TEXT,draft_priority TEXT,draft_due_date TEXT,draft_rationale TEXT,todo_id TEXT,ai_meta_json TEXT,created_at TEXT,updated_at TEXT);
-  CREATE TABLE work_signal_evidence(id TEXT PRIMARY KEY,signal_id TEXT,message_id TEXT,conversation_id TEXT,conversation_title TEXT,sender_name TEXT,sent_at TEXT,mention_scope TEXT,excerpt TEXT,is_root INTEGER,created_at TEXT,UNIQUE(signal_id,message_id));`;
+  CREATE TABLE work_signal_evidence(id TEXT PRIMARY KEY,signal_id TEXT,message_id TEXT,conversation_id TEXT,conversation_title TEXT,sender_name TEXT,sent_at TEXT,mention_scope TEXT,excerpt TEXT,is_root INTEGER,created_at TEXT,UNIQUE(signal_id,message_id));
+  CREATE TABLE projects(id TEXT PRIMARY KEY,name TEXT,progress INTEGER);`;
 
 function memoryDb() { const db = new Database(":memory:"); db.exec(SCHEMA); return db; }
 
@@ -58,18 +59,30 @@ function makeRun(overrides = {}) {
   };
 }
 
-async function makeService(overrides = {}, nowDate = "2026-08-21T00:00:00Z", aiService = null) {
+async function makeService(overrides = {}, nowDate = "2026-08-21T00:00:00Z", aiService = null, managerUserId = undefined) {
   const db = memoryDb();
   const folder = await fs.mkdtemp(path.join(os.tmpdir(), "dws-chat-"));
   const service = createDingtalkChatService({
     database: () => db, dataDir: folder, run: makeRun(overrides), now: () => new Date(nowDate),
-    aiService: aiService || { async analyzeDingtalkMessage(msg) {
+    managerUserId, aiService: aiService || { async analyzeDingtalkMessage(msg) {
       return { classification: "action", summary: "确认合同", actionText: "确认合同并按流程流转", dueDate: "2026-08-25", priority: "P1", confidence: 80, assigneeSelf: true,
         draftTitle: "确认项目合同", draftNote: "核对合同条款并反馈", draftPriority: "P1", draftDueDate: "2026-08-25", draftRationale: "消息@我提出确认合同，属于需当前用户处理的工作事项" };
     } },
   });
   return { db, folder, service };
 }
+
+test("事项中心以配置的主管 ID 判定待回复，缺少配置时安全停用", async () => {
+  const { db, folder, service } = await makeService({}, "2026-08-21T00:00:00Z", null, "u-me");
+  await service.sync();
+  assert.equal((await service.inbox()).replyPending.length, 0, "主管已回复后不应显示待回复");
+  db.prepare("DELETE FROM dingtalk_chat_messages WHERE id='dm-reply'").run();
+  const inbox = await service.inbox();
+  assert.deepEqual(inbox.replyPending.map((item) => item.id), ["dm-message"]);
+  const { db: secondDb, folder: secondFolder, service: noManager } = await makeService({}, "2026-08-21T00:00:00Z", null, null);
+  assert.equal((await noManager.inbox()).ready, false);
+  db.close(); secondDb.close(); await fs.rm(folder, { recursive: true, force: true }); await fs.rm(secondFolder, { recursive: true, force: true });
+});
 
 test("首次同步：私聊双向、群 @我 上下文、附件元数据、机器人标记全部就位且幂等", async () => {
   const { db, folder, service } = await makeService();

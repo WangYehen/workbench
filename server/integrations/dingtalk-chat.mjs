@@ -157,7 +157,7 @@ function normalizeMessage(raw, conversationId, fallbackType, { mentionedMe = fal
   };
 }
 
-export function createDingtalkChatService({ database = getDb, executable = config.dws.executable, dataDir = config.dataDir, run = null, now = () => new Date(), aiService = defaultAi } = {}) {
+export function createDingtalkChatService({ database = getDb, executable = config.dws.executable, dataDir = config.dataDir, run = null, now = () => new Date(), aiService = defaultAi, managerUserId = config.dingtalk.managerUserId } = {}) {
   // 命令探测缓存挂在实例上：生产单例 10 分钟内复用，测试的每个实例天然隔离。
   const capabilityCache = new Map();
   let statusCache = null;
@@ -832,7 +832,11 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     if (q) { filters.push("(m.content LIKE ? OR m.sender_name LIKE ?)"); values.push(`%${q}%`, `%${q}%`); }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
     return db().prepare(`SELECT m.*, c.title AS conversation_title, c.type AS conversation_type, c.is_bot AS conversation_is_bot,
-      a.classification,a.summary,a.action_text,a.due_date,a.priority,a.confidence,a.assignee_self,a.todo_id
+      a.classification,a.summary,a.action_text,a.due_date,a.priority,a.confidence,a.assignee_self,a.todo_id,
+      CASE WHEN c.type='private' AND m.direction='inbound' AND NOT EXISTS (
+        SELECT 1 FROM dingtalk_chat_messages reply
+        WHERE reply.conversation_id=m.conversation_id AND reply.direction='outbound' AND reply.sent_at>m.sent_at
+      ) THEN 'reply_pending' WHEN c.type='private' AND m.direction='inbound' THEN 'replied' ELSE NULL END AS reply_state
       FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
       LEFT JOIN dingtalk_message_analysis a ON a.message_id=m.id ${where}
       ORDER BY m.sent_at DESC LIMIT ? OFFSET ?`).all(...values, Math.min(300, Math.max(1, Number(limit) || 100)), Math.max(0, Number(offset) || 0));
@@ -878,14 +882,53 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     const filters = []; const values = [];
     if (state) { filters.push("s.state=?"); values.push(state); }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
-    const items = db().prepare(`SELECT s.*, e.conversation_title,e.mention_scope,e.sent_at AS latest_evidence_at
+    const items = db().prepare(`SELECT s.*, e.conversation_title,e.mention_scope,e.sent_at AS latest_evidence_at,
+      CASE WHEN c.type='private' AND m.direction='inbound' AND NOT EXISTS (
+        SELECT 1 FROM dingtalk_chat_messages reply
+        WHERE reply.conversation_id=m.conversation_id AND reply.direction='outbound' AND reply.sent_at>m.sent_at
+      ) THEN 'reply_pending' WHEN c.type='private' AND m.direction='inbound' THEN 'replied' ELSE NULL END AS reply_state
       FROM work_signals s LEFT JOIN work_signal_evidence e ON e.id=(SELECT e2.id FROM work_signal_evidence e2 WHERE e2.signal_id=s.id ORDER BY e2.sent_at DESC LIMIT 1)
+      LEFT JOIN dingtalk_chat_messages m ON m.id=e.message_id LEFT JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
       ${where} ORDER BY CASE s.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END, s.updated_at DESC LIMIT ? OFFSET ?`)
       .all(...values, Math.min(200, Math.max(1, Number(limit) || 100)), Math.max(0, Number(offset) || 0)).map((item) => ({ ...item, section: signalSection(item), facts: parseJson(item.facts_json) || [], steps: parseJson(item.steps_json) || [] }));
     const countRows = db().prepare("SELECT classification,priority,COUNT(*) count FROM work_signals WHERE state='open' GROUP BY classification,priority").all();
     const counts = { priority: 0, confirm: 0, know: 0 };
     for (const row of countRows) counts[signalSection(row)] += row.count;
     return { items, counts };
+  }
+
+  async function inbox() {
+    const managerId = String(managerUserId || "").trim();
+    if (!managerId) return { ready: false, error: "未配置 DINGTALK_MANAGER_USER_ID，无法识别主管待办。", counts: { replyPending: 0, actionRequired: 0, projectUpdates: 0 }, replyPending: [], actionRequired: [], projectUpdates: [] };
+    const connection = await status({ probeCapabilities: false });
+    if (connection.connected && connection.account?.userId && String(connection.account.userId) !== managerId) {
+      return { ready: false, error: "当前 DWS 登录账号与 DINGTALK_MANAGER_USER_ID 不一致，请修正配置或重新连接。", counts: { replyPending: 0, actionRequired: 0, projectUpdates: 0 }, replyPending: [], actionRequired: [], projectUpdates: [] };
+    }
+    const replyPending = db().prepare(`SELECT m.id,m.content,m.sender_name,m.sent_at,m.conversation_id,c.title AS conversation_title,
+      a.summary,a.priority,a.confidence
+      FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
+      LEFT JOIN dingtalk_message_analysis a ON a.message_id=m.id
+      WHERE c.type='private' AND m.direction='inbound' AND m.sender_id!=? AND m.context_only=0
+        AND m.processing_status NOT IN ('ignored','processed','task_created')
+        AND NOT EXISTS (SELECT 1 FROM dingtalk_chat_messages reply WHERE reply.conversation_id=m.conversation_id
+          AND reply.sender_id=? AND reply.sent_at>m.sent_at)
+      ORDER BY CASE a.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END, m.sent_at DESC LIMIT 100`).all(managerId, managerId)
+      .map((item) => ({ ...item, source: 'message', kind: 'reply_pending', title: item.summary || item.content?.slice(0, 80) || '待回复消息', priority: item.priority || 'P2' }));
+    const actionRequired = db().prepare(`SELECT s.*,e.message_id,e.conversation_title,e.sender_name,e.sent_at,e.mention_scope
+      FROM work_signals s JOIN work_signal_evidence e ON e.id=(SELECT id FROM work_signal_evidence WHERE signal_id=s.id ORDER BY sent_at DESC LIMIT 1)
+      WHERE s.state='open' AND s.classification='action' AND s.todo_id IS NULL
+      ORDER BY CASE s.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END,s.updated_at DESC LIMIT 100`).all()
+      .map((item) => ({ ...item, source: 'signal', kind: 'action_required' }));
+    const projectUpdates = db().prepare(`SELECT s.id,s.title,s.classification,s.priority,s.confidence,s.conclusion,s.updated_at,
+      e.message_id,e.conversation_title,e.sender_name,e.sent_at,e.mention_scope,p.id AS project_id,p.name AS project_name,p.progress AS project_progress
+      FROM work_signals s JOIN work_signal_evidence e ON e.id=(SELECT id FROM work_signal_evidence WHERE signal_id=s.id ORDER BY sent_at DESC LIMIT 1)
+      JOIN dingtalk_chat_conversations c ON c.id=e.conversation_id
+      JOIN work_links w ON w.source_type='dingtalk_signal' AND w.source_id=s.id AND w.target_type='project' AND w.status!='rejected' AND w.confidence>=80
+      JOIN projects p ON p.id=w.target_id
+      WHERE s.state='open' AND c.type='group' AND e.mention_scope IN ('self','all')
+      ORDER BY p.name,CASE s.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END,e.sent_at DESC LIMIT 100`).all()
+      .map((item) => ({ ...item, source: 'signal', kind: 'project_update' }));
+    return { ready: true, managerUserId: managerId, counts: { replyPending: replyPending.length, actionRequired: actionRequired.length, projectUpdates: projectUpdates.length }, replyPending, actionRequired, projectUpdates };
   }
   function signal(id) {
     const item = db().prepare("SELECT * FROM work_signals WHERE id=?").get(id);
@@ -1092,7 +1135,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
   return {
     status, statusSnapshot, invalidateStatus, startLogin, loginStatus, settings, updateSettings, sync, cleanup, capabilities,
     listConversations, setConversation, listMessages, countByStatus, message, setMessageStatus,
-    listSignals, signal, setSignalState, confirmSignalDraft,
+    listSignals, inbox, signal, setSignalState, confirmSignalDraft,
     createTodo, setLink, downloadAttachment, lastSync, generateTodoDraft, confirmTodoDraft, retryableAnalysisMessageIds, injectTestScenario, clearTestScenario,
   };
 }

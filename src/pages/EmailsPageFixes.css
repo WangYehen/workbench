@@ -76,3 +76,100 @@
 @media (max-width: 640px) {
   .m2-embedded-actions { justify-content: space-between; }
 }
+
+/* === 归档邮件：关闭状态与风险状态不再互相冲突 === */
+.m2 .m2-row--archive {
+  background: #fafafa;
+}
+.m2 .m2-row--archive .m2-row__subject {
+  color: #6f6f76;
+  text-decoration: line-through;
+  text-decoration-color: rgba(0, 0, 0, 0.16);
+}
+.m2 .m2-row--archive .m2-priority {
+  filter: grayscale(0.6);
+  opacity: 0.7;
+}
+.m2 .m2-row--archive .m2-priority--archived {
+  background: #ececef;
+  color: #6b6b70;
+  filter: none;
+  opacity: 1;
+}
+.m2 .m2-row__due--archived {
+  color: #8a8a90;
+}
+.m2 .m2-row__due--archived b {
+  color: #5e5e63;
+}
+
+/* 详情：已关闭状态徽标 + 分类回顾/截止降噪 */
+.m2 .m2-detail--archive {
+  background: linear-gradient(180deg, #fafafa 0%, #ffffff 120px);
+}
+.m2 .m2-detail__closed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #ececef;
+  color: #5e5e63;
+  font-size: 12px;
+  font-weight: 500;
+}
+.m2 .m2-recommend--archive {
+  background: #f1f1f4;
+  color: #515158;
+}
+.m2 .m2-recommend--archive p {
+  color: #6b6b70;
+}
+.m2 .m2-deadline--archive {
+  background: #f1f1f4;
+  color: #6b6b70;
+}
+.m2 .m2-deadline--archive strong {
+  color: #5e5e63;
+}
+
+/* === 邮件正文折叠：避免详情被长正文淹没 === */
+.m2 .m2-body-toggle {
+  margin: 10px 0 4px;
+  border: 1px solid #e6e6e9;
+  border-radius: 10px;
+  background: #fafafa;
+}
+.m2 .m2-body-toggle > summary {
+  cursor: pointer;
+  padding: 9px 13px;
+  color: #515158;
+  font-size: 13px;
+  list-style: none;
+  user-select: none;
+}
+.m2 .m2-body-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+.m2 .m2-body-toggle > summary::before {
+  content: "展开";
+  display: inline-block;
+  margin-right: 6px;
+  color: #0066cc;
+  font-weight: 500;
+}
+.m2 .m2-body-toggle[open] > summary::before {
+  content: "收起";
+}
+.m2 .m2-body {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: #4a4a4f;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 360px;
+  overflow: auto;
+}

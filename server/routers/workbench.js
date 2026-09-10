@@ -2,16 +2,24 @@ import express from "express";
 import { getDb } from "../db.mjs";
 import { config } from "../config.mjs";
 import { resolveDateKey } from "../core/local-date.mjs";
-import { buildAttentionItems, buildDashboard, buildTeamPulse } from "../domains/workbench-domain.mjs";
+import { buildAttentionItems, buildDashboard, buildTeamDashboard, buildTeamPulse } from "../domains/workbench-domain.mjs";
 
-export default function workbenchRouter(syncCoordinator) {
+export default function workbenchRouter(syncCoordinator, aiScheduler = null) {
   const router = express.Router();
 
-  router.get("/dashboard", async (req, res) => {
+  router.get("/dashboard", (req, res) => {
     try {
       const date = resolveDateKey(req.query.date);
       const db = getDb();
       res.json({ ...buildDashboard(db, date), freshness: syncCoordinator.statusSnapshot(), displayName: config.displayName });
+    } catch (error) { res.status(400).json({ error: error.message }); }
+  });
+
+  router.get("/team/dashboard", (req, res) => {
+    try {
+      const dashboard = buildTeamDashboard(getDb(), resolveDateKey(req.query.date));
+      if (dashboard.date && dashboard.analysisStatus !== "no_reports") aiScheduler?.teamAnalysisArtifact(dashboard.date, { trigger: "view:team-dashboard" });
+      res.json({ ...dashboard, freshness: syncCoordinator.statusSnapshot() });
     } catch (error) { res.status(400).json({ error: error.message }); }
   });
 

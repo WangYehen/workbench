@@ -154,7 +154,7 @@ app.use("/api/dingtalk-chat", dingtalkChatRouter(dingtalkChat));
 app.use("/api/dws", dwsRouter(dwsClient));
 app.use("/api/management", managementRouter(managementCases, dwsClient));
 app.use("/api/dws-agent", dwsAgentRouter(dwsAgent));
-app.use("/api", workbenchRouter(syncCoordinator));
+app.use("/api", workbenchRouter(syncCoordinator, aiScheduler));
 app.use("/api", systemRouter(aiScheduler));
 
 // OAuth 入口：未配置时从系统页点「连接 Outlook」跳到邮件页完成同意+授权流程

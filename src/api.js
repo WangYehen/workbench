@@ -96,6 +96,7 @@ export const dwsAgentApi = {
 };
 
 export const dingtalkChatApi = {
+  inbox: () => api.get("/dingtalk-chat/inbox"),
   status: ({ refresh = false } = {}) => api.get(`/dingtalk-chat/status${refresh ? "?refresh=1" : ""}`),
   startAuth: () => api.post("/dingtalk-chat/auth/start", {}),
   authStatus: (id) => api.get(`/dingtalk-chat/auth/${encodeURIComponent(id)}`),
@@ -119,6 +120,7 @@ export const dingtalkChatApi = {
 };
 
 export const teamApi = {
+  dashboard: (date) => api.get(`/team/dashboard?date=${encodeURIComponent(date || todayStr())}`),
   reports: (date) => api.get(`/team/reports?date=${date}`),
   reportDetails: (date) => api.get(`/reports/dingtalk?date=${date}`),
   reportDates: () => api.get("/reports/dingtalk/dates"),

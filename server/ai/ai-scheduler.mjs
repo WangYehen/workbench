@@ -14,6 +14,7 @@ const PRIORITY = {
   "email.draft": 100,
 };
 const DASHBOARD_ARTIFACT_VERSION = "v2-opencode-text-output";
+const TEAM_ANALYSIS_ARTIFACT_VERSION = "v2-structured-member-summary";
 const DINGTALK_NOISE_PHRASES = new Set([
   "嗯", "嗯嗯", "哦", "哦哦", "啊", "哈哈", "哈哈哈", "好的", "好滴", "收到", "了解", "明白",
   "行", "可以", "没问题", "没事", "谢谢", "感谢", "在吗", "来了", "到了", "ok", "okay", "thanks",
@@ -241,10 +242,10 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     const text = artifact?.payload?.text || fallbackSuggestion(context.summary);
     return { ...artifact, kind: "dashboard.suggestion", scope: date, inputHash, status: artifact?.status || "queued", payload: { text }, sourceRefs: artifact?.sourceRefs?.length ? artifact.sourceRefs : context.sourceRefs, ruleFallback: !artifact?.payload?.text };
   }
-  function teamAnalysisArtifact(date, { trigger = "sync" } = {}) {
+  function teamAnalysisArtifact(date, { trigger = "sync", force = false } = {}) {
     const reports = db().prepare("SELECT id, user_id, content_json FROM dingtalk_reports WHERE report_date=? ORDER BY id").all(date);
-    const inputHash = crypto.createHash("sha256").update(JSON.stringify(reports)).digest("hex");
-    if (reports.length) enqueue({ kind: "team.analysis", scope: date, inputHash, trigger });
+    const inputHash = crypto.createHash("sha256").update(JSON.stringify([TEAM_ANALYSIS_ARTIFACT_VERSION, reports])).digest("hex");
+    if (reports.length) enqueue({ kind: "team.analysis", scope: date, inputHash, trigger, force });
     return read("team.analysis", date);
   }
   function dingtalkChatMessagesArtifact(ids, { trigger = "sync", force = false } = {}) {

@@ -90,6 +90,8 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
     writeState(db, `sync_status_${source}`, { status: "running", trigger, lastAttemptAt: attemptedAt, lastSuccessAt: readState(db, `sync_status_${source}`)?.lastSuccessAt || null, recordCount: 0, error: null });
     try {
       let recordCount = 0;
+      let syncedReportDates = [];
+      let syncedChatMessageIds = [];
       if (source === "outlook") {
         const result = await outlookService.sync();
         await mirrorEmails(outlookService);
@@ -97,11 +99,16 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       } else if (source === "dingtalk") {
         let warning = null;
         try { await dingtalkService.syncMembers(); } catch (error) { warning = `团队名册刷新失败，已保留本地名册：${error.message}`; }
-        recordCount = (await dingtalkService.syncReports(date)).length;
+        const reports = await dingtalkService.syncReports(date);
+        recordCount = reports.length;
+        syncedReportDates = [...new Set(reports.map((report) => report?.report_date).filter(Boolean))];
         if (warning) writeState(db, "sync_warning_dingtalk", { warning, at: now().toISOString() });
       } else if (source === "dingtalk_chat") {
         const result = await dingtalkChatService.sync({ days: dingtalkChatDays, forceBackfill: dingtalkChatBackfill });
         recordCount = result.count;
+        const addedIds = (result.added || []).map((item) => item?.id).filter(Boolean);
+        const retryableIds = dingtalkChatService.retryableAnalysisMessageIds?.(40) || [];
+        syncedChatMessageIds = [...new Set([...addedIds, ...retryableIds])];
       } else {
         recordCount = await dingtalkService.syncCalendarForRange(date, addDays(date, 30));
       }
@@ -110,7 +117,14 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       writeState(db, `sync_status_${source}`, state);
       // AI 仅后台入队，不能拖慢外部数据同步的完成响应。
       aiScheduler?.dashboardArtifact(date, { trigger: `sync:${source}` });
-      if (source === "dingtalk") aiScheduler?.teamAnalysisArtifact(date, { trigger: "sync:dingtalk" });
+      if (source === "dingtalk") {
+        // 钉钉可能在一次同步中返回与请求日期不同的日志；必须按实际写入日期分析，
+        // 否则会留下同步阶段生成的原始摘要，无法被 AI 结果覆盖。
+        for (const reportDate of syncedReportDates) aiScheduler?.teamAnalysisArtifact(reportDate, { trigger: "sync:dingtalk", force: trigger === "manual" });
+      }
+      if (source === "dingtalk_chat" && syncedChatMessageIds.length) {
+        aiScheduler?.dingtalkChatMessagesArtifact(syncedChatMessageIds, { trigger: "sync:dingtalk_chat", force: trigger === "manual" });
+      }
       return { source, ...state };
     } catch (error) {
       const previous = readState(db, `sync_status_${source}`) || {};

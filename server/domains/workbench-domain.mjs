@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto";
-import { localTimeString, teamMetricDate } from "../core/local-date.mjs";
+import { localDateString, localTimeString, teamMetricDate } from "../core/local-date.mjs";
 import { getRosterBaseline } from "../db.mjs";
 import { enrichProject } from "./project-status.mjs";
 
 function safeJson(value, fallback = []) {
   try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function arrayJson(value) {
+  const parsed = safeJson(value, []);
+  return Array.isArray(parsed) ? parsed : [];
 }
 
 export function enrichCalendarMeeting(meeting) {
@@ -23,6 +28,86 @@ export function enrichCalendarMeeting(meeting) {
 
 function priorityRank(priority) {
   return { P0: 0, high: 0, P1: 1, medium: 1, P2: 2, low: 2 }[priority] ?? 3;
+}
+
+function addDays(date, days) {
+  const value = new Date(`${date}T00:00:00+08:00`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return localDateString(value);
+}
+
+function reportEntries(raw) {
+  const value = safeJson(raw, []);
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => ({
+    key: String(item?.key || item?.label || item?.name || "").trim(),
+    value: String(item?.value || item?.content || item?.text || "").trim(),
+  })).filter((item) => item.value);
+}
+
+function splitReportText(value) {
+  return String(value || "").split(/[\r\n]+|(?:^|\s)[1-9][、.．]\s*/).map((item) => item.trim()).filter(Boolean);
+}
+
+function analysisArtifact(db, date) {
+  const exists = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='ai_artifacts'").get();
+  if (!exists) return null;
+  const row = db.prepare("SELECT status,payload_json,ai_meta_json,generated_at FROM ai_artifacts WHERE kind='team.analysis' AND scope=?").get(date);
+  if (!row) return null;
+  return { ...row, payload: safeJson(row.payload_json, {}), aiMeta: safeJson(row.ai_meta_json, null) };
+}
+
+export function buildTeamDailyDigest(db, date, now = new Date()) {
+  const today = localDateString(now);
+  const expectedDate = date === today ? addDays(date, -1) : date;
+  const exact = db.prepare("SELECT COUNT(*) count FROM dingtalk_reports WHERE report_date=?").get(expectedDate)?.count || 0;
+  const reportDate = exact ? expectedDate : db.prepare("SELECT MAX(report_date) date FROM dingtalk_reports WHERE report_date<?").get(date)?.date || expectedDate;
+  const rows = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=? ORDER BY user_name,created_at").all(reportDate);
+  const byUser = new Map();
+  for (const row of rows) {
+    const key = row.user_id || row.user_name;
+    if (!key) continue;
+    if (!byUser.has(key)) byUser.set(key, { user_id: key, name: row.user_name || key, dept_name: row.dept_name || "", reportCount: 0, summaries: [], completed: [], inProgress: [], blockers: [], review: [] });
+    const member = byUser.get(key);
+    member.reportCount += 1;
+    if (row.summary) member.summaries.push(String(row.summary).trim());
+    member.blockers.push(...arrayJson(row.blockers));
+    member.review.push(...arrayJson(row.needs_review));
+    for (const entry of reportEntries(row.content_json)) {
+      const target = /完成|产出|成果/.test(entry.key) && !/未完成/.test(entry.key)
+        ? member.completed
+        : /进展|进行|推进|遗留|计划|待办/.test(entry.key) ? member.inProgress : null;
+      if (target) target.push(...splitReportText(entry.value));
+    }
+  }
+  const pulse = buildTeamPulse(db, reportDate, now);
+  const members = [...byUser.values()].map((member) => ({
+    ...member,
+    summary: [...new Set(member.summaries.filter(Boolean))].join("；"),
+    completed: [...new Set(member.completed)],
+    inProgress: [...new Set(member.inProgress)],
+    blockers: [...new Set(member.blockers.filter(Boolean))],
+    review: [...new Set(member.review.filter(Boolean))],
+  })).sort((a, b) => (b.blockers.length + b.review.length) - (a.blockers.length + a.review.length) || a.name.localeCompare(b.name));
+  const interventions = [
+    ...members.flatMap((member) => member.blockers.map((text) => ({ type: "blocker", memberId: member.user_id, memberName: member.name, text }))),
+    ...members.flatMap((member) => member.review.map((text) => ({ type: "review", memberId: member.user_id, memberName: member.name, text }))),
+    ...pulse.missing.map((member) => ({ type: "missing", memberId: member.user_id, memberName: member.name, text: "未提交日报，需要确认状态" })),
+  ];
+  const artifact = analysisArtifact(db, reportDate);
+  return {
+    date: reportDate,
+    expectedDate,
+    isFallbackDate: reportDate !== expectedDate,
+    members,
+    interventions,
+    teamSummary: artifact?.payload?.teamSummary || "",
+    analysisStatus: artifact?.status || (rows.length ? "pending" : "no_reports"),
+    aiMeta: artifact?.aiMeta || null,
+    generatedAt: artifact?.generated_at || null,
+    submitted: pulse.submittedUnique,
+    rosterTotal: pulse.rosterTotal,
+  };
 }
 
 export function buildTeamPulse(db, date, now = new Date()) {
@@ -224,7 +309,6 @@ export function buildDashboard(db, date, now = new Date()) {
   const projectRisk = enrichedProjects.filter((project) => project.status === "at_risk" || project.status === "overdue");
   const openTodos = todos.filter((todo) => todo.status !== "done");
   const doneTodos = todos.length - openTodos.length;
-
   return {
     date,
     hasData: Boolean(meetings.length || pulse.submittedUnique || attention.length),
@@ -265,5 +349,20 @@ export function buildDashboard(db, date, now = new Date()) {
     pulse,
     projects: enrichedProjects,
     inputHash: createHash("sha256").update(JSON.stringify({ date, attention, pulse: pulse.summary, meetings })).digest("hex").slice(0, 16),
+  };
+}
+
+export function buildTeamDashboard(db, date, now = new Date()) {
+  const digest = buildTeamDailyDigest(db, date, now);
+  const projects = db.prepare("SELECT * FROM projects").all();
+  const phases = db.prepare("SELECT * FROM project_phases").all();
+  const phasesByProject = new Map();
+  for (const phase of phases) {
+    if (!phasesByProject.has(phase.project_id)) phasesByProject.set(phase.project_id, []);
+    phasesByProject.get(phase.project_id).push(phase);
+  }
+  return {
+    ...digest,
+    projects: projects.map((project) => enrichProject(project, phasesByProject.get(project.id) || [], digest.date)),
   };
 }
