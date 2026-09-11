@@ -16,3 +16,10 @@ release-web/
 
 # 本地项目记忆/状态（不进公开仓库）
 .workbuddy/
+
+# 本地技能、浏览器验证和审计产物（不进远程仓库）
+.agents/
+.artifacts/
+.claude/
+.playwright-cli/
+.tmp-probe/
