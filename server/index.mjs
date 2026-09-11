@@ -16,7 +16,7 @@ import team from "./routers/team.js";
 import calendar from "./routers/calendar.js";
 import todos from "./routers/todos.js";
 import review from "./routers/review.js";
-import reports from "./routers/reports.js";
+import reports, { configureReportsAiScheduler } from "./routers/reports.js";
 import projects from "./routers/projects.js";
 import aihot from "./routers/aihot.js";
 import systemRouter from "./routers/system.js";
@@ -120,6 +120,7 @@ app.get("/api/health", (req, res) => res.json({
   instanceId: process.env.WORKBENCH_INSTANCE_ID || "development",
 }));
 
+const aiScheduler = createAiScheduler({ aiService: ai, maxConcurrency: config.ai.maxConcurrency });
 // Outlook / Microsoft Graph（PKCE 公共客户端 + 本地加密状态）
 const outlookService = createOutlookService({
   config: {
@@ -130,9 +131,10 @@ const outlookService = createOutlookService({
     modelProvider: ai.label(),
   },
   aiService: ai,
+  taskScheduler: aiScheduler,
   stateDirectory: path.join(config.dataDir, "outlook"),
 });
-const aiScheduler = createAiScheduler({ aiService: ai });
+configureReportsAiScheduler(aiScheduler);
 const syncCoordinator = createSyncCoordinator({ outlookService, aiScheduler, dingtalkChatService: dingtalkChat });
 const dwsTodoEvents = createDwsTodoEventService({ database: getDb, dwsClient });
 const managementCases = createManagementCases({ database: getDb });

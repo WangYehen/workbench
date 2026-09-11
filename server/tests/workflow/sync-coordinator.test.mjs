@@ -32,6 +32,17 @@ test("个人消息同步后自动分析新增消息和待重试消息",async()=>
   assert.equal(result.status,"success");assert.equal(result.recordCount,2);assert.deepEqual(received,["m1","m2","m3"]);assert.deepEqual(options,{trigger:"sync:dingtalk_chat",force:true});memory.close();
 });
 
+test("个人消息后台同步只入库，不自动创建 AI 研判任务",async()=>{
+  const memory=db();let calls=0;
+  const coordinator=createSyncCoordinator({
+    outlookService:{status:async()=>({configured:false})},dingtalkService:{isConfigured:()=>false,calendarReady:()=>false},
+    dingtalkChatService:{status:async()=>({installed:true,connected:true}),sync:async()=>({count:1,firstSync:false,added:[{id:"m1"}]}),retryableAnalysisMessageIds:()=>[]},
+    aiScheduler:{dashboardArtifact:()=>{},dingtalkChatMessagesArtifact:()=>{calls+=1}},database:()=>memory,now:()=>new Date("2026-08-27T04:00:00.000Z"),
+  });
+  const [result]=await coordinator.run(["dingtalk_chat"],{date:"2026-08-27",trigger:"automatic"});
+  assert.equal(result.status,"success");assert.equal(calls,0);memory.close();
+});
+
 test("自动邮件同步会写统一状态并镜像到邮件读取表",async()=>{
   const memory=db();let syncCount=0;let mirrorCount=0;
   const coordinator=createSyncCoordinator({

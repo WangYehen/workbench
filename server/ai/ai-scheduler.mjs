@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { getDb } from "../db.mjs";
 import { ai } from "./ai.mjs";
 import { buildDashboard } from "../domains/workbench-domain.mjs";
+import { buildDailyReportContent } from "../domains/daily-report.mjs";
 
 const PRIORITY = {
   "email.classify": 500,
@@ -15,6 +16,9 @@ const PRIORITY = {
 };
 const DASHBOARD_ARTIFACT_VERSION = "v2-opencode-text-output";
 const TEAM_ANALYSIS_ARTIFACT_VERSION = "v2-structured-member-summary";
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [30_000, 120_000, 600_000];
+const PROMPT_VERSION = { "email.classify": "EMAIL_CLASSIFY_V1", "dingtalk.message.classify": "DINGTALK_MESSAGE_V1", "dashboard.suggestion": "DASHBOARD_SUGGESTION_V2", "team.analysis": "TEAM_ANALYSIS_V2", "report.daily": "REPORT_DAILY_V1", "report.weekly": "REPORT_WEEKLY_V1" };
 const DINGTALK_NOISE_PHRASES = new Set([
   "嗯", "嗯嗯", "哦", "哦哦", "啊", "哈哈", "哈哈哈", "好的", "好滴", "收到", "了解", "明白",
   "行", "可以", "没问题", "没事", "谢谢", "感谢", "在吗", "来了", "到了", "ok", "okay", "thanks",
@@ -136,41 +140,44 @@ function toArtifact(row) {
     kind: row.kind, scope: row.scope, inputHash: row.input_hash, status: row.status,
     payload: json(row.payload_json, {}), sourceRefs: json(row.source_refs_json, []),
     aiMeta: json(row.ai_meta_json, null), generatedAt: row.generated_at || null,
+    promptVersion: row.prompt_version || null,
     lastAttemptAt: row.last_attempt_at || null, lastError: row.last_error || null,
     updatedAt: row.updated_at,
   };
 }
 
 /** Single-process persistent queue. Handlers derive input from local domain records at execution time. */
-export function createAiScheduler({ database = getDb, aiService = ai, now = () => new Date() } = {}) {
+export function createAiScheduler({ database = getDb, aiService = ai, now = () => new Date(), maxConcurrency = 1 } = {}) {
   // Each task kind has its own worker lane. A slow DingTalk analysis must not
   // block dashboard suggestions (or other independent AI workloads).
   const runningKinds = new Set();
+  const concurrency = Math.max(1, Number(maxConcurrency) || 1);
+  let dedupHits = 0;
   let closed = false;
 
   function db() { return database(); }
   function read(kind, scope) { return toArtifact(db().prepare("SELECT * FROM ai_artifacts WHERE kind=? AND scope=?").get(kind, scope)); }
-  function writeArtifact({ kind, scope, inputHash, status, payload, sourceRefs, aiMeta, generatedAt, lastAttemptAt, lastError }) {
+  function writeArtifact({ kind, scope, inputHash, status, payload, sourceRefs, aiMeta, promptVersion, generatedAt, lastAttemptAt, lastError }) {
     const stamp = now().toISOString();
     const current = read(kind, scope);
-    db().prepare(`INSERT INTO ai_artifacts(kind,scope,input_hash,status,payload_json,source_refs_json,ai_meta_json,generated_at,last_attempt_at,last_error,updated_at)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(kind,scope) DO UPDATE SET
+    db().prepare(`INSERT INTO ai_artifacts(kind,scope,input_hash,status,payload_json,source_refs_json,ai_meta_json,prompt_version,generated_at,last_attempt_at,last_error,updated_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(kind,scope) DO UPDATE SET
       input_hash=excluded.input_hash,status=excluded.status,payload_json=excluded.payload_json,source_refs_json=excluded.source_refs_json,
-      ai_meta_json=excluded.ai_meta_json,generated_at=excluded.generated_at,last_attempt_at=excluded.last_attempt_at,last_error=excluded.last_error,updated_at=excluded.updated_at`)
-      .run(kind, scope, inputHash, status, JSON.stringify(payload ?? current?.payload ?? {}), JSON.stringify(sourceRefs ?? current?.sourceRefs ?? []), JSON.stringify(aiMeta ?? current?.aiMeta ?? null), generatedAt ?? current?.generatedAt ?? null, lastAttemptAt ?? current?.lastAttemptAt ?? null, lastError ?? current?.lastError ?? null, stamp);
+      ai_meta_json=excluded.ai_meta_json,prompt_version=excluded.prompt_version,generated_at=excluded.generated_at,last_attempt_at=excluded.last_attempt_at,last_error=excluded.last_error,updated_at=excluded.updated_at`)
+      .run(kind, scope, inputHash, status, JSON.stringify(payload ?? current?.payload ?? {}), JSON.stringify(sourceRefs ?? current?.sourceRefs ?? []), JSON.stringify(aiMeta ?? current?.aiMeta ?? null), promptVersion ?? current?.promptVersion ?? (PROMPT_VERSION[kind] || "V1"), generatedAt ?? current?.generatedAt ?? null, lastAttemptAt ?? current?.lastAttemptAt ?? null, lastError ?? current?.lastError ?? null, stamp);
     return read(kind, scope);
   }
   function activeTask(kind, scope, inputHash) {
     return db().prepare("SELECT * FROM ai_tasks WHERE kind=? AND scope=? AND input_hash=? AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 1").get(kind, scope, inputHash);
   }
-  function enqueue({ kind, scope, inputHash, trigger = "automatic", priority = PRIORITY[kind] || 0, force = false }) {
+  function enqueue({ kind, scope, inputHash, trigger = "automatic", priority = PRIORITY[kind] || 0, force = false, payload = null }) {
     const current = read(kind, scope);
-    if (!force && current?.inputHash === inputHash && current.status === "ready") return { task: null, artifact: current };
+    if (!force && current?.inputHash === inputHash && current.status === "ready") { dedupHits += 1; return { task: null, artifact: current }; }
     const active = activeTask(kind, scope, inputHash);
-    if (active) return { task: active, artifact: current };
+    if (active) { dedupHits += 1; return { task: active, artifact: current }; }
     const task = { id: crypto.randomUUID(), kind, scope, inputHash, priority: force ? priority + 1_000 : priority, trigger, createdAt: now().toISOString() };
-    db().prepare("INSERT INTO ai_tasks(id,kind,scope,input_hash,status,priority,trigger,attempts,created_at) VALUES(?,?,?,?,?,?,?,?,?)")
-      .run(task.id, kind, scope, inputHash, "queued", task.priority, trigger, 0, task.createdAt);
+    db().prepare("INSERT INTO ai_tasks(id,kind,scope,input_hash,status,priority,trigger,attempts,created_at,max_attempts,payload_json,prompt_version) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")
+      .run(task.id, kind, scope, inputHash, "queued", task.priority, trigger, 0, task.createdAt, MAX_ATTEMPTS, payload == null ? null : JSON.stringify(payload), PROMPT_VERSION[kind] || "V1");
     writeArtifact({ kind, scope, inputHash, status: current?.payload ? "stale" : "queued", payload: current?.payload, sourceRefs: current?.sourceRefs, aiMeta: current?.aiMeta, generatedAt: current?.generatedAt, lastError: null });
     void pumpAll();
     return { task, artifact: read(kind, scope) };
@@ -217,11 +224,38 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
       }
       return { payload: { teamSummary: result.teamSummary || `已整理 ${reports.length} 份团队日志`, memberCount: reports.length }, sourceRefs: reports.map((report) => `report:${report.id}`), aiMeta: result.aiMeta || null };
     }
+    if (task.kind === "email.classify") {
+      const message = json(task.payload_json, null);
+      if (!message) throw Object.assign(new Error("邮件任务缺少消息快照"), { code: "email_payload_missing" });
+      const result = await aiService.classifyOutlookEmail(message);
+      return { payload: result, sourceRefs: [`email:${task.scope}`], aiMeta: result.aiMeta || null };
+    }
+    if (task.kind === "report.daily") {
+      const row = db().prepare("SELECT content_json FROM daily_reports WHERE report_date=?").get(task.scope);
+      const existing = json(row?.content_json, {});
+      const content = buildDailyReportContent(db(), task.scope, existing);
+      const result = await aiService.weeklySummary([{ report_date: task.scope, content_json: JSON.stringify(content) }]);
+      content.narrative = result.narrative || "";
+      content.aiMeta = result.aiMeta || null;
+      content.sourceHash = task.input_hash;
+      db().prepare("INSERT INTO daily_reports(id,report_date,content_json,generated_at) VALUES(?,?,?,?) ON CONFLICT(report_date) DO UPDATE SET content_json=excluded.content_json,generated_at=excluded.generated_at")
+        .run(`d${crypto.randomUUID().slice(0, 8)}`, task.scope, JSON.stringify(content), now().toISOString());
+      return { payload: content, sourceRefs: [`daily_report:${task.scope}`], aiMeta: result.aiMeta || null };
+    }
+    if (task.kind === "report.weekly") {
+      const [weekStart, weekEnd] = task.scope.split("..");
+      const dailies = db().prepare("SELECT * FROM daily_reports WHERE report_date>=? AND report_date<=? ORDER BY report_date").all(weekStart, weekEnd);
+      const result = await aiService.weeklySummary(dailies.map((d) => ({ report_date: d.report_date, content_json: json(d.content_json, {}) })));
+      const content = { weekStart, weekEnd, note: `基于 ${dailies.length} 份日报汇总`, ...result, sourceHash: task.input_hash };
+      db().prepare("INSERT INTO weekly_reports(id,week_start,week_end,content_json,generated_at) VALUES(?,?,?,?,?) ON CONFLICT(week_start) DO UPDATE SET content_json=excluded.content_json,generated_at=excluded.generated_at,week_end=excluded.week_end")
+        .run(`w${crypto.randomUUID().slice(0, 8)}`, weekStart, weekEnd, JSON.stringify(content), now().toISOString());
+      return { payload: content, sourceRefs: dailies.map((d) => `daily_report:${d.report_date}`), aiMeta: result.aiMeta || null };
+    }
     throw Object.assign(new Error(`未注册的 AI 任务：${task.kind}`), { code: "unsupported_task" });
   }
   async function pumpKind(kind) {
-    if (closed || runningKinds.has(kind)) return;
-    const task = db().prepare("SELECT * FROM ai_tasks WHERE status='queued' AND kind=? ORDER BY priority DESC, created_at ASC LIMIT 1").get(kind);
+    if (closed || runningKinds.has(kind) || runningKinds.size >= concurrency) return;
+    const task = db().prepare("SELECT * FROM ai_tasks WHERE status='queued' AND kind=? AND (next_attempt_at IS NULL OR next_attempt_at<=?) ORDER BY priority DESC, created_at ASC LIMIT 1").get(kind, now().toISOString());
     if (!task) return;
     runningKinds.add(kind);
     const startedAt = now().toISOString();
@@ -231,11 +265,21 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     try {
       const output = await execute(task);
       writeArtifact({ kind: task.kind, scope: task.scope, inputHash: output.inputHash || task.input_hash, status: "ready", ...output, generatedAt: now().toISOString(), lastAttemptAt: startedAt, lastError: null });
-      db().prepare("UPDATE ai_tasks SET status='ready', finished_at=?, last_error=NULL WHERE id=?").run(now().toISOString(), task.id);
+      const usage = output.aiMeta?.usage || {};
+      db().prepare("UPDATE ai_tasks SET status='ready', finished_at=?, last_error=NULL, input_tokens=?, output_tokens=? WHERE id=?").run(now().toISOString(), usage.inputTokens ?? null, usage.outputTokens ?? null, task.id);
     } catch (error) {
       const retained = read(task.kind, task.scope);
       writeArtifact({ kind: task.kind, scope: task.scope, inputHash: task.input_hash, status: retained?.payload ? "stale" : "failed", payload: retained?.payload, sourceRefs: retained?.sourceRefs, aiMeta: retained?.aiMeta, generatedAt: retained?.generatedAt, lastAttemptAt: startedAt, lastError: error?.code || error?.message || "generation_failed" });
-      db().prepare("UPDATE ai_tasks SET status='failed', finished_at=?, last_error=? WHERE id=?").run(now().toISOString(), error?.code || error?.message || "generation_failed", task.id);
+      const message = error?.code || error?.message || "generation_failed";
+      const attempt = (task.attempts || 0) + 1;
+      if (attempt < (task.max_attempts || MAX_ATTEMPTS)) {
+        const delay = RETRY_DELAYS_MS[Math.min(attempt - 1, RETRY_DELAYS_MS.length - 1)];
+        const nextAttemptAt = new Date(Date.now() + delay).toISOString();
+        db().prepare("UPDATE ai_tasks SET status='queued', next_attempt_at=?, last_error=?, finished_at=NULL WHERE id=?").run(nextAttemptAt, message, task.id);
+        setTimeout(() => void pumpAll(), delay + 5);
+      } else {
+        db().prepare("UPDATE ai_tasks SET status='failed', finished_at=?, last_error=?, next_attempt_at=NULL WHERE id=?").run(now().toISOString(), message, task.id);
+      }
     } finally { runningKinds.delete(kind); queueMicrotask(() => void pumpAll()); }
   }
   function pumpAll() {
@@ -243,13 +287,13 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     const kinds = db().prepare("SELECT DISTINCT kind FROM ai_tasks WHERE status='queued'").all().map((row) => row.kind);
     for (const kind of kinds) void pumpKind(kind);
   }
-  function dashboardArtifact(date, { force = false, trigger = "view" } = {}) {
+  function dashboardArtifact(date, { force = false, trigger = "view", enqueueTask = true } = {}) {
     const context = dashboardSummary(db(), date);
     const current = read("dashboard.suggestion", date);
     // 适配器规则变化时，旧缓存不能永久遮蔽新路由；版本串入去重键只触发一次迁移。
     const inputHash = `${context.dashboard.inputHash}:${DASHBOARD_ARTIFACT_VERSION}`;
     const same = current?.inputHash === inputHash;
-    if (!same || force || current?.status === "failed") enqueue({ kind: "dashboard.suggestion", scope: date, inputHash, trigger, force });
+    if (enqueueTask && (!same || force || current?.status === "failed")) enqueue({ kind: "dashboard.suggestion", scope: date, inputHash, trigger, force });
     const artifact = read("dashboard.suggestion", date);
     const text = artifact?.payload?.text || fallbackSuggestion(context.summary);
     return { ...artifact, kind: "dashboard.suggestion", scope: date, inputHash, status: artifact?.status || "queued", payload: { text }, sourceRefs: artifact?.sourceRefs?.length ? artifact.sourceRefs : context.sourceRefs, ruleFallback: !artifact?.payload?.text };
@@ -277,12 +321,31 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
     const samples = completed.map((row) => Date.parse(row.finished_at) - Date.parse(row.started_at)).filter((value) => Number.isFinite(value));
     const recentFailure = db().prepare("SELECT kind, scope, last_error, finished_at FROM ai_tasks WHERE status='failed' ORDER BY finished_at DESC LIMIT 1").get();
     const recentSuccess = db().prepare("SELECT kind, scope, finished_at FROM ai_tasks WHERE status='ready' ORDER BY finished_at DESC LIMIT 1").get();
-    return { queued: byStatus.queued || 0, running: byStatus.running || 0, failed: byStatus.failed || 0, ready: byStatus.ready || 0, averageDurationMs: samples.length ? Math.round(samples.reduce((a, b) => a + b, 0) / samples.length) : null, recentFailure: recentFailure || null, recentSuccess: recentSuccess || null };
+    const dayStart = `${now().toISOString().slice(0, 10)}T00:00:00.000Z`;
+    const createdToday = db().prepare("SELECT COUNT(*) count FROM ai_tasks WHERE created_at>=?").get(dayStart)?.count || 0;
+    const usage = db().prepare("SELECT COALESCE(SUM(input_tokens),0) inputTokens, COALESCE(SUM(output_tokens),0) outputTokens FROM ai_tasks").get();
+    return { queued: byStatus.queued || 0, running: byStatus.running || 0, failed: byStatus.failed || 0, ready: byStatus.ready || 0, createdToday, dedupHits, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, totalTokens: usage.inputTokens + usage.outputTokens, averageDurationMs: samples.length ? Math.round(samples.reduce((a, b) => a + b, 0) / samples.length) : null, recentFailure: recentFailure || null, recentSuccess: recentSuccess || null };
+  }
+  async function wait(taskId, timeoutMs = 120000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const task = db().prepare("SELECT status,last_error FROM ai_tasks WHERE id=?").get(taskId);
+      if (!task || task.status === "ready") return task;
+      if (task.status === "failed") throw Object.assign(new Error(task.last_error || "AI 任务失败"), { code: task.last_error || "generation_failed" });
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    throw Object.assign(new Error("AI 任务等待超时"), { code: "ai_task_timeout" });
   }
   function start() {
     // Running tasks were interrupted by a prior process; retry them after restart.
     db().prepare("UPDATE ai_tasks SET status='queued', started_at=NULL WHERE status='running'").run();
     void pumpAll();
   }
-  return { start, close() { closed = true; }, read, enqueue, dashboardArtifact, teamAnalysisArtifact, dingtalkChatMessagesArtifact, stats, priority: PRIORITY, aiService };
+  async function classifyEmail(message) {
+    const inputHash = crypto.createHash("sha256").update(JSON.stringify([message.id, message.internetMessageId, message.subject, message.receivedDateTime, message.body?.content || ""])).digest("hex");
+    const queued = enqueue({ kind: "email.classify", scope: String(message.id), inputHash, trigger: "manual", priority: PRIORITY["email.classify"], payload: message });
+    if (queued.task) await wait(queued.task.id);
+    return read("email.classify", String(message.id))?.payload || null;
+  }
+  return { start, close() { closed = true; }, read, enqueue, wait, classifyEmail, dashboardArtifact, teamAnalysisArtifact, dingtalkChatMessagesArtifact, stats, priority: PRIORITY, aiService };
 }

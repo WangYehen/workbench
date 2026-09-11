@@ -93,7 +93,7 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
       let syncedReportDates = [];
       let syncedChatMessageIds = [];
       if (source === "outlook") {
-        const result = await outlookService.sync();
+        const result = await outlookService.sync({ allowAi: trigger === "manual" });
         await mirrorEmails(outlookService);
         recordCount = result?.classified ?? result?.inspected ?? 0;
       } else if (source === "dingtalk") {
@@ -122,7 +122,8 @@ export function createSyncCoordinator({ outlookService, aiScheduler = null, now 
         // 否则会留下同步阶段生成的原始摘要，无法被 AI 结果覆盖。
         for (const reportDate of syncedReportDates) aiScheduler?.teamAnalysisArtifact(reportDate, { trigger: "sync:dingtalk", force: trigger === "manual" });
       }
-      if (source === "dingtalk_chat" && syncedChatMessageIds.length) {
+      // 普通后台同步只入库；AI 研判必须由用户主动点击“同步并研判”触发。
+      if (source === "dingtalk_chat" && trigger === "manual" && syncedChatMessageIds.length) {
         aiScheduler?.dingtalkChatMessagesArtifact(syncedChatMessageIds, { trigger: "sync:dingtalk_chat", force: trigger === "manual" });
       }
       return { source, ...state };

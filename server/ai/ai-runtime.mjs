@@ -508,6 +508,14 @@ function configuredApi(runtimeConfig, provider) {
   return Boolean(runtimeConfig.ai[provider]?.apiKey);
 }
 
+function usageOf(payload) {
+  const usage = payload?.usage;
+  if (!usage || typeof usage !== "object") return null;
+  const input = Number(usage.prompt_tokens ?? usage.input_tokens);
+  const output = Number(usage.completion_tokens ?? usage.output_tokens);
+  return { inputTokens: Number.isFinite(input) ? input : null, outputTokens: Number.isFinite(output) ? output : null, totalTokens: Number.isFinite(Number(usage.total_tokens)) ? Number(usage.total_tokens) : null };
+}
+
 async function callApi(runtimeConfig, provider, request) {
   const c = runtimeConfig.ai[provider];
   const controller = new AbortController();
@@ -529,7 +537,7 @@ async function callApi(runtimeConfig, provider, request) {
       const text = await response.text();
       if (!response.ok) throw new AiProviderError(response.status === 429 ? "quota" : "provider_http", `${provider} HTTP ${response.status}：${text.slice(0, 240)}`);
       const payload = JSON.parse(text);
-      return parseJsonContent(payload?.choices?.[0]?.message?.content);
+      return Object.assign(parseJsonContent(payload?.choices?.[0]?.message?.content), { usage: usageOf(payload) });
     }
     if (provider === "claude") {
       const response = await fetch(`${c.baseUrl.replace(/\/$/, "")}/v1/messages`, {
@@ -547,7 +555,7 @@ async function callApi(runtimeConfig, provider, request) {
       const text = await response.text();
       if (!response.ok) throw new AiProviderError(response.status === 429 ? "quota" : "provider_http", `claude HTTP ${response.status}：${text.slice(0, 240)}`);
       const payload = JSON.parse(text);
-      return parseJsonContent(payload?.content?.[0]?.text);
+      return Object.assign(parseJsonContent(payload?.content?.[0]?.text), { usage: usageOf(payload) });
     }
     if (provider === "ollama") {
       const response = await fetch(`${c.baseUrl.replace(/\/$/, "")}/api/chat`, {
@@ -564,7 +572,7 @@ async function callApi(runtimeConfig, provider, request) {
       const text = await response.text();
       if (!response.ok) throw new AiProviderError("provider_http", `ollama HTTP ${response.status}：${text.slice(0, 240)}`);
       const payload = JSON.parse(text);
-      return parseJsonContent(payload?.message?.content);
+      return Object.assign(parseJsonContent(payload?.message?.content), { usage: usageOf(payload) });
     }
     throw new AiProviderError("not_configured", `未知 AI 来源 ${provider}`);
   } catch (error) {

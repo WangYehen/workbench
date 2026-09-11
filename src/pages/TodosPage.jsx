@@ -17,6 +17,7 @@ import { DatePicker } from "../components/DatePicker";
 import { api } from "../api.js";
 import { PriorityBadge } from "../components/PriorityBadge";
 import { DeleteButton } from "../components/DeleteButton";
+import EmptyState from "../components/EmptyState.jsx";
 
 // 优先级配置（统一语义）
 const PRIORITY_OPTIONS = [
@@ -403,9 +404,11 @@ export default function TodosPage() {
         </div>
 
         {totalShown === 0 && (
-          <div className="empty">
-            {statusFilter === "done" ? "还没有已完成的待办。" : priorityFilter !== "all" ? `当前筛选下没有 ${priorityFilter} 待办。` : "还没有待办，添加一条吧"}
-          </div>
+          <EmptyState
+            icon={IconListCheck}
+            minHeight={220}
+            title={statusFilter === "done" ? "暂无已完成的待办" : priorityFilter !== "all" ? `当前筛选下暂无 ${priorityFilter} 待办` : "暂无待办事项"}
+          />
         )}
 
         {visibleSections.map((section) => {

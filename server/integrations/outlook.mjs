@@ -276,6 +276,7 @@ export function createOutlookService({
   stateDirectory = path.resolve(".local/outlook"),
   fetchImpl = fetch,
   aiService = null,
+  taskScheduler = null,
   now = () => new Date(),
   syncIntervalMs = SYNC_INTERVAL_MS,
 } = {}) {
@@ -388,11 +389,12 @@ export function createOutlookService({
         confidence: 0, summary: message.subject || "邮件等待人工确认",
       });
     }
-    const result = await aiService.classifyOutlookEmail({
+    const request = {
       subject: message.subject,
       sender: message.from?.emailAddress?.name || message.from?.emailAddress?.address,
       text,
-    });
+    };
+    const result = taskScheduler?.classifyEmail ? await taskScheduler.classifyEmail({ id: message.id, internetMessageId: message.internetMessageId, subject: request.subject, from: message.from, receivedDateTime: message.receivedDateTime, body: { content: text } }) : await aiService.classifyOutlookEmail(request);
     return normalizeClassification(result);
   }
 
@@ -424,7 +426,7 @@ export function createOutlookService({
     };
   }
 
-  async function runSync() {
+  async function runSync({ allowAi = true } = {}) {
     requireConfigured();
     const state = await readState();
     if (!state.consent?.acceptedAt || state.consent?.provider !== config.modelProvider) {
@@ -472,7 +474,11 @@ export function createOutlookService({
             (!prior && message.internetMessageId && knownInternetIds.has(message.internetMessageId))
           ) continue;
           try {
-            const result = await classify(message);
+            const result = allowAi ? await classify(message) : {
+              queue: "uncertain", actionType: "other", actionText: "请人工确认邮件分类", dueAt: null, dueSource: "none",
+              priority: "P2", priorityReason: "后台同步未启用 AI，需人工确认", confidence: 0, summary: message.subject || "邮件等待人工确认",
+              classification: "not_actionable", intent: "unknown", urgency: "unknown",
+            };
             const saved = retainedMessage(message, result, asIso(now()));
             if (prior?.userCorrectedAt) {
               for (const key of ["queue", "actionType", "actionText", "dueAt", "dueSource", "priority", "priorityReason", "confidence", "classification", "intent", "urgency"]) saved[key] = prior[key];
@@ -676,13 +682,13 @@ export function createOutlookService({
       }
       return { pending: false, ...publicStatus(await readState(), config) };
     },
-    async sync() {
+    async sync(options = {}) {
       // 如果上一次同步正在进行，等待它完成后再执行新的同步
       if (activeSync) {
         console.log("[outlook] 上一次同步正在进行，等待完成...");
         await activeSync;
       }
-      activeSync = runSync().finally(() => { activeSync = null; });
+      activeSync = runSync(options).finally(() => { activeSync = null; });
       return activeSync;
     },
     async list(kind = "todos", { q = "", limit = 10, offset = 0 } = {}) {
@@ -748,7 +754,7 @@ export function createOutlookService({
       console.log(`[outlook] 自动同步已启动，间隔 ${syncIntervalMs / 60000} 分钟`);
       scheduler = setInterval(() => {
         console.log("[outlook] 定时同步触发");
-        void this.sync()
+        void this.sync({ allowAi: false })
           .then((result) => {
             if (result) {
               console.log(`[outlook] 同步完成，检查了 ${result.inspected || 0} 封，分类了 ${result.classified || 0} 封`);

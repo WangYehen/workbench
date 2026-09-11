@@ -1,12 +1,17 @@
 import express from "express";
+import crypto from "node:crypto";
 import { getDb } from "../db.mjs";
 import { ai } from "../ai/ai.mjs";
 import { resolveDateKey } from "../core/local-date.mjs";
-import { buildDashboard } from "../domains/workbench-domain.mjs";
+import { buildDailyReportContent, mergeDailyContent } from "../domains/daily-report.mjs";
 
 const router = express.Router();
+let aiScheduler = null;
+
+export function configureReportsAiScheduler(scheduler) { aiScheduler = scheduler; }
 
 function safeJson(v, fb) { try { return JSON.parse(v); } catch { return fb; } }
+function contentHash(value) { return crypto.createHash("sha256").update(JSON.stringify(value)).digest("hex"); }
 
 // 解析 content_json 为结构化 contents 数组，兼容新旧两种格式
 // 新格式：[{sort, type, key, value}] - 钉钉 API 原始结构
@@ -136,35 +141,32 @@ router.get("/dingtalk", (req, res) => {
 router.post("/daily/generate", async (req, res) => {
   const db = getDb();
   let date; try { date = resolveDateKey(req.body.date); } catch (error) { return res.status(400).json({ error: error.message }); }
-  const dashboard = buildDashboard(db, date);
-  const emails = db.prepare("SELECT COUNT(*) c FROM emails WHERE needs_action=1 AND date(received_at)=? AND source='outlook'").get(date).c;
-  const todos = db.prepare("SELECT COUNT(*) c FROM todos WHERE status!='done' AND due_date=?").get(date).c;
-  const reports = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=?").all(date);
-  const blockers = reports.flatMap((r) => safeJson(r.blockers, []));
-  const reviews = reports.flatMap((r) => safeJson(r.needs_review, []));
-  const content = {
-    date,
-    pendingEmails: emails,
-    openTodos: todos,
-    teamBlockers: blockers,
-    needManagerReview: reviews,
-    summary: `今日需处理邮件 ${emails} 封，待办 ${todos} 项，团队阻塞 ${blockers.length} 项，需主管审核 ${reviews.length} 项。`,
-    inputHash: dashboard.inputHash,
-    sourceRefs: dashboard.attention.map((item) => item.sourceRef),
-    generatedAt: new Date().toISOString(),
-  };
-  let narrative = "";
-  if (ai.available()) {
+  // 先取既有日报：生成时保留人工录入的 manual.decisions / notes，绝不覆盖。
+  const existingRow = db.prepare("SELECT content_json FROM daily_reports WHERE report_date=?").get(date);
+  const existing = existingRow ? safeJson(existingRow.content_json, {}) : {};
+  const content = buildDailyReportContent(db, date, existing);
+  const sourceHash = contentHash({ ...content, narrative: undefined, aiMeta: undefined, generatedAt: undefined, sourceHash: undefined });
+  if (aiScheduler) {
+    try {
+      const queued = aiScheduler.enqueue({ kind: "report.daily", scope: date, inputHash: sourceHash, trigger: "manual", force: req.body?.force === true });
+      if (queued.task) await aiScheduler.wait(queued.task.id);
+      const latest = db.prepare("SELECT content_json FROM daily_reports WHERE report_date=?").get(date);
+      return res.json({ ok: true, content: safeJson(latest?.content_json, content) });
+    } catch (error) { return res.status(500).json({ error: error.message, code: error.code }); }
+  }
+  const cached = existing.sourceHash === sourceHash && existing.narrative;
+  if (!cached && ai.available()) {
     try {
       const r = await ai.weeklySummary([{ report_date: date, content_json: JSON.stringify(content) }]);
-      narrative = r.narrative || "";
-      content.narrative = narrative;
+      content.narrative = r.narrative || "";
       content.aiMeta = r.aiMeta || null;
     } catch { /* 忽略 AI */ }
   }
+  content.sourceHash = sourceHash;
+  const generatedAt = content.generatedAt || new Date().toISOString();
   db.prepare(
     "INSERT INTO daily_reports(id, report_date, content_json, generated_at) VALUES(?,?,?,?) ON CONFLICT(report_date) DO UPDATE SET content_json=excluded.content_json, generated_at=excluded.generated_at",
-  ).run("d" + Math.random().toString(36).slice(2, 10), date, JSON.stringify(content), new Date().toISOString());
+  ).run("d" + Math.random().toString(36).slice(2, 10), date, JSON.stringify(content), generatedAt);
   res.json({ ok: true, content });
 });
 
@@ -176,7 +178,8 @@ router.put("/daily", (req, res) => {
   if (!row) return res.status(404).json({ error: "该日期日报不存在，请先生成" });
   const base = safeJson(row.content_json, {});
   const patch = req.body.content && typeof req.body.content === "object" ? req.body.content : {};
-  const content = { ...base, ...patch };
+  // sections / manual 做一层深合并，避免前端只提交部分字段时抹掉其余内容。
+  const content = mergeDailyContent(base, patch);
   db.prepare("UPDATE daily_reports SET content_json=? WHERE report_date=?").run(JSON.stringify(content), date);
   res.json({ ok: true, report: { ...row, content_json: content } });
 });
@@ -192,10 +195,23 @@ router.post("/weekly/generate", async (req, res) => {
   const db = getDb();
   const { weekStart, weekEnd } = req.body;
   const dailies = db.prepare("SELECT * FROM daily_reports WHERE report_date>=? AND report_date<=? ORDER BY report_date").all(weekStart, weekEnd);
+  const sourceHash = contentHash({ weekStart, weekEnd, dailies: dailies.map((d) => ({ report_date: d.report_date, content_json: safeJson(d.content_json, {}) })) });
+  const existingRow = db.prepare("SELECT content_json FROM weekly_reports WHERE week_start=?").get(weekStart);
+  const existing = existingRow ? safeJson(existingRow.content_json, {}) : {};
+  if (aiScheduler) {
+    try {
+      const queued = aiScheduler.enqueue({ kind: "report.weekly", scope: `${weekStart}..${weekEnd}`, inputHash: sourceHash, trigger: "manual", force: req.body?.force === true });
+      if (queued.task) await aiScheduler.wait(queued.task.id);
+      const latest = db.prepare("SELECT content_json FROM weekly_reports WHERE week_start=?").get(weekStart);
+      return res.json({ ok: true, content: safeJson(latest?.content_json, { weekStart, weekEnd }) });
+    } catch (error) { return res.status(500).json({ error: error.message, code: error.code }); }
+  }
   let content = { weekStart, weekEnd, note: `基于 ${dailies.length} 份日报汇总` };
   // 统一交给 AI 适配层决定路由与本地兜底；不要在路由层提前跳过，
   // 否则 OpenCode/Codex 智能路由下会误显示“未配置 AI”。
-  if (dailies.length) {
+  if (existing.sourceHash === sourceHash && existing.narrative) {
+    content = existing;
+  } else if (dailies.length) {
     try {
       const r = await ai.weeklySummary(dailies.map((d) => ({ report_date: d.report_date, content_json: safeJson(d.content_json, {}) })));
       content = { ...content, ...r };
@@ -203,6 +219,7 @@ router.post("/weekly/generate", async (req, res) => {
       content = { ...content, aiMeta: { provider: "local", fallbackUsed: true, error: error?.code || "generation_failed" }, narrative: `已基于 ${dailies.length} 份日报生成本地汇总。` };
     }
   }
+  content.sourceHash = sourceHash;
   db.prepare(
     "INSERT INTO weekly_reports(id, week_start, week_end, content_json, generated_at) VALUES(?,?,?,?,?) ON CONFLICT(week_start) DO UPDATE SET content_json=excluded.content_json, generated_at=excluded.generated_at, week_end=excluded.week_end",
   ).run("w" + Math.random().toString(36).slice(2, 10), weekStart, weekEnd, JSON.stringify(content), new Date().toISOString());

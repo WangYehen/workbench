@@ -345,6 +345,17 @@ function migrate(d) {
     }
   }
 
+  // 020：AI Task 失败重试窗口（最多 3 次，指数退避）
+  const aiTaskCols = d.prepare("PRAGMA table_info(ai_tasks)").all().map((c) => c.name);
+  if (!aiTaskCols.includes("next_attempt_at")) d.exec("ALTER TABLE ai_tasks ADD COLUMN next_attempt_at TEXT");
+  if (!aiTaskCols.includes("max_attempts")) d.exec("ALTER TABLE ai_tasks ADD COLUMN max_attempts INTEGER NOT NULL DEFAULT 3");
+  if (!aiTaskCols.includes("payload_json")) d.exec("ALTER TABLE ai_tasks ADD COLUMN payload_json TEXT");
+  if (!aiTaskCols.includes("input_tokens")) d.exec("ALTER TABLE ai_tasks ADD COLUMN input_tokens INTEGER");
+  if (!aiTaskCols.includes("output_tokens")) d.exec("ALTER TABLE ai_tasks ADD COLUMN output_tokens INTEGER");
+  if (!aiTaskCols.includes("prompt_version")) d.exec("ALTER TABLE ai_tasks ADD COLUMN prompt_version TEXT");
+  const aiArtifactCols = d.prepare("PRAGMA table_info(ai_artifacts)").all().map((item) => item.name);
+  if (!aiArtifactCols.includes("prompt_version")) d.exec("ALTER TABLE ai_artifacts ADD COLUMN prompt_version TEXT");
+
   // 005：projects 表补 progress 列（已有库向后兼容）
   const projCols = d.prepare("PRAGMA table_info(projects)").all().map((c) => c.name);
   if (!projCols.includes("progress")) {

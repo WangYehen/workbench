@@ -92,3 +92,37 @@ AI 无法判断、上下文不足或生成失败时，不创建待办，提示�
 - 待办草稿包含标题、说明、优先级、截止时间和依据，用户编辑后可正确创建。
 - 自动建待办与人工确认建待办不会重复。
 - 已处理会话从左侧目录隐藏；目录数量、筛选数量与中间列表一致。
+
+## 7. 当前代码级 AI 调用审计（精确链路）
+
+以下清单按当前代码追踪结果编写，术语中的 Producer/Queue/Consumer 指工作台现有的本地持久化 AI 队列；当前没有独立消息队列服务。
+
+### 7.1 钉钉消息自动研判：异步队列主链路
+
+| 页面 | API | Producer | Queue | Consumer | 实际 AI 调用与产物 |
+|---|---|---|---|---|---|
+| 行动中心 → 钉钉消息（`src/pages/ActionsPage.jsx` → `src/pages/DingtalkMessagesPage.jsx`）点击“同步并研判” | `POST /api/sync/run`，body `{ date, sources: ["dingtalk_chat"] }`；前端封装：`workbenchApi.syncRun()` | `server/core/sync-coordinator.mjs` 的 `runSource("dingtalk_chat")` 调 `dingtalkChatService.sync()`；同步完成后将新增消息与可重试消息交给 `aiScheduler.dingtalkChatMessagesArtifact(ids, { trigger: "sync" })` | SQLite `ai_tasks`：`kind=dingtalk.message.classify`、`scope=message.id`、`input_hash` 去重；同时写 `ai_artifacts` 状态 `queued/running/ready/failed/stale` | `server/ai/ai-scheduler.mjs` 的 `pumpAll()` → `pumpKind("dingtalk.message.classify")` → `execute(task)`；进程启动时 `start()` 会把中断中的 `running` 任务恢复为 `queued` | 先过滤短确认/寒暄；否则调用 `aiService.analyzeDingtalkMessage()`，写入 `dingtalk_message_analysis`，更新消息 `processing_status`，并对行动/项目动态持久化 `work_signals` 与证据 |
+
+入队条件由 `dingtalkChatMessagesArtifact()` 实施：仅入站消息、非上下文消息；群聊必须是 `mentioned_me` 或 `mention_scope=all`。群聊 Consumer 使用 `context_root_id` 对应的根消息及其上下文；单聊使用同会话按所选消息时间最近的最多 21 条消息。群聊上下文不会单独入队。
+
+### 7.2 行动中心读取与用户操作链路
+
+| 页面 | API | Producer | Queue | Consumer | 结果 |
+|---|---|---|---|---|---|
+| 钉钉消息列表/筛选 | `GET /api/dingtalk-chat/inbox` | 无 | 无 | 无 | `dingtalkChatService.inbox()` 直接读取消息分析、信号和待办关联后的本地数据 |
+| 选择消息查看详情 | `GET /api/dingtalk-chat/messages/:id`；信号项另走 `GET /api/dingtalk-chat/signals/:id` | 无 | 无 | 无 | 直接读取消息、AI 分析、上下文/证据 |
+| 点击“转为待办”（消息项） | `POST /api/dingtalk-chat/messages/:id/task` | 无 | 无 | 无 | `createTodo()` 同步写 `todos`，按 `source_type=dingtalk_message + source_id` 幂等；不调用 AI |
+| 点击“生成待办草稿” | `POST /api/dingtalk-chat/messages/:id/draft` | 路由直接调用 `dingtalkChatService.generateTodoDraft()` | **绕过 `ai_tasks` 本地队列，为同步直连调用** | 无 Queue Consumer；HTTP 请求内直接执行 | 若已有 `draft_generated_at` 且有标题则返回缓存，否则再次调用 `aiService.analyzeDingtalkMessage()`，写回 `dingtalk_message_analysis` |
+| 编辑并确认待办草稿 | `POST /api/dingtalk-chat/messages/:id/draft/confirm` | 无 | 无 | 无 | `confirmTodoDraft()` 同步写入/更新草稿和 `todos`；同一消息只创建一个待办，消息置为 `task_created` |
+| 信号项确认创建待办 | `POST /api/dingtalk-chat/signals/:id/draft/confirm` | 无 | 无 | 无 | `confirmSignalDraft()` 直接写待办及信号状态；不新增 AI 调用 |
+
+### 7.3 当前项目中可见但不属于钉钉消息行动箱主链路的 AI 队列任务
+
+同一个 `ai_tasks` Queue/Consumer 还处理 `dashboard.suggestion`（概览页工作建议）和 `team.analysis`（团队日志分析）。它们分别由 `system.js` 的概览建议读取/刷新、以及团队日志同步后的 `aiScheduler.teamAnalysisArtifact()` 产生；不应计入钉钉个人消息行动箱的消息研判调用数。
+
+### 7.4 Producer → Queue → Consumer 结论
+
+- 钉钉消息自动研判的唯一异步 Producer 是同步完成后的 `dingtalkChatMessagesArtifact()`；Queue 是 SQLite `ai_tasks`，Consumer 是 `ai-scheduler` 的按 kind 单并发 lane。
+- 页面打开、列表读取、详情读取、状态更新和直接转待办均不触发 AI。
+- “生成待办草稿”是当前唯一面向行动箱页面、但绕过 Queue 的 AI 调用；它可能与自动研判重复调用，虽有 `draft_generated_at` 缓存，但没有复用 `ai_tasks` 的任务结果。
+- AI Provider 的实际选择统一经过 `server/ai/ai.mjs` 的 `execute()` 和 `routeFor()`；按配置可走 OpenCode、Codex、DeepSeek、OpenAI、Claude、Ollama 或本地 fallback。每次成功分析通过 `aiMeta` 记录 provider、model、失败尝试和耗时。

@@ -58,7 +58,8 @@ router.get("/overview", (req, res) => {
 router.get("/overview/suggestion", (req, res) => {
   let date;
   try { date = resolveDateKey(req.query.date); } catch (error) { return res.status(400).json({ error: error.message }); }
-  const artifact = aiScheduler.dashboardArtifact(date, { force: req.query.force === "1", trigger: req.query.force === "1" ? "manual" : "view" });
+  const force = req.query.force === "1";
+  const artifact = aiScheduler.dashboardArtifact(date, { force, enqueueTask: force, trigger: force ? "manual" : "view" });
   res.json({
     suggestion: artifact.payload.text, artifact, cached: artifact.status === "ready", date,
     inputHash: artifact.inputHash, sourceRefs: artifact.sourceRefs, generatedAt: artifact.generatedAt, aiMeta: artifact.aiMeta || null,
@@ -68,7 +69,7 @@ router.get("/overview/suggestion", (req, res) => {
 router.get("/ai/artifacts", (req, res) => {
   const { kind, scope } = req.query;
   if (!kind || !scope) return res.status(400).json({ error: "kind 和 scope 为必填项" });
-  const artifact = kind === "dashboard.suggestion" ? aiScheduler.dashboardArtifact(scope) : aiScheduler.read(kind, scope);
+  const artifact = kind === "dashboard.suggestion" ? aiScheduler.dashboardArtifact(scope, { enqueueTask: false }) : aiScheduler.read(kind, scope);
   res.json({ artifact });
 });
 

@@ -279,6 +279,7 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
             providerFailures: attempts,
             fallbackUsed: attempts.length > 0,
             durationMs: Date.now() - startedAt,
+            usage: result.data?.usage || null,
             generatedAt: now().toISOString(),
           },
         };

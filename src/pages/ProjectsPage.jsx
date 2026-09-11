@@ -5,6 +5,7 @@ import { DeleteButton } from "../components/DeleteButton";
 import { api } from "../api.js";
 import { StatusPill } from "../lib/project-status.jsx";
 import { DatePicker } from "../components/DatePicker.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import "./ProjectsPage.css";
 
 const PHASE_ORDER = ["需求评审", "产品设计", "开发", "测试", "上线"];
@@ -16,7 +17,7 @@ function fmtMD(d) {
 
 function Roadmap({ projects }) {
   const allPhases = projects.flatMap((p) => p.phases || []);
-  if (!allPhases.length) return <div className="empty">还没有项目时间线，先在下方添加项目与阶段</div>;
+  if (!allPhases.length) return <EmptyState icon={IconRoute} title="暂无项目时间线" description="先在下方添加项目与阶段" minHeight={200} />;
 
   // 时间范围（用时间戳计算，避免 Date 被 Math.min 转成数字后丢失方法）
   const times = allPhases.flatMap((p) => [
