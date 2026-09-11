@@ -2,10 +2,22 @@ import crypto from "node:crypto";
 import { getDb } from "../db.mjs";
 import { ai as defaultAi } from "../ai/ai.mjs";
 import { createDwsAgentTools } from "./dws-agent-tools.mjs";
+import { localDateString } from "../core/local-date.mjs";
 
 const parse = (value, fallback = null) => { try { return JSON.parse(value); } catch { return fallback; } };
 const shortTitle = (text) => String(text || "新对话").replace(/\s+/g, " ").trim().slice(0, 32) || "新对话";
 const hash = (value) => crypto.createHash("sha256").update(String(value)).digest("hex");
+const relativeDate = (value, now) => {
+  const day = localDateString(now);
+  if (value === "today") return day;
+  if (value === "yesterday") {
+    const date = new Date(`${day}T00:00:00+08:00`);
+    date.setUTCDate(date.getUTCDate() - 1);
+    return localDateString(date);
+  }
+  return value;
+};
+const reportDate = (text, now) => relativeDate(/昨天|昨日|前一天/.test(String(text)) ? "yesterday" : /上周五/.test(String(text)) ? "previous_friday" : "today", now);
 
 export function createDwsAgentService({ database = getDb, aiService = defaultAi, agentRuntime = null, dwsClient, dashboard = null, now = () => new Date() } = {}) {
   const tools = createDwsAgentTools({ database, dwsClient, dashboard });
@@ -49,10 +61,10 @@ export function createDwsAgentService({ database = getDb, aiService = defaultAi,
         ? { kind: "tool_call", tool: "dws.todo.related", arguments: {}, answer: "我先读取与你相关的钉钉待办。", reason: "需要查询真实待办", result_schema: "todo_list" }
         : isAgendaQuery
         ? { kind: "tool_call", tool: "dws.calendar.agenda", arguments: {}, answer: "我先读取你的钉钉日程，再整理今天需要参加的会议。", reason: "需要查询真实日程", result_schema: "calendar_agenda" }
-        : isMissingReportQuery
-          ? { kind: "tool_call", tool: "dws.report.missing", arguments: { date: /上周五/.test(String(userText)) ? "previous_friday" : "today" }, answer: "我先读取日报提交记录和团队成员名单。", reason: "需要真实日志数据", result_schema: "report_missing" }
+          : isMissingReportQuery
+            ? { kind: "tool_call", tool: "dws.report.missing", arguments: { date: reportDate(userText, now()) }, answer: "我先读取日报提交记录和团队成员名单。", reason: "需要真实日志数据。", result_schema: "report_missing" }
           : isReportQuery
-            ? { kind: "tool_call", tool: "dws.report.list", arguments: { date: /上周五/.test(String(userText)) ? "previous_friday" : "today" }, answer: "我先读取真实日报，再分析成员的卡点和协作需求。", reason: "需要真实日志数据", result_schema: "report_analysis" }
+            ? { kind: "tool_call", tool: "dws.report.list", arguments: { date: reportDate(userText, now()) }, answer: "我先读取真实日报，再分析成员的卡点和协作需求。", reason: "需要真实日志数据。", result_schema: "report_analysis" }
             : await (agentRuntime?.agentPlan || aiService.agentPlan)({ messages: planMessages, tools: tools.list(), userText: step === 0 ? userText : context }).catch(() => aiService.agentPlan({ messages: planMessages, tools: tools.list(), userText: step === 0 ? userText : context }));
       if (plan.kind === "tool_call" && plan.tool) {
         emit(onEvent, "tool_call", { tool: plan.tool, arguments: plan.arguments, reason: plan.reason });

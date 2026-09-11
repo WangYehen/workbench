@@ -178,3 +178,21 @@ test("查看今日待办固定走待办工具而不是日程工具", async () =>
   assert.doesNotMatch(result.answer, /日程/);
   db.close();
 });
+
+test("查看昨天日报使用上海时区的前一天", async () => {
+  const db = agentDb();
+  const called = [];
+  const dwsClient = {
+    async read(command) {
+      called.push(command);
+      return { data: { data: { reports: [], meta: { pagination: { endpoint_exhausted: true } } } }, ledger: { complete: true } };
+    },
+  };
+  const service = createDwsAgentService({ database: () => db, dwsClient, now: () => new Date("2026-09-11T03:00:00.000Z") });
+  const conversation = service.createConversation();
+  await service.runTurn(conversation.id, "查看昨天日报");
+
+  assert.equal(called[0][called[0].indexOf("--start") + 1], "2026-09-10T00:00:00+08:00");
+  assert.equal(called[0][called[0].indexOf("--end") + 1], "2026-09-10T23:59:59+08:00");
+  db.close();
+});

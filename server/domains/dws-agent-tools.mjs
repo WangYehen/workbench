@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { getDb } from "../db.mjs";
 import { createTodoSyncService } from "./todo-sync.mjs";
+import { localDateString } from "../core/local-date.mjs";
 
 const tools = [
   { name: "workbench.dashboard", mode: "read", description: "读取工作台今日概览" },
@@ -45,8 +46,8 @@ export function createDwsAgentTools({ database = getDb, dwsClient, dashboard = n
       return { date, items: rows.map((row) => ({ ...row, content: parse(row.content_json), blockers: parse(row.blockers), needsReview: parse(row.needs_review) })), complete: true, source: "workbench.dingtalk_reports" };
     }
     if (name === "dws.report.list") {
-      let date = String(args.date || new Date().toISOString().slice(0, 10));
-      if (date === "today") date = new Date().toISOString().slice(0, 10);
+      let date = String(args.date || localDateString());
+      if (date === "today") date = localDateString();
       if (date === "previous_friday") { const d = new Date(); const delta = (d.getUTCDay() + 2) % 7 || 7; d.setUTCDate(d.getUTCDate() - delta); date = d.toISOString().slice(0, 10); }
       const reports = []; let cursor = "0"; let complete = false; let lastLedger = null;
       for (let page = 0; page < 10; page += 1) {
