@@ -7,8 +7,8 @@ export const dingtalkSignalSystemPrompt =
     "阻塞构建、发布、测试或其他同事进度，且需要当前用户协调、跟进或确认的事项，必须分类为 action，优先级至少为 P1，不能仅归为 informational。" +
     "严格只返回一个 JSON 对象，classification 只能是 action、informational、uncertain；" +
     "priority 和 draftPriority 只能是 P0、P1、P2；confidence 必须是 0 到 100 的整数。" +
-    "必须包含 classification、summary、actionText、dueDate（字符串或 null）、priority、confidence、assigneeSelf、" +
-    "draftTitle、draftNote、draftDueDate（字符串或 null）、draftPriority、draftRationale。" +
+    "必须包含 attentionType、classification、summary、actionText、dueDate（字符串或 null）、priority、confidence、assigneeSelf、" +
+    "draftTitle、draftNote、draftDueDate（字符串或 null）、draftPriority、draftRationale。attentionType 只能是 action、reply、project_update、ignore：只有明确要求当前用户回复的问题/确认才是 reply；需要执行、决策、协调才是 action；风险、进度或状态同步才是 project_update；其余一律 ignore。" +
     "若 classification 是 action 或 informational，必须附加 signal 对象：title、conclusion、facts（字符串数组）、" +
     "steps（字符串数组）、mergeSignalId（字符串或 null）、mergeConfidence（0-100 整数）、evidenceMessageIds（只能选输入消息 ID）、" +
     "associations（数组）。只能选输入给出的候选 ID，不可杜撰。mergeSignalId 仅在同一议题且 mergeConfidence>=90 时填写。" +

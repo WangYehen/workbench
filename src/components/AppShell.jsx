@@ -2,7 +2,8 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   IconLayoutDashboard,
-  IconBolt,
+  IconListCheck,
+  IconMail,
   IconUsers,
   IconCalendarEvent,
   IconFileAnalytics,
@@ -11,6 +12,7 @@ import {
   IconSettings,
   IconMenu,
   IconCommand,
+  IconBrain,
   IconMessageCircle2,
 } from "@tabler/icons-react";
 
@@ -19,11 +21,13 @@ const NAV_GROUPS = [
     title: "工作区",
     items: [
       { to: "/", label: "今日指挥台", Icon: IconLayoutDashboard },
-      { to: "/actions", label: "行动中心", Icon: IconBolt },
-      { to: "/team", label: "团队", Icon: IconUsers },
+      { to: "/todo", label: "待办", Icon: IconListCheck },
+      { to: "/mail", label: "邮件", Icon: IconMail },
+      { to: "/dingtalk", label: "钉钉", Icon: IconMessageCircle2 },
+      { to: "/team", label: "团队日报", Icon: IconUsers },
       { to: "/calendar", label: "日历", Icon: IconCalendarEvent },
       { to: "/projects", label: "项目", Icon: IconRoute },
-      { to: "/dws", label: "DWS Agent", Icon: IconMessageCircle2 },
+      { to: "/dws", label: "DWS Agent", Icon: IconBrain },
       { to: "/reports", label: "汇报", Icon: IconFileAnalytics },
       { to: "/settings", label: "设置", Icon: IconSettings },
     ],

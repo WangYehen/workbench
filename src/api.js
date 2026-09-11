@@ -120,7 +120,13 @@ export const dingtalkChatApi = {
 };
 
 export const teamApi = {
-  dashboard: (date) => api.get(`/team/dashboard?date=${encodeURIComponent(date || todayStr())}`),
+  dashboard: (date, { historyFrom, historyThrough, historyLimit } = {}) => {
+    const params = new URLSearchParams({ date: date || todayStr() });
+    if (historyFrom) params.set("historyFrom", historyFrom);
+    if (historyThrough) params.set("historyThrough", historyThrough);
+    if (historyLimit) params.set("historyLimit", String(historyLimit));
+    return api.get(`/team/dashboard?${params}`);
+  },
   reports: (date) => api.get(`/team/reports?date=${date}`),
   reportDetails: (date) => api.get(`/reports/dingtalk?date=${date}`),
   reportDates: () => api.get("/reports/dingtalk/dates"),

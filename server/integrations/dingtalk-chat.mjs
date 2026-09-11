@@ -123,9 +123,14 @@ function extractAttachments(raw) {
   }).filter((item) => item.ref != null);
 }
 
+function cleanMessageContent(value, messageType = "") {
+  const text = String(value || "");
+  if (/\[图片消息\]\s*\([^)]*(?:mediaid|@media)[^)]*\)|(?:mediaid|@media)[=:]/i.test(text) || /^(image|picture|photo)$/i.test(String(messageType))) return "[图片]";
+  return text.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/^\s{0,3}#{1,6}\s*/gm, "").replace(/^\s*>\s?/gm, "").replace(/^\s{0,3}#{1,6}\s*/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+}
 function messageContent(raw) {
   const content = valueAt(raw, ["content", "text", "msgContent", "messageContent", "body.content"], "");
-  return typeof content === "string" ? content : JSON.stringify(content || "");
+  return cleanMessageContent(typeof content === "string" ? content : JSON.stringify(content || ""), valueAt(raw, ["msgType", "messageType", "type"], ""));
 }
 function mentionScope(raw, mentionedMe = false) {
   const text = messageContent(raw);
@@ -832,14 +837,14 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     if (q) { filters.push("(m.content LIKE ? OR m.sender_name LIKE ?)"); values.push(`%${q}%`, `%${q}%`); }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
     return db().prepare(`SELECT m.*, c.title AS conversation_title, c.type AS conversation_type, c.is_bot AS conversation_is_bot,
-      a.classification,a.summary,a.action_text,a.due_date,a.priority,a.confidence,a.assignee_self,a.todo_id,
+      a.classification,a.attention_type,a.summary,a.action_text,a.due_date,a.priority,a.confidence,a.assignee_self,a.todo_id,
       CASE WHEN c.type='private' AND m.direction='inbound' AND NOT EXISTS (
         SELECT 1 FROM dingtalk_chat_messages reply
         WHERE reply.conversation_id=m.conversation_id AND reply.direction='outbound' AND reply.sent_at>m.sent_at
       ) THEN 'reply_pending' WHEN c.type='private' AND m.direction='inbound' THEN 'replied' ELSE NULL END AS reply_state
       FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
       LEFT JOIN dingtalk_message_analysis a ON a.message_id=m.id ${where}
-      ORDER BY m.sent_at DESC LIMIT ? OFFSET ?`).all(...values, Math.min(300, Math.max(1, Number(limit) || 100)), Math.max(0, Number(offset) || 0));
+      ORDER BY m.sent_at DESC LIMIT ? OFFSET ?`).all(...values, Math.min(300, Math.max(1, Number(limit) || 100)), Math.max(0, Number(offset) || 0)).map((item) => ({ ...item, content: cleanMessageContent(item.content, item.message_type) }));
   }
 
   function countByStatus({ conversationId = null, includeBots = true } = {}) {
@@ -909,6 +914,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       FROM dingtalk_chat_messages m JOIN dingtalk_chat_conversations c ON c.id=m.conversation_id
       LEFT JOIN dingtalk_message_analysis a ON a.message_id=m.id
       WHERE c.type='private' AND m.direction='inbound' AND m.sender_id!=? AND m.context_only=0
+        AND a.attention_type='reply' AND a.assignee_self=1
         AND m.processing_status NOT IN ('ignored','processed','task_created')
         AND NOT EXISTS (SELECT 1 FROM dingtalk_chat_messages reply WHERE reply.conversation_id=m.conversation_id
           AND reply.sender_id=? AND reply.sent_at>m.sent_at)
@@ -925,7 +931,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
       JOIN dingtalk_chat_conversations c ON c.id=e.conversation_id
       JOIN work_links w ON w.source_type='dingtalk_signal' AND w.source_id=s.id AND w.target_type='project' AND w.status!='rejected' AND w.confidence>=80
       JOIN projects p ON p.id=w.target_id
-      WHERE s.state='open' AND c.type='group' AND e.mention_scope IN ('self','all')
+      WHERE s.state='open' AND s.classification='informational' AND c.type='group' AND e.mention_scope IN ('self','all')
       ORDER BY p.name,CASE s.priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 ELSE 2 END,e.sent_at DESC LIMIT 100`).all()
       .map((item) => ({ ...item, source: 'signal', kind: 'project_update' }));
     return { ready: true, managerUserId: managerId, counts: { replyPending: replyPending.length, actionRequired: actionRequired.length, projectUpdates: projectUpdates.length }, replyPending, actionRequired, projectUpdates };
@@ -934,7 +940,7 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     const item = db().prepare("SELECT * FROM work_signals WHERE id=?").get(id);
     if (!item) return null;
     const evidence = db().prepare(`SELECT e.*,m.content AS raw_content,m.id IS NOT NULL AS message_available
-      FROM work_signal_evidence e LEFT JOIN dingtalk_chat_messages m ON m.id=e.message_id WHERE e.signal_id=? ORDER BY e.sent_at`).all(id);
+      FROM work_signal_evidence e LEFT JOIN dingtalk_chat_messages m ON m.id=e.message_id WHERE e.signal_id=? ORDER BY e.sent_at`).all(id).map((item) => ({ ...item, raw_content: cleanMessageContent(item.raw_content) }));
     const links = db().prepare("SELECT * FROM work_links WHERE source_type='dingtalk_signal' AND source_id=? AND status!='rejected' ORDER BY confidence DESC").all(id);
     const todo = item.todo_id ? db().prepare("SELECT * FROM todos WHERE id=?").get(item.todo_id) : null;
     return { ...item, facts: parseJson(item.facts_json) || [], steps: parseJson(item.steps_json) || [], evidence, links, todo };
@@ -984,7 +990,8 @@ export function createDingtalkChatService({ database = getDb, executable = confi
     ).all(item.conversation_id, item.sent_at, item.id, item.conversation_id, item.sent_at, item.id);
     const links = db().prepare("SELECT * FROM work_links WHERE source_type='dingtalk_message' AND source_id=? ORDER BY confidence DESC").all(id);
     const attachments = db().prepare("SELECT * FROM dingtalk_chat_attachments WHERE message_id=? ORDER BY created_at").all(id);
-    return { ...item, context: context.length ? context : fallback, links, attachments };
+    const clean = (row) => ({ ...row, content: cleanMessageContent(row.content, row.message_type) });
+    return { ...clean(item), context: (context.length ? context : fallback).map(clean), links, attachments };
   }
 
   function setMessageStatus(id, processingStatus) {

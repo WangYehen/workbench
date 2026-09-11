@@ -1,0 +1,15 @@
+/* Shared workspace shell alignment for split first-level modules. */
+.main > .workspace-page.m2 { max-width: 1480px; margin: 0 auto; padding: 0 0 40px; background: transparent; border-radius: 0; }
+.main > .workspace-page.m2 .m2-header { align-items: flex-start; margin-bottom: 24px; }
+.main > .workspace-page.m2 .m2-header h1,
+.main > .signal-page .signal-head h1 { margin: 0 0 6px; color: var(--ink); font-size: 28px; line-height: 1.15; font-weight: 650; }
+.main > .workspace-page.m2 .m2-header p,
+.main > .signal-page .signal-head p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.55; }
+.main > .signal-page { max-width: 1480px; margin: 0 auto; }
+.main > .signal-page .signal-head { align-items: flex-start; margin-bottom: 24px; }
+@media (max-width: 760px) {
+  .main > .workspace-page.m2 { padding: 0 0 28px; }
+  .main > .workspace-page.m2 .m2-header,
+  .main > .signal-page .signal-head { margin-bottom: 20px; }
+  .main > .signal-page { margin-top: 0; }
+}

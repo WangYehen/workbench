@@ -206,6 +206,7 @@ function migrate(d) {
     CREATE TABLE IF NOT EXISTS dingtalk_message_analysis (
       message_id TEXT PRIMARY KEY REFERENCES dingtalk_chat_messages(id) ON DELETE CASCADE,
       classification TEXT NOT NULL DEFAULT 'uncertain',
+      attention_type TEXT NOT NULL DEFAULT 'ignore',
       summary TEXT,
       action_text TEXT,
       due_date TEXT,
@@ -422,6 +423,7 @@ function migrate(d) {
   // 015：钉钉消息 AI 行动箱待办草稿。分析时一并生成草稿并落库，避免反复调用 AI；
   // 用户可在右侧编辑后「确认创建待办」（按消息 ID 幂等）。
   const analysisCols = d.prepare("PRAGMA table_info(dingtalk_message_analysis)").all().map((c) => c.name);
+  if (!analysisCols.includes("attention_type")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN attention_type TEXT NOT NULL DEFAULT 'ignore'");
   if (!analysisCols.includes("draft_title")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_title TEXT");
   if (!analysisCols.includes("draft_note")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_note TEXT");
   if (!analysisCols.includes("draft_priority")) d.exec("ALTER TABLE dingtalk_message_analysis ADD COLUMN draft_priority TEXT");

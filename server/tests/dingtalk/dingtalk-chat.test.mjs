@@ -9,7 +9,7 @@ import { createDingtalkChatService } from "../../integrations/dingtalk-chat.mjs"
 const SCHEMA = `CREATE TABLE sync_state(key TEXT PRIMARY KEY,value_json TEXT);
   CREATE TABLE dingtalk_chat_conversations(id TEXT PRIMARY KEY,type TEXT,title TEXT,peer_user_id TEXT,peer_name TEXT,enabled INTEGER,retention_mode TEXT,last_message_at TEXT,sync_cursor_json TEXT,created_at TEXT,updated_at TEXT,chat_mode TEXT,is_bot INTEGER DEFAULT 0,type_known INTEGER DEFAULT 0,last_sync_json TEXT);
   CREATE TABLE dingtalk_chat_messages(id TEXT PRIMARY KEY,conversation_id TEXT,sender_id TEXT,sender_name TEXT,direction TEXT,sent_at TEXT,message_type TEXT,content TEXT,mentioned_me INTEGER,mention_scope TEXT DEFAULT 'none',context_only INTEGER,context_root_id TEXT,quoted_message_id TEXT,raw_json TEXT,archive_path TEXT,processing_status TEXT,attachment_count INTEGER DEFAULT 0,created_at TEXT,updated_at TEXT);
-  CREATE TABLE dingtalk_message_analysis(message_id TEXT PRIMARY KEY,classification TEXT,summary TEXT,action_text TEXT,due_date TEXT,priority TEXT,confidence INTEGER,assignee_self INTEGER,ai_meta_json TEXT,todo_id TEXT,draft_title TEXT,draft_note TEXT,draft_priority TEXT,draft_due_date TEXT,draft_rationale TEXT,draft_generated_at TEXT,created_at TEXT,updated_at TEXT);
+  CREATE TABLE dingtalk_message_analysis(message_id TEXT PRIMARY KEY,classification TEXT,attention_type TEXT NOT NULL DEFAULT 'ignore',summary TEXT,action_text TEXT,due_date TEXT,priority TEXT,confidence INTEGER,assignee_self INTEGER,ai_meta_json TEXT,todo_id TEXT,draft_title TEXT,draft_note TEXT,draft_priority TEXT,draft_due_date TEXT,draft_rationale TEXT,draft_generated_at TEXT,created_at TEXT,updated_at TEXT);
   CREATE TABLE work_links(id TEXT PRIMARY KEY,source_type TEXT,source_id TEXT,target_type TEXT,target_id TEXT,confidence INTEGER,reason TEXT,status TEXT,created_at TEXT,updated_at TEXT,UNIQUE(source_type,source_id,target_type,target_id));
   CREATE TABLE dingtalk_chat_attachments(id TEXT PRIMARY KEY,message_id TEXT,conversation_id TEXT,kind TEXT,name TEXT,mime_type TEXT,size_bytes INTEGER,ref_json TEXT,local_path TEXT,downloaded_at TEXT,download_error TEXT,created_at TEXT);
   CREATE TABLE todos(id TEXT PRIMARY KEY,title TEXT,note TEXT,status TEXT,priority TEXT,due_date TEXT,created_at TEXT,completed_at TEXT,source_type TEXT,source_id TEXT,project_id TEXT,assignee_id TEXT);
@@ -65,23 +65,39 @@ async function makeService(overrides = {}, nowDate = "2026-08-21T00:00:00Z", aiS
   const service = createDingtalkChatService({
     database: () => db, dataDir: folder, run: makeRun(overrides), now: () => new Date(nowDate),
     managerUserId, aiService: aiService || { async analyzeDingtalkMessage(msg) {
-      return { classification: "action", summary: "确认合同", actionText: "确认合同并按流程流转", dueDate: "2026-08-25", priority: "P1", confidence: 80, assigneeSelf: true,
+      return { attentionType: "action", classification: "action", summary: "确认合同", actionText: "确认合同并按流程流转", dueDate: "2026-08-25", priority: "P1", confidence: 80, assigneeSelf: true,
         draftTitle: "确认项目合同", draftNote: "核对合同条款并反馈", draftPriority: "P1", draftDueDate: "2026-08-25", draftRationale: "消息@我提出确认合同，属于需当前用户处理的工作事项" };
     } },
   });
   return { db, folder, service };
 }
 
-test("事项中心以配置的主管 ID 判定待回复，缺少配置时安全停用", async () => {
+test("事项中心仅将 AI 判断为需回复的私聊列入待回复，缺少配置时安全停用", async () => {
   const { db, folder, service } = await makeService({}, "2026-08-21T00:00:00Z", null, "u-me");
   await service.sync();
   assert.equal((await service.inbox()).replyPending.length, 0, "主管已回复后不应显示待回复");
   db.prepare("DELETE FROM dingtalk_chat_messages WHERE id='dm-reply'").run();
+  db.prepare("INSERT INTO dingtalk_message_analysis(message_id,classification,attention_type,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)")
+    .run("dm-message", "action", "reply", "请回复合同问题", "回复对方确认", null, "P2", 90, 1, null, null, "2026-08-21T00:00:00Z", "2026-08-21T00:00:00Z");
   const inbox = await service.inbox();
   assert.deepEqual(inbox.replyPending.map((item) => item.id), ["dm-message"]);
+  db.prepare("UPDATE dingtalk_message_analysis SET attention_type='ignore' WHERE message_id='dm-message'").run();
+  assert.equal((await service.inbox()).replyPending.length, 0, "普通私聊即使没有后续回复也不得进入待回复");
   const { db: secondDb, folder: secondFolder, service: noManager } = await makeService({}, "2026-08-21T00:00:00Z", null, null);
   assert.equal((await noManager.inbox()).ready, false);
   db.close(); secondDb.close(); await fs.rm(folder, { recursive: true, force: true }); await fs.rm(secondFolder, { recursive: true, force: true });
+});
+
+test("消息规范化隐藏图片 mediaId 并清理系统 Markdown", async () => {
+  const imageMessages = [{ messageId: "dm-image", sender: "张三", senderId: "u-zhang", createTime: "2026-08-20 08:00:00", content: "[图片消息](mediaId=@lQLP-secret)", openConversationId: "dm1", conversationId: "dm1" }];
+  const systemMessages = [{ messageId: "dm-system", sender: "审批助手", senderId: "bot", createTime: "2026-08-20 08:01:00", content: "#### 已办理\n> ###### Charles办理了审批\n[查看详情](https://example.test/secret)", openConversationId: "dm1", conversationId: "dm1" }];
+  const { db, folder, service } = await makeService({ messages: (args) => ({ messages: args.includes("dm1") ? [...imageMessages, ...systemMessages] : GROUP_MESSAGES, complete: true }) });
+  await service.sync();
+  assert.equal(service.message("dm-image").content, "[图片]");
+  assert.equal(service.message("dm-system").content, "已办理\nCharles办理了审批\n查看详情");
+  db.prepare("UPDATE dingtalk_chat_messages SET content=? WHERE id='dm-image'").run("[图片消息](mediaId=@legacy-secret)");
+  assert.equal(service.message("dm-image").content, "[图片]", "历史原始媒体 ID 在读取时也不得泄漏");
+  db.close(); await fs.rm(folder, { recursive: true, force: true });
 });
 
 test("首次同步：私聊双向、群 @我 上下文、附件元数据、机器人标记全部就位且幂等", async () => {

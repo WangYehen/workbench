@@ -177,7 +177,7 @@ const reviewSummary = z.object({ did: z.array(z.string()), learned: z.array(z.st
 const suggestion = z.object({ suggestion: z.string().min(1) });
 const draft = z.object({ body: z.string().min(1) });
 const dingtalkMessage = z.object({
-  classification: z.enum(["action", "informational", "uncertain"]), summary: z.string(), actionText: z.string(), dueDate: z.string().nullable(),
+  attentionType: z.enum(["action", "reply", "project_update", "ignore"]), classification: z.enum(["action", "informational", "uncertain"]), summary: z.string(), actionText: z.string(), dueDate: z.string().nullable(),
   priority: z.enum(["P0", "P1", "P2"]), confidence: z.number().int().min(0).max(100), assigneeSelf: z.boolean(),
   draftTitle: z.string(), draftNote: z.string(), draftDueDate: z.string().nullable(),
   draftPriority: z.enum(["P0", "P1", "P2"]), draftRationale: z.string(),
@@ -225,6 +225,7 @@ export function normalizeDingtalkMessageOutput(value) {
   const classification = { "行动请求": "action", "需处理": "action", "行动": "action", "信息": "informational", "知晓": "informational", "不确定": "uncertain" };
   const priority = { "紧急": "P0", "高": "P1", "中高": "P1", "中": "P2", "低": "P2" };
   data.classification = classification[data.classification] || data.classification;
+  data.attentionType = { "待处理": "action", "待回复": "reply", "项目动态": "project_update", "忽略": "ignore" }[data.attentionType] || data.attentionType;
   data.priority = priority[data.priority] || data.priority;
   data.draftPriority = priority[data.draftPriority] || data.draftPriority;
   if (typeof data.confidence === "number" && data.confidence >= 0 && data.confidence <= 1) data.confidence = Math.round(data.confidence * 100);
@@ -233,6 +234,7 @@ export function normalizeDingtalkMessageOutput(value) {
   data.draftDueDate ??= data.dueDate ?? null;
   data.draftPriority ??= data.priority || "P2";
   data.draftRationale ??= "根据钉钉消息生成，建议人工确认。";
+  data.attentionType ??= data.classification === "action" && data.assigneeSelf ? "action" : data.classification === "informational" ? "project_update" : "ignore";
   if (typeof data.signal === "string") {
     data.signal = { title: data.signal, conclusion: data.summary || data.signal, facts: [], steps: [], mergeSignalId: null, mergeConfidence: 0, evidenceMessageIds: [], associations: [] };
   }
@@ -376,7 +378,7 @@ export function createAiService({ runtimeConfig = config, adapters = createDefau
         user: JSON.stringify({ sender: message.sender_name, content: message.content, sentAt: message.sent_at, conversation: message.conversation_title, mentionScope: message.mention_scope, context, signalCandidates: message.signalCandidates || [], associationCandidates: message.associationCandidates || [] }),
         schema: DINGTALK_MESSAGE_SCHEMA, validator: dingtalkMessage,
         fallback: () => ({
-          classification: "uncertain", summary: message.content?.slice(0, 120) || "钉钉消息待确认", actionText: "请人工确认是否需要处理", dueDate: null, priority: "P2", confidence: 0, assigneeSelf: false,
+          attentionType: "ignore", classification: "uncertain", summary: message.content?.slice(0, 120) || "钉钉消息待确认", actionText: "请人工确认是否需要处理", dueDate: null, priority: "P2", confidence: 0, assigneeSelf: false,
           draftTitle: message.content?.slice(0, 40) || "处理钉钉消息", draftNote: message.content?.slice(0, 200) || "", draftDueDate: null, draftPriority: "P2", draftRationale: "AI 来源不可用，草稿需人工确认",
         }),
       });

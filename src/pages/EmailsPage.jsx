@@ -9,6 +9,7 @@ import { outlookApi, todayStr } from "../api.js";
 import SyncButton from "../components/SyncButton.jsx";
 import "./EmailsPage.css";
 import "./EmailsPageFixes.css";
+import "./ModuleShellTheme.css";
 
 const queues = {
   action: { label: "需要行动", empty: "没有需要你立即处理的邮件" },
@@ -156,7 +157,7 @@ export default function EmailsPage({ embedded = false, onStatusChange, onSyncRea
   if (!status.consented && status.connected) return <div className="m2 m2-setup m2-consent"><IconShieldLock size={32}/><h1>重新确认邮件隐私告知</h1><p>当前 Outlook 已连接。由于 AI 内容生成来源已切换为“{status.modelProvider || "已配置来源"}”，需要重新确认后才能继续查看和处理邮件。</p><ul><li>邮件分类与回复草稿会按当前 AI 路由策略处理；分类结果保存在本机。</li><li>应用仅使用 Mail.Read 权限，不会修改 Outlook 邮箱。</li></ul><label className="m2-consent__check"><input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} />我已了解并同意上述处理方式。</label>{error ? <div className="error">{error}</div> : null}<button className="m2-btn" type="button" disabled={!consentAccepted || pending} onClick={acceptConsent}>{pending ? "确认中…" : "确认并继续使用邮件"}</button></div>;
   if (!status.connected) return <div className="m2 m2-setup"><IconMail size={32}/><h1>连接 Outlook</h1><p>Outlook 已配置，但尚未完成授权。请前往设置完成连接。</p><button className="m2-btn" onClick={() => nav("/settings")}>前往设置</button></div>;
 
-  return <div className="m2">
+  return <div className="workspace-page m2">
     {!embedded && <header className="m2-header"><div><h1>邮件</h1><p>集中处理需要行动的邮件</p></div><div className="m2-header__actions"><span className="m2-sync"><i />已连接 · {status.lastSyncAt ? "数据已同步" : "等待同步"}</span><SyncButton className="m2-btn" onClick={sync} syncing={syncing} disabled={pending}>立即同步</SyncButton></div></header>}
     <div className="m2-kpis"><Kpi icon={<IconMail size={21}/>} label="待处理" value={totals.action} detail="需要你行动的邮件"/><Kpi icon={<IconAlertTriangle size={21}/>} label="P0 高优先级" value={high} detail="需要立即处理" tone="danger"/><Kpi icon={<IconCalendarDue size={21}/>} label="今天截止" value={today} detail={overdue ? `${overdue} 封已逾期` : "暂无逾期邮件"} tone="warn"/><Kpi icon={<IconUserQuestion size={21}/>} label="AI 待确认" value={totals.uncertain} detail="建议你确认分类" tone="purple"/></div>
     {flash && <div className="m2-flash" onAnimationEnd={() => setFlash("")}>{flash}</div>}{error && <div className="error">{error}</div>}

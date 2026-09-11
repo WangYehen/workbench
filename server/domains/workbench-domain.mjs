@@ -112,6 +112,7 @@ export function buildTeamDailyDigest(db, date, now = new Date()) {
 
 export function buildTeamPulse(db, date, now = new Date()) {
   const rows = db.prepare("SELECT * FROM dingtalk_reports WHERE report_date=? ORDER BY user_name").all(date);
+  const historicalDepartments = getHistoricalDepartments(db, date);
   const byUser = new Map();
   for (const row of rows) {
     const key = row.user_id || row.user_name;
@@ -134,6 +135,7 @@ export function buildTeamPulse(db, date, now = new Date()) {
   }
 
   const roster = getRosterBaseline(db);
+  const rosterByKey = new Map(roster.map((member) => [member.key, member]));
   const submissionWindowOpen = teamMetricDate(date, now).isFallbackDate;
   const rosterKeys = new Set(roster.map((member) => member.key));
   for (const member of roster) {
@@ -150,6 +152,7 @@ export function buildTeamPulse(db, date, now = new Date()) {
   }
   for (const [key, member] of byUser) {
     if (!rosterKeys.has(key)) rosterKeys.add(key);
+    member.dept_name = member.dept_name || rosterByKey.get(key)?.dept_name || historicalDepartments.get(key) || "";
     member.submissionState = member.submitted ? "submitted" : submissionWindowOpen ? "pending" : "missing";
     member.signalScore = member.blockers.length * 2 + member.review.length + (member.submissionState === "missing" ? 3 : 0);
   }
@@ -183,6 +186,18 @@ export function buildTeamPulse(db, date, now = new Date()) {
       attention: members.filter((member) => member.signalScore > 0).length,
     },
   };
+}
+
+function getHistoricalDepartments(db, throughDate) {
+  const rows = db.prepare(
+    "SELECT user_id, user_name, dept_name FROM dingtalk_reports WHERE report_date<=? AND TRIM(COALESCE(dept_name, ''))<>'' ORDER BY report_date DESC, created_at DESC",
+  ).all(throughDate);
+  const departments = new Map();
+  for (const row of rows) {
+    const key = row.user_id || row.user_name;
+    if (key && !departments.has(key)) departments.set(key, row.dept_name);
+  }
+  return departments;
 }
 
 export function buildAttentionItems(db, date) {
@@ -287,9 +302,12 @@ export function buildAttentionItems(db, date) {
 }
 
 export function buildDashboard(db, date, now = new Date()) {
-  const pulse = buildTeamPulse(db, date, now);
-  const teamRule = teamMetricDate(date, now);
-  const metricPulse = teamRule.date === date ? pulse : buildTeamPulse(db, teamRule.date, now);
+  const today = localDateString(now);
+  const signalDate = date === today ? teamMetricDate(today, new Date(`${today}T12:00:00+08:00`)).date : date;
+  const pulse = buildTeamPulse(db, signalDate, now);
+  const teamRule = { date: signalDate, isFallbackDate: signalDate !== date, ruleLabel: signalDate !== date ? "团队信号按昨日日报统计" : "按所选日期统计" };
+  const metricPulse = pulse;
+  const todayPulse = date === today ? buildTeamPulse(db, today, now) : null;
   const attention = buildAttentionItems(db, date);
   const projects = db.prepare("SELECT * FROM projects").all();
   const phases = db.prepare("SELECT * FROM project_phases").all();
@@ -332,6 +350,8 @@ export function buildDashboard(db, date, now = new Date()) {
         metricDate: teamRule.date,
         isFallbackDate: teamRule.isFallbackDate,
         ruleLabel: teamRule.ruleLabel,
+        signalDate,
+        todayProgress: todayPulse ? { submitted: todayPulse.submittedUnique, rosterTotal: todayPulse.rosterTotal, missing: todayPulse.missing.length } : null,
       },
       todos: {
         total: todos.length,
@@ -352,11 +372,11 @@ export function buildDashboard(db, date, now = new Date()) {
   };
 }
 
-export function buildTeamDashboard(db, date, now = new Date()) {
+export function buildTeamDashboard(db, date, now = new Date(), historyOptions = {}) {
   const digest = buildTeamDailyDigest(db, date, now);
   const pulse = buildTeamPulse(db, digest.date, now);
   const detailsByMember = new Map(digest.members.map((member) => [member.user_id, member]));
-  const history = buildMemberSubmissionHistory(db, digest.date);
+  const history = buildMemberSubmissionHistory(db, historyOptions.throughDate || digest.date, historyOptions);
   const members = pulse.members.map((member) => {
     const detail = detailsByMember.get(member.user_id);
     const submissionHistory = history.byMember.get(member.user_id) || emptyMemberHistory(history.dates.length);
@@ -397,11 +417,11 @@ function emptyMemberHistory(totalDates) {
   return { submittedCount: 0, totalDates, submissionRate: totalDates ? 0 : null, missingStreak: totalDates, submittedDates: [] };
 }
 
-function buildMemberSubmissionHistory(db, throughDate) {
+function buildMemberSubmissionHistory(db, throughDate, { fromDate = null, limit = 10 } = {}) {
   const rows = db.prepare(
-    "SELECT DISTINCT report_date, user_id, user_name FROM dingtalk_reports WHERE report_date<=? ORDER BY report_date DESC",
-  ).all(throughDate);
-  const dates = [...new Set(rows.map((row) => row.report_date))].slice(0, 10);
+    "SELECT DISTINCT report_date, user_id, user_name FROM dingtalk_reports WHERE report_date<=? AND (? IS NULL OR report_date>=?) ORDER BY report_date DESC",
+  ).all(throughDate, fromDate, fromDate);
+  const dates = [...new Set(rows.map((row) => row.report_date))].slice(0, limit || undefined);
   const selectedDates = new Set(dates);
   const byMember = new Map();
   const submittedByDate = new Map(dates.map((reportDate) => [reportDate, new Set()]));

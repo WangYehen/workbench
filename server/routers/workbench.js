@@ -17,9 +17,14 @@ export default function workbenchRouter(syncCoordinator, aiScheduler = null) {
 
   router.get("/team/dashboard", (req, res) => {
     try {
-      const dashboard = buildTeamDashboard(getDb(), resolveDateKey(req.query.date));
+      const historyFrom = req.query.historyFrom ? resolveDateKey(req.query.historyFrom) : null;
+      const historyThrough = req.query.historyThrough ? resolveDateKey(req.query.historyThrough) : null;
+      const historyLimit = req.query.historyLimit ? Number(req.query.historyLimit) : 10;
+      if (!Number.isInteger(historyLimit) || historyLimit < 1 || historyLimit > 366) throw new Error("historyLimit 必须在 1 到 366 之间");
+      if (historyFrom && historyThrough && historyFrom > historyThrough) throw new Error("historyFrom 不能晚于 historyThrough");
+const dashboard = buildTeamDashboard(getDb(), resolveDateKey(req.query.date), new Date(), { fromDate: historyFrom, throughDate: historyThrough, limit: historyLimit });
       if (dashboard.date && dashboard.analysisStatus !== "no_reports") aiScheduler?.teamAnalysisArtifact(dashboard.date, { trigger: "view:team-dashboard" });
-      res.json({ ...dashboard, freshness: syncCoordinator.statusSnapshot() });
+      res.json({ ...dashboard, freshness: syncCoordinator.statusSnapshot(), displayName: config.displayName });
     } catch (error) { res.status(400).json({ error: error.message }); }
   });
 

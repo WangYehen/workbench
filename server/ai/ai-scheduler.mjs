@@ -41,6 +41,17 @@ function associationCandidates(db) {
 function signalTitleKey(value) {
   return String(value || "").toLocaleLowerCase().replace(/[\s，。！？、,.!?:：；;（）()【】\[\]"'“”‘’]/g, "");
 }
+function signalTokens(value) {
+  const text = signalTitleKey(value);
+  const latin = text.match(/[a-z0-9]{2,}/g) || [];
+  const chinese = text.match(/[\u4e00-\u9fff]{2,}/g) || [];
+  return new Set([...latin, ...chinese.flatMap((part) => Array.from({ length: Math.max(0, part.length - 1) }, (_, i) => part.slice(i, i + 2)))]);
+}
+function isSimilarSignal(left, right) {
+  const a = signalTokens(left); const b = signalTokens(right);
+  const shared = [...a].filter((token) => b.has(token)).length;
+  return shared >= 2 && shared / Math.min(a.size || 1, b.size || 1) >= 0.5;
+}
 function persistSignal(db, message, context, result, stamp) {
   if (!result?.signal || !result.classification || result.confidence <= 0) return null;
   const candidates = new Set(signalCandidates(db).map((item) => item.id));
@@ -49,8 +60,8 @@ function persistSignal(db, message, context, result, stamp) {
   const recent = db.prepare(`SELECT s.id,s.title FROM work_signals s
     JOIN work_signal_evidence e ON e.signal_id=s.id
     WHERE e.conversation_id=? AND s.state IN ('open','waiting') AND s.updated_at>=?
-    ORDER BY s.updated_at DESC`).all(message.conversation_id, new Date(Date.parse(stamp) - 24 * 60 * 60 * 1000).toISOString());
-  const duplicate = recent.find((item) => signalTitleKey(item.title) === signalTitleKey(title));
+    ORDER BY s.updated_at DESC`).all(message.conversation_id, new Date(Date.parse(stamp) - 60 * 60 * 1000).toISOString());
+  const duplicate = recent.find((item) => signalTitleKey(item.title) === signalTitleKey(title) || isSimilarSignal(item.title, title));
   const id = requested && candidates.has(requested) && result.signal.mergeConfidence >= 90 ? requested : duplicate?.id || crypto.randomUUID();
   const existing = db.prepare("SELECT * FROM work_signals WHERE id=?").get(id);
   const signal = result.signal;
@@ -174,19 +185,20 @@ export function createAiScheduler({ database = getDb, aiService = ai, now = () =
         : db().prepare("SELECT id,sender_name,content,sent_at,mention_scope FROM dingtalk_chat_messages WHERE conversation_id=? ORDER BY ABS(strftime('%s', sent_at)-strftime('%s', ?)) LIMIT 21").all(message.conversation_id, message.sent_at);
       if (isDingtalkNoiseMessage(message.content)) {
         const stamp = now().toISOString();
-        db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,confidence=excluded.confidence,ai_meta_json=excluded.ai_meta_json,updated_at=excluded.updated_at`)
-          .run(message.id, "informational", "低价值确认或寒暄", "无需处理", null, "P2", 99, 0, JSON.stringify({ source: "noise-filter", reason: "short_acknowledgement" }), null, null, null, null, null, null, null, stamp, stamp);
+        db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,attention_type,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,attention_type=excluded.attention_type,summary=excluded.summary,action_text=excluded.action_text,confidence=excluded.confidence,ai_meta_json=excluded.ai_meta_json,updated_at=excluded.updated_at`)
+          .run(message.id, "informational", "ignore", "低价值确认或寒暄", "无需处理", null, "P2", 99, 0, JSON.stringify({ source: "noise-filter", reason: "short_acknowledgement" }), null, null, null, null, null, null, null, stamp, stamp);
         db().prepare("UPDATE dingtalk_chat_messages SET processing_status='ignored',updated_at=? WHERE id=?").run(stamp, message.id);
         return { payload: { classification: "noise", confidence: 99, todoId: null }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: { source: "noise-filter" } };
       }
       const result = await aiService.analyzeDingtalkMessage({ ...message, context, signalCandidates: signalCandidates(db()), associationCandidates: associationCandidates(db()) });
       const stamp = now().toISOString();
-      db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,summary=excluded.summary,action_text=excluded.action_text,due_date=excluded.due_date,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,draft_generated_at=excluded.draft_generated_at,updated_at=excluded.updated_at`)
-        .run(message.id, result.classification, result.summary, result.actionText, result.dueDate, result.priority, result.confidence, result.assigneeSelf ? 1 : 0, JSON.stringify(result.aiMeta || null), null,
+      db().prepare(`INSERT INTO dingtalk_message_analysis(message_id,classification,attention_type,summary,action_text,due_date,priority,confidence,assignee_self,ai_meta_json,todo_id,draft_title,draft_note,draft_priority,draft_due_date,draft_rationale,draft_generated_at,created_at,updated_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(message_id) DO UPDATE SET classification=excluded.classification,attention_type=excluded.attention_type,summary=excluded.summary,action_text=excluded.action_text,due_date=excluded.due_date,priority=excluded.priority,confidence=excluded.confidence,assignee_self=excluded.assignee_self,ai_meta_json=excluded.ai_meta_json,draft_title=excluded.draft_title,draft_note=excluded.draft_note,draft_priority=excluded.draft_priority,draft_due_date=excluded.draft_due_date,draft_rationale=excluded.draft_rationale,draft_generated_at=excluded.draft_generated_at,updated_at=excluded.updated_at`)
+        .run(message.id, result.classification, result.attentionType, result.summary, result.actionText, result.dueDate, result.priority, result.confidence, result.assigneeSelf ? 1 : 0, JSON.stringify(result.aiMeta || null), null,
           result.draftTitle || result.actionText || null, result.draftNote || null, result.draftPriority || result.priority || "P2", result.draftDueDate || null, result.draftRationale || null, stamp, stamp, stamp);
-      db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(result.classification === "action" ? "needs_confirmation" : result.classification === "informational" ? "informational" : "needs_confirmation", stamp, message.id);
+      db().prepare("UPDATE dingtalk_chat_messages SET processing_status=?,updated_at=? WHERE id=?").run(["action", "reply"].includes(result.attentionType) ? "needs_confirmation" : result.attentionType === "project_update" ? "informational" : "ignored", stamp, message.id);
+      if (["action", "project_update"].includes(result.attentionType)) persistSignal(db(), message, context, result, stamp);
       return { payload: { classification: result.classification, confidence: result.confidence }, sourceRefs: [`dingtalk_message:${message.id}`], aiMeta: result.aiMeta || null };
     }
     if (task.kind === "dashboard.suggestion") {
