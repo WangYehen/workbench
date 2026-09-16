@@ -220,6 +220,15 @@ function normalizeClassification(value) {
   return { queue, actionType, actionText, dueAt, dueSource, priority, priorityReason, confidence, summary, classification, intent, urgency };
 }
 
+function extractExplicitDueDate(text) {
+  const value = String(text || "");
+  const match = value.match(/(?:截止|完成|交付|出货|发货)[^\n。；]{0,24}?(\d{4})[年\/-](\d{1,2})[月\/-](\d{1,2})日?/i)
+    || value.match(/(\d{4})[年\/-](\d{1,2})[月\/-](\d{1,2})日?[^\n。；]{0,12}(?:前|截止)/i);
+  if (!match) return "";
+  const [, year, month, day] = match;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 export function parseClassifierResponse(content) {
   const raw = String(content || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   try {
@@ -396,7 +405,12 @@ export function createOutlookService({
       text,
     };
     const result = taskScheduler?.classifyEmail ? await taskScheduler.classifyEmail({ id: message.id, internetMessageId: message.internetMessageId, subject: request.subject, from: message.from, receivedDateTime: message.receivedDateTime, body: { content: text } }) : await aiService.classifyOutlookEmail(request);
-    return normalizeClassification(result);
+    const normalized = normalizeClassification(result);
+    if (!normalized.dueAt) {
+      const explicitDueDate = extractExplicitDueDate(text);
+      if (explicitDueDate) return { ...normalized, dueAt: explicitDueDate, dueSource: "explicit" };
+    }
+    return normalized;
   }
 
   function retainedMessage(message, result, currentTime) {
