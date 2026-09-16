@@ -14,7 +14,8 @@ const logsDir = path.join(installRoot, "logs");
 const backupsDir = path.join(installRoot, "backups");
 const pidPath = path.join(dataDir, "server.pid.json");
 const startLockPath = path.join(dataDir, "server.start.lock");
-const servicePort = Number(process.env.WORKBENCH_PORT || 8787);
+// Web 安装包直接由 Express 同时提供页面和 API；默认沿用开发环境登记的 5174 端口。
+const servicePort = Number(process.env.WORKBENCH_PORT || 5174);
 if (!Number.isInteger(servicePort) || servicePort < 1 || servicePort > 65535) throw new Error("WORKBENCH_PORT 端口配置无效。");
 const healthUrl = `http://127.0.0.1:${servicePort}/api/health`;
 const appUrl = `http://127.0.0.1:${servicePort}`;

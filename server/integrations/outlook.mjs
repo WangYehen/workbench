@@ -22,6 +22,7 @@ const SYNC_INTERVAL_MS = 15 * 60 * 1000;
 const OAUTH_SESSION_MS = 10 * 60 * 1000;
 const TOKEN_REFRESH_WINDOW_MS = 2 * 60 * 1000;
 const CLASSIFIER_VERSION = 6;
+const AI_FALLBACK_REASONS = new Set(["AI 来源不可用，需人工确认", "后台同步未启用 AI，需人工确认"]);
 const STATE_REPLACE_RETRY_DELAYS_MS = [25, 50, 100, 200, 400, 800, 1_600];
 const STATE_REPLACE_RETRY_CODES = new Set(["EACCES", "EBUSY", "EPERM"]);
 
@@ -440,7 +441,7 @@ export function createOutlookService({
     const pendingRetries = state.messages
       .filter((m) => m.status === "open" && (
         (m.classifierVersion !== CLASSIFIER_VERSION && m.processingError)
-        || m.priorityReason === "AI 来源不可用，需人工确认"
+        || AI_FALLBACK_REASONS.has(m.priorityReason)
       ))
       .map((m) => Date.parse(m.receivedAt || ""))
       .filter(Number.isFinite);
@@ -470,7 +471,7 @@ export function createOutlookService({
           if (!newest || String(message.receivedDateTime) > newest) newest = message.receivedDateTime;
           const prior = existing.get(message.id);
           if (
-            (prior && prior.status !== "retry" && prior.classifierVersion === CLASSIFIER_VERSION && prior.priorityReason !== "AI 来源不可用，需人工确认") ||
+            (prior && prior.status !== "retry" && prior.classifierVersion === CLASSIFIER_VERSION && !AI_FALLBACK_REASONS.has(prior.priorityReason)) ||
             (!prior && message.internetMessageId && knownInternetIds.has(message.internetMessageId))
           ) continue;
           try {
@@ -754,7 +755,9 @@ export function createOutlookService({
       console.log(`[outlook] 自动同步已启动，间隔 ${syncIntervalMs / 60000} 分钟`);
       scheduler = setInterval(() => {
         console.log("[outlook] 定时同步触发");
-        void this.sync({ allowAi: false })
+        // 用户已在 Outlook 页面确认隐私告知后，定时同步应沿用手动同步的 AI 分类流程；
+        // 之前固定传 false 会把后台拉取的邮件全部标为“需人工确认”。
+        void this.sync({ allowAi: true })
           .then((result) => {
             if (result) {
               console.log(`[outlook] 同步完成，检查了 ${result.inspected || 0} 封，分类了 ${result.classified || 0} 封`);

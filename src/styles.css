@@ -1060,6 +1060,9 @@ label { font-size: var(--text-meta); color: var(--ink-soft); display: block; mar
 }
 
 .sync-button__icon { animation: sync-button-spin 0.8s linear infinite; }
+/* 所有普通“刷新/检测”按钮在按下时也沿用指挥台的旋转反馈。 */
+.btn:active > svg:first-child,
+.m2-btn:active > svg:first-child { animation: sync-button-spin 0.8s linear; transform-origin: center; }
 .sync-button__dots { display: inline-flex; min-width: 0.9em; }
 .sync-button__dots span { opacity: 0.2; animation: sync-button-dot 1.2s steps(1, end) infinite; }
 .sync-button__dots span:nth-child(2) { animation-delay: 0.4s; }
